@@ -1,10 +1,5 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using System.Net.Http.Json;
 using VHS.Services.Farming.DTO;
-using VHS.Services.Farming;
-using VHS.Services.Produce.DTO;
 
 namespace VHS.Client.Services.Farming
 {
@@ -21,8 +16,11 @@ namespace VHS.Client.Services.Farming
         {
             return await _httpClient.GetFromJsonAsync<IEnumerable<FarmDTO>>("api/farm");
         }
-
-        public async Task<FarmDTO?> GetFarmByIdAsync(Guid id)
+		public async Task<IEnumerable<FarmDTO>?> GetAllFarmsSimpleAsync()
+		{
+			return await _httpClient.GetFromJsonAsync<IEnumerable<FarmDTO>>("api/farm/simple");
+		}
+		public async Task<FarmDTO?> GetFarmByIdAsync(Guid id)
         {
             return await _httpClient.GetFromJsonAsync<FarmDTO>($"api/farm/{id}");
         }
@@ -50,24 +48,35 @@ namespace VHS.Client.Services.Farming
             await _httpClient.DeleteAsync($"api/farm/{id}");
         }
 
-        public async Task<FarmAllocationPlan?> RunFarmAllocationAsync(
-            Guid farmId,
-            List<ProductCategoryBatchSizeDTO> batchSizes,
-            int totalDays,
-            int totalTraysAvailable,
-            DateTime startDate)
+        public async Task<List<LayerOccupancyDTO>?> GetLayerOccupancyAsync(Guid farmId, DateTime? asOf)
         {
-            var request = new
-            {
-                BatchSizes = batchSizes,
-                TotalDays = totalDays,
-                TotalTraysAvailable = totalTraysAvailable,
-                StartDate = startDate
-            };
-
-            var response = await _httpClient.PostAsJsonAsync($"api/farm/plan/{farmId}", request);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<FarmAllocationPlan>();
+            var date = asOf ?? DateTime.Now.Date;
+            var url = $"api/farm/{farmId}/occupancy?asOf={date:yyyy-MM-dd}";
+            return await _httpClient.GetFromJsonAsync<List<LayerOccupancyDTO>>(url);
         }
-    }
+		public async Task<List<LayerOccupancyDTO>?> GetRackOccupancyAsync(Guid farmId, Guid rackId)
+		{
+			var url = $"api/farm/{farmId}/rackoccupancy/{rackId}";
+			return await _httpClient.GetFromJsonAsync<List<LayerOccupancyDTO>>(url);
+		}
+		//public async Task<FarmAllocationPlan?> RunFarmAllocationAsync(
+		//    Guid farmId,
+		//    List<ProductCategoryBatchSizeDTO> batchSizes,
+		//    int totalDays,
+		//    int totalTraysAvailable,
+		//    DateTime startDate)
+		//{
+		//    var request = new
+		//    {
+		//        BatchSizes = batchSizes,
+		//        TotalDays = totalDays,
+		//        TotalTraysAvailable = totalTraysAvailable,
+		//        StartDate = startDate
+		//    };
+
+		//    var response = await _httpClient.PostAsJsonAsync($"api/farm/plan/{farmId}", request);
+		//    response.EnsureSuccessStatusCode();
+		//    return await response.Content.ReadFromJsonAsync<FarmAllocationPlan>();
+		//}
+	}
 }

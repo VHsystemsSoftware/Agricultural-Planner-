@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
+﻿using System.Net.Http.Json;
 using VHS.Services.Batches.DTO;
 
 namespace VHS.Client.Services.Batches
@@ -42,5 +38,10 @@ namespace VHS.Client.Services.Batches
         {
             await _httpClient.DeleteAsync($"api/batch/{id}");
         }
-    }
+
+		public async Task UpdateBatchAsync(Guid id, Guid jobId, string lotReference)
+		{
+			await _httpClient.PutAsJsonAsync($"api/batch/lofreference/{id}/{jobId}", lotReference);
+		}
+	}
 }

@@ -1,0 +1,172 @@
+﻿@using VHS.Services.Farming.DTO
+@inject ISnackbar Snackbar
+
+<Dialog Title="Edit Tray State" ShowDefaultActions="false">
+    <ChildContent>
+        <MudForm Model="@TrayState" @ref="form" Immediate="true" Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="TrayState.TrayTag" Label="Tray Tag" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="TrayState.Recipe.Name" Label="Recipe" Variant="Variant.Outlined" Disabled="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="TrayState.PreGrowLayerName" Label="Pre-Grow Layer" Variant="Variant.Outlined" Disabled="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="TrayState.GrowLayerName" Label="Grow Layer" Variant="Variant.Outlined" Disabled="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.h6">Seeding & Pre-Grow</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-DateOnly="TrayState.SeedDate" Label="Seed Date" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.ArrivedAtSeeder" Label="Arrived At Seeder (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="ArrivedAtSeederTime" Label="Arrived At Seeder (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-DateOnly="TrayState.PreGrowFinishedDate" Label="Pre-Grow Finished" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.WillBePushedOutPreGrow" Label="Push Out Pre-Grow (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="WillBePushedOutPreGrowTime" Label="Push Out Pre-Grow (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.h6">Grow Phase</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.EmptyToTransplant" Label="Empty To Transplant (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="EmptyToTransplantTime" Label="Empty To Transplant (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.PropagationToTransplant" Label="Propagation To Transplant (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="PropagationToTransplantTime" Label="Propagation To Transplant (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.ArrivedGrow" Label="Arrived Grow (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="ArrivedGrowTime" Label="Arrived Grow (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-DateOnly="TrayState.GrowFinishedDate" Label="Grow Finished" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.WillBePushedOutGrow" Label="Push Out Grow (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="WillBePushedOutGrowTime" Label="Push Out Grow (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.h6">Harvest & Washing</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.TransportToHarvest" Label="Transport To Harvest (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="TransportToHarvestTime" Label="Transport To Harvest (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.ArrivedHarvest" Label="Arrived Harvest (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="ArrivedHarvestTime" Label="Arrived Harvest (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.TransportToWashing" Label="Transport To Washing (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="TransportToWashingTime" Label="Transport To Washing (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.ArrivedWashing" Label="Arrived Washing (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="ArrivedWashingTime" Label="Arrived Washing (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.h6">Paternoster & Completion</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.TransportToPaternosterUp" Label="Transport To Paternoster (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="TransportToPaternosterUpTime" Label="Transport To Paternoster (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.ArrivedPaternosterUp" Label="Arrived Paternoster (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="ArrivedPaternosterUpTime" Label="Arrived Paternoster (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.FinishedDateTime" Label="Finished Time (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="FinishedDateTimeTime" Label="Finished Time (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.h6">Finalization</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="TrayState.EmptyReason" Label="Empty Reason" Variant="Variant.Outlined">
+                        @foreach (var item in EmptyReasons)
+                        {
+                            <MudSelectItem T="Guid?" Value="@item.Id">@item.Label</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="float?" @bind-Value="TrayState.HarvestedWeightKG" Label="Weight (kg)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="kg" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="TrayState.WeightRegistered" Label="Weight Registered (Date)" Variant="Variant.Outlined" />
+                    <MudTimePicker T="TimeSpan?" @bind-Time="WeightRegisteredTime" Label="Weight Registered (Time)" Variant="Variant.Outlined" AmPm="true" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+
+    <ActionsContent>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+    </ActionsContent>
+</Dialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public TrayStateDTO TrayState { get; set; } = new();
+    private MudForm form;
+
+    private List<(Guid Id, string Label)> EmptyReasons = new()
+    {
+        (GlobalConstants.TRAYSTATE_EMPTYREASON_UNKNOW, "Unknown"),
+        (GlobalConstants.TRAYSTATE_EMPTYREASON_LAYERFILL, "Layer Fill"),
+        (GlobalConstants.TRAYSTATE_EMPTYREASON_TOTRANSPLANT, "To Transplant"),
+        (GlobalConstants.TRAYSTATE_EMPTYREASON_HARVESTED, "Harvested"),
+        (GlobalConstants.TRAYSTATE_EMPTYREASON_FROMTRANSPLANT, "From Transplant"),
+        (GlobalConstants.TRAYSTATE_EMPTYREASON_TOWASHING, "To Washing")
+    };
+
+    private void Save()
+    {
+        if (form == null)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(TrayState));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private TimeSpan? ArrivedAtSeederTime { get => TrayState.ArrivedAtSeeder?.TimeOfDay; set => TrayState.ArrivedAtSeeder = CombineDateAndTime(TrayState.ArrivedAtSeeder, value); }
+    private TimeSpan? WillBePushedOutPreGrowTime { get => TrayState.WillBePushedOutPreGrow?.TimeOfDay; set => TrayState.WillBePushedOutPreGrow = CombineDateAndTime(TrayState.WillBePushedOutPreGrow, value); }
+    private TimeSpan? EmptyToTransplantTime { get => TrayState.EmptyToTransplant?.TimeOfDay; set => TrayState.EmptyToTransplant = CombineDateAndTime(TrayState.EmptyToTransplant, value); }
+    private TimeSpan? PropagationToTransplantTime { get => TrayState.PropagationToTransplant?.TimeOfDay; set => TrayState.PropagationToTransplant = CombineDateAndTime(TrayState.PropagationToTransplant, value); }
+    private TimeSpan? ArrivedGrowTime { get => TrayState.ArrivedGrow?.TimeOfDay; set => TrayState.ArrivedGrow = CombineDateAndTime(TrayState.ArrivedGrow, value); }
+    private TimeSpan? WillBePushedOutGrowTime { get => TrayState.WillBePushedOutGrow?.TimeOfDay; set => TrayState.WillBePushedOutGrow = CombineDateAndTime(TrayState.WillBePushedOutGrow, value); }
+    private TimeSpan? TransportToHarvestTime { get => TrayState.TransportToHarvest?.TimeOfDay; set => TrayState.TransportToHarvest = CombineDateAndTime(TrayState.TransportToHarvest, value); }
+    private TimeSpan? ArrivedHarvestTime { get => TrayState.ArrivedHarvest?.TimeOfDay; set => TrayState.ArrivedHarvest = CombineDateAndTime(TrayState.ArrivedHarvest, value); }
+    private TimeSpan? TransportToWashingTime { get => TrayState.TransportToWashing?.TimeOfDay; set => TrayState.TransportToWashing = CombineDateAndTime(TrayState.TransportToWashing, value); }
+    private TimeSpan? ArrivedWashingTime { get => TrayState.ArrivedWashing?.TimeOfDay; set => TrayState.ArrivedWashing = CombineDateAndTime(TrayState.ArrivedWashing, value); }
+    private TimeSpan? TransportToPaternosterUpTime { get => TrayState.TransportToPaternosterUp?.TimeOfDay; set => TrayState.TransportToPaternosterUp = CombineDateAndTime(TrayState.TransportToPaternosterUp, value); }
+    private TimeSpan? ArrivedPaternosterUpTime { get => TrayState.ArrivedPaternosterUp?.TimeOfDay; set => TrayState.ArrivedPaternosterUp = CombineDateAndTime(TrayState.ArrivedPaternosterUp, value); }
+    private TimeSpan? FinishedDateTimeTime { get => TrayState.FinishedDateTime?.TimeOfDay; set => TrayState.FinishedDateTime = CombineDateAndTime(TrayState.FinishedDateTime, value); }
+    private TimeSpan? WeightRegisteredTime { get => TrayState.WeightRegistered?.TimeOfDay; set => TrayState.WeightRegistered = CombineDateAndTime(TrayState.WeightRegistered, value); }
+
+    private DateTime? CombineDateAndTime(DateTime? date, TimeSpan? time) => date.HasValue && time.HasValue ? date.Value.Date + time.Value : date;
+}

@@ -1,184 +1,206 @@
 ﻿@page "/user/settings"
+@attribute [Authorize]
+
 @using Microsoft.AspNetCore.Components.Forms
-@using VHS.Services.Auth
+@using System.Text.Json
 @using VHS.Services.Auth.DTO
-@using VHS.Client.Services
 @using VHS.Client.Services.Auth
-@using VHS.Client.Pages.User
 @using VHS.Client.Common
+@using VHS.Client.Pages.User
 @using VHS.Services.Common.Enums.Languages
 @using VHS.Services.Common.Enums.Themes
 @using VHS.Services.Common.Enums.Measurements
 @using MetricUnits = VHS.Services.Common.Enums.Measurements.Metric
 @using ImperialUnits = VHS.Services.Common.Enums.Measurements.Imperial
+
 @inject UserSettingClientService UserSettingClientService
 @inject LocalStorage LocalStorage
 @inject ISnackbar Snackbar
+@inject PageTitleService PageTitleService
 
-<UserArea>
-    <EditForm Model="@userSettings" OnValidSubmit="HandleValidSubmit">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <EditForm Model="@_viewModel" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator />
-        <ValidationSummary />
-        <MudSelect T="string" Label="Language" @bind-Value="userSettings.PreferredLanguage" Variant="Variant.Outlined" Required="true">
-            @foreach (var item in languageMapping)
-            {
-                <MudSelectItem Value="@item.Value">@item.Key</MudSelectItem>
-            }
-        </MudSelect>
-        <MudSelect T="string" Label="Theme" @bind-Value="userSettings.PreferredTheme" Variant="Variant.Outlined" Required="true">
-            @foreach (var theme in Enum.GetNames(typeof(ThemeEnum)))
-            {
-                <MudSelectItem Value="@theme">@theme</MudSelectItem>
-            }
-        </MudSelect>
-        <MudSelect T="string" Label="Measurement System" Value="@userSettings.PreferredMeasurementSystem" Variant="Variant.Outlined" Required="true" ValueChanged="OnMeasurementSystemChanged">
-            @foreach (var ms in Enum.GetNames(typeof(MeasurementSystemEnum)))
-            {
-                <MudSelectItem Value="@ms">@ms</MudSelectItem>
-            }
-        </MudSelect>
+        <MudCard>
+            <MudCardContent>
+                <MudGrid Spacing="4">
 
-        <MudSelect T="string" Label="Weight Unit" @bind-Value="userSettings.PreferredWeightUnit" Variant="Variant.Outlined" Required="true">
-            @foreach (var wu in WeightUnitOptions)
-            {
-                <MudSelectItem Value="@wu">@wu</MudSelectItem>
-            }
-        </MudSelect>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" GutterBottom="true">Profile</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-6">Update your personal information.</MudText>
 
-        <MudSelect T="string" Label="Length Unit" @bind-Value="userSettings.PreferredLengthUnit" Variant="Variant.Outlined" Required="true">
-            @foreach (var lu in LengthUnitOptions)
-            {
-                <MudSelectItem Value="@lu">@lu</MudSelectItem>
-            }
-        </MudSelect>
+                        <MudTextField @bind-Value="_viewModel.FirstName"
+                                        Label="First Name"
+                                        For="@(() => _viewModel.FirstName)"
+                                        Variant="Variant.Outlined"
+                                        Required="true" />
 
-        <MudSelect T="string" Label="Temperature Unit" @bind-Value="userSettings.PreferredTemperatureUnit" Variant="Variant.Outlined" Required="true">
-            @foreach (var tu in TemperatureUnitOptions)
-            {
-                <MudSelectItem Value="@tu">@tu</MudSelectItem>
-            }
-        </MudSelect>
+                        <MudTextField @bind-Value="_viewModel.LastName"
+                                        Label="Last Name"
+                                        For="@(() => _viewModel.LastName)"
+                                        Class="mt-3"
+                                        Variant="Variant.Outlined"
+                                        Required="true" />
 
-        <MudSelect T="string" Label="Volume Unit" @bind-Value="userSettings.PreferredVolumeUnit" Variant="Variant.Outlined" Required="true">
-            @foreach (var vu in VolumeUnitOptions)
-            {
-                <MudSelectItem Value="@vu">@vu</MudSelectItem>
-            }
-        </MudSelect>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-4">Save</MudButton>
+                        <MudTextField @bind-Value="_viewModel.Email"
+                                        Label="Email"
+                                        For="@(() => _viewModel.Email)"
+                                        Class="mt-3"
+                                        Variant="Variant.Outlined"
+                                        Required="true"
+                                        InputType="InputType.Email" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" GutterBottom="true">Preferences</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-4">Customize your application experience.</MudText>
+
+                        <MudSelect T="string" Label="Language" @bind-Value="_viewModel.PreferredLanguage" Variant="Variant.Outlined" Required="true">
+                            @foreach (var item in _languageMapping)
+                            {
+                                <MudSelectItem Value="@item.Value">@item.Key</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" Label="Theme" @bind-Value="_viewModel.PreferredTheme" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                            @foreach (var theme in Enum.GetNames(typeof(ThemeEnum)))
+                            {
+                                <MudSelectItem Value="@theme">@theme</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" Label="Measurement System" Value="@_viewModel.PreferredMeasurementSystem" Class="mt-3" Variant="Variant.Outlined" Required="true" ValueChanged="OnMeasurementSystemChanged">
+                            @foreach (var ms in Enum.GetNames(typeof(MeasurementSystemEnum)))
+                            {
+                                <MudSelectItem Value="@ms">@ms</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" Label="Weight Unit" @bind-Value="_viewModel.PreferredWeightUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                            @foreach (var wu in _weightUnitOptions)
+                            {
+                                <MudSelectItem Value="@wu">@wu</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" Label="Length Unit" @bind-Value="_viewModel.PreferredLengthUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                            @foreach (var lu in _lengthUnitOptions)
+                            {
+                                <MudSelectItem Value="@lu">@lu</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" Label="Temperature Unit" @bind-Value="_viewModel.PreferredTemperatureUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                            @foreach (var tu in _temperatureUnitOptions)
+                            {
+                                <MudSelectItem Value="@tu">@tu</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" Label="Volume Unit" @bind-Value="_viewModel.PreferredVolumeUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                            @foreach (var vu in _volumeUnitOptions)
+                            {
+                                <MudSelectItem Value="@vu">@vu</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Save Settings</MudButton>
+            </MudCardActions>
+        </MudCard>
     </EditForm>
-</UserArea>
+</MudContainer>
 
 @code {
-    private Dictionary<string, string> languageMapping = new Dictionary<string, string>
-    {
-        { "English", "en-US" },
-        { "Dutch", "nl-NL" }
-    };
-
-    private UserSettingDTO userSettings = new UserSettingDTO();
-
-    private IEnumerable<string> WeightUnitOptions = Enumerable.Empty<string>();
-    private IEnumerable<string> LengthUnitOptions = Enumerable.Empty<string>();
-    private IEnumerable<string> TemperatureUnitOptions = Enumerable.Empty<string>();
-    private IEnumerable<string> VolumeUnitOptions = Enumerable.Empty<string>();
+    private UserSettingDTO _viewModel = new();
+    private Dictionary<string, string> _languageMapping = new() { { "English", "en-US" }, { "Dutch", "nl-NL" } };
+    private IEnumerable<string> _weightUnitOptions = Enumerable.Empty<string>();
+    private IEnumerable<string> _lengthUnitOptions = Enumerable.Empty<string>();
+    private IEnumerable<string> _temperatureUnitOptions = Enumerable.Empty<string>();
+    private IEnumerable<string> _volumeUnitOptions = Enumerable.Empty<string>();
 
     protected override async Task OnInitializedAsync()
     {
+        PageTitleService.Title = "Settings";
         var userJson = await LocalStorage.GetStateAsync("VHS_USER");
         if (!string.IsNullOrWhiteSpace(userJson))
         {
-            var storedUser = System.Text.Json.JsonSerializer.Deserialize<UserDTO>(userJson);
+            var storedUser = JsonSerializer.Deserialize<UserDTO>(userJson);
             if (storedUser != null)
             {
-                Guid currentUserId = storedUser.Id;
-                var settings = await UserSettingClientService.GetUserSettingsByUserIdAsync(currentUserId);
-                if (settings != null)
+                var result = await UserSettingClientService.GetUserSettingsByUserIdAsync(storedUser.Id);
+                if (result != null)
                 {
-                    userSettings = settings;
+                    _viewModel = result;
+                    InitializeMeasurementUnitOptions(_viewModel.PreferredMeasurementSystem);
                 }
-                else
-                {
-                    userSettings.UserId = currentUserId;
-                    userSettings.PreferredLanguage = "en-US";
-                    userSettings.PreferredTheme = ThemeEnum.Light.ToString();
-                    userSettings.PreferredMeasurementSystem = MeasurementSystemEnum.Metric.ToString();
-                    userSettings.PreferredWeightUnit = MetricUnits.WeightUnitEnum.Kilogram.ToString();
-                    userSettings.PreferredLengthUnit = MetricUnits.LengthUnitEnum.Meter.ToString();
-                    userSettings.PreferredTemperatureUnit = MetricUnits.TemperatureUnitEnum.Celsius.ToString();
-                    userSettings.PreferredVolumeUnit = MetricUnits.VolumeUnitEnum.Liter.ToString();
-                }
-                InitializeMeasurementUnitOptions(userSettings.PreferredMeasurementSystem);
             }
         }
         else
         {
-            Snackbar.Add("User not found.", MudBlazor.Severity.Warning);
+            Snackbar.Add("User not found.", Severity.Warning);
         }
-    }
-
-    private Task OnMeasurementSystemChanged(string newSystem)
-    {
-        userSettings.PreferredMeasurementSystem = newSystem;
-        InitializeMeasurementUnitOptions(newSystem, true);
-        return Task.CompletedTask;
-    }
-
-    private void InitializeMeasurementUnitOptions(string system, bool reset = false)
-    {
-        if (system == MeasurementSystemEnum.Metric.ToString())
-        {
-            WeightUnitOptions = Enum.GetNames(typeof(MetricUnits.WeightUnitEnum));
-            LengthUnitOptions = Enum.GetNames(typeof(MetricUnits.LengthUnitEnum));
-            TemperatureUnitOptions = Enum.GetNames(typeof(MetricUnits.TemperatureUnitEnum));
-            VolumeUnitOptions = Enum.GetNames(typeof(MetricUnits.VolumeUnitEnum));
-            if (reset)
-            {
-                userSettings.PreferredWeightUnit = MetricUnits.WeightUnitEnum.Kilogram.ToString();
-                userSettings.PreferredLengthUnit = MetricUnits.LengthUnitEnum.Meter.ToString();
-                userSettings.PreferredTemperatureUnit = MetricUnits.TemperatureUnitEnum.Celsius.ToString();
-                userSettings.PreferredVolumeUnit = MetricUnits.VolumeUnitEnum.Liter.ToString();
-            }
-            
-        }
-        else if (system == MeasurementSystemEnum.Imperial.ToString())
-        {
-            WeightUnitOptions = Enum.GetNames(typeof(ImperialUnits.WeightUnitEnum));
-            LengthUnitOptions = Enum.GetNames(typeof(ImperialUnits.LengthUnitEnum));
-            TemperatureUnitOptions = Enum.GetNames(typeof(ImperialUnits.TemperatureUnitEnum));
-            VolumeUnitOptions = Enum.GetNames(typeof(ImperialUnits.VolumeUnitEnum));
-            if (reset)
-            {
-                userSettings.PreferredWeightUnit = ImperialUnits.WeightUnitEnum.Pound.ToString();
-                userSettings.PreferredLengthUnit = ImperialUnits.LengthUnitEnum.Foot.ToString();
-                userSettings.PreferredTemperatureUnit = ImperialUnits.TemperatureUnitEnum.Fahrenheit.ToString();
-                userSettings.PreferredVolumeUnit = ImperialUnits.VolumeUnitEnum.Gallon.ToString();
-            }
-        }
-        StateHasChanged();
     }
 
     private async Task HandleValidSubmit()
     {
         try
         {
-            var updatedSettings = await UserSettingClientService.UpdateUserSettingsAsync(userSettings);
-            if (updatedSettings != null)
+            var updatedViewModel = await UserSettingClientService.UpdateUserSettingsAsync(_viewModel);
+            if (updatedViewModel != null)
             {
-                userSettings = updatedSettings;
-                var jsonSettings = System.Text.Json.JsonSerializer.Serialize(userSettings);
-                await LocalStorage.SaveStateAsync("VHS_USER_SETTINGS", jsonSettings);
-                Snackbar.Add("User settings updated successfully.", Severity.Success);
-                StateHasChanged();
-            }
-            else
-            {
-                Snackbar.Add("Failed to update user settings.", Severity.Error);
+                _viewModel = updatedViewModel;
+
+                var userToStore = new UserDTO { Id = _viewModel.UserId, FirstName = _viewModel.FirstName, LastName = _viewModel.LastName, Email = _viewModel.Email };
+                await LocalStorage.SaveStateAsync("VHS_USER", JsonSerializer.Serialize(userToStore));
+
+                Snackbar.Add("Settings saved successfully.", Severity.Success);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error saving settings: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnMeasurementSystemChanged(string newSystem)
+    {
+        _viewModel.PreferredMeasurementSystem = newSystem;
+        InitializeMeasurementUnitOptions(newSystem, true);
+        StateHasChanged();
+    }
+
+    private void InitializeMeasurementUnitOptions(string system, bool reset = false)
+    {
+        if (system == MeasurementSystemEnum.Metric.ToString())
+        {
+            _weightUnitOptions = Enum.GetNames(typeof(MetricUnits.WeightUnitEnum));
+            _lengthUnitOptions = Enum.GetNames(typeof(MetricUnits.LengthUnitEnum));
+            _temperatureUnitOptions = Enum.GetNames(typeof(MetricUnits.TemperatureUnitEnum));
+            _volumeUnitOptions = Enum.GetNames(typeof(MetricUnits.VolumeUnitEnum));
+            if (reset)
+            {
+                _viewModel.PreferredWeightUnit = MetricUnits.WeightUnitEnum.Kilogram.ToString();
+                _viewModel.PreferredLengthUnit = MetricUnits.LengthUnitEnum.Meter.ToString();
+                _viewModel.PreferredTemperatureUnit = MetricUnits.TemperatureUnitEnum.Celsius.ToString();
+                _viewModel.PreferredVolumeUnit = MetricUnits.VolumeUnitEnum.Liter.ToString();
+            }
+        }
+        else if (system == MeasurementSystemEnum.Imperial.ToString())
+        {
+            _weightUnitOptions = Enum.GetNames(typeof(ImperialUnits.WeightUnitEnum));
+            _lengthUnitOptions = Enum.GetNames(typeof(ImperialUnits.LengthUnitEnum));
+            _temperatureUnitOptions = Enum.GetNames(typeof(ImperialUnits.TemperatureUnitEnum));
+            _volumeUnitOptions = Enum.GetNames(typeof(ImperialUnits.VolumeUnitEnum));
+            if (reset)
+            {
+                _viewModel.PreferredWeightUnit = ImperialUnits.WeightUnitEnum.Pound.ToString();
+                _viewModel.PreferredLengthUnit = ImperialUnits.LengthUnitEnum.Foot.ToString();
+                _viewModel.PreferredTemperatureUnit = ImperialUnits.TemperatureUnitEnum.Fahrenheit.ToString();
+                _viewModel.PreferredVolumeUnit = ImperialUnits.VolumeUnitEnum.Gallon.ToString();
+            }
         }
     }
 }

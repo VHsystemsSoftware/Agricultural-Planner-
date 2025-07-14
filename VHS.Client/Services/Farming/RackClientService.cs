@@ -1,9 +1,5 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using System.Net.Http.Json;
 using VHS.Services.Farming.DTO;
-using VHS.Services.Farming;
 
 namespace VHS.Client.Services.Farming
 {
@@ -46,6 +42,12 @@ namespace VHS.Client.Services.Farming
         public async Task DeleteRackAsync(Guid id)
         {
             await _httpClient.DeleteAsync($"api/rack/{id}");
+        }
+
+        public async Task EnableRackAsync(EnabledDTO dto)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/rack/enable/{dto.Id}", dto);
+            response.EnsureSuccessStatusCode();
         }
     }
 }

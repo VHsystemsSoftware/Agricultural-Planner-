@@ -1,0 +1,413 @@
+﻿@using VHS.Client.Components.Status
+@using VHS.Client.Services.Batches
+@using VHS.Client.Services.Produce
+@using VHS.Services.Batches.DTO
+@using VHS.Services.Produce.DTO
+
+@inject ProductClientService ProductClientService
+@inject RecipeClientService RecipeClientService
+@inject JobClientService JobClientService
+@inject BatchClientService BatchClientService
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-6" Elevation="2">
+    <MudGrid Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudItem>
+            <MudText Typo="Typo.subtitle1">Date: @DateTime.Now.ToString("MM/dd/yyyy")</MudText>
+        </MudItem>
+        <MudItem>
+            @if (CurrentJob != null)
+            {
+                <MudText Typo="Typo.h5" Style="font-weight:bold">
+                    @GetJobLocationTypeName()
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" Style="font-weight:bold">No current job available</MudText>
+            }
+        </MudItem>
+        <MudItem>
+            @if (CurrentJob != null)
+            {
+                <JobStatus StatusId="@CurrentJob.StatusId" />
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Default">Not available</MudChip>
+            }
+        </MudItem>
+    </MudGrid>
+    <MudGrid>
+        @if (CurrentJob != null && CurrentJobTray != null)
+        {
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Class="pa-4" Style="height: 100%;">
+                    <MudCardContent>
+                        @if (RequireLotReference && CurrentJobTray.RecipeId != null)
+                        {
+                            <MudCard Class="pa-6">
+                                <MudCardContent>
+                                    <MudText Typo="Typo.h6">Enter Lot Reference for Batch</MudText>
+                                    <MudTextField @bind-Value="LotReferenceInput"
+                                                  Label="Lot Reference"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true"
+                                                  Immediate="true" />
+                                </MudCardContent>
+                                <MudCardActions Class="d-flex justify-end">
+                                    <MudButton OnClick="ConfirmLotReference"
+                                               Color="Color.Primary"
+                                               Variant="Variant.Filled"
+                                               Disabled="@string.IsNullOrWhiteSpace(LotReferenceInput)">
+                                        Confirm
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        }
+                        <div class="mt-8 mb-6">
+                            <MudGrid Spacing="1">
+                                <MudItem xs="4"><MudText Typo="Typo.h5" Style="font-weight: bold;">Batch</MudText></MudItem>
+                                <MudItem xs="6">
+                                    <div class="d-flex align-center">
+                                        <MudText Typo="Typo.h5" Style="font-weight: bold;" Color="Color.Primary">
+                                            @CurrentJob.BatchName
+                                        </MudText>
+                                    </div>
+                                </MudItem>
+                                @if (!RequireLotReference || CurrentJobTray.RecipeId == null)
+                                {
+                                    <MudItem xs="2">
+                                        <MudIconButton Icon="@(CurrentJob.Paused? Icons.Material.Filled.PlayCircleOutline : Icons.Material.Filled.PauseCircleOutline)"
+                                                       Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="@(() => ChangePaused())" />
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </div>
+                        <div class="mt-8 mb-6">
+                            <MudGrid Spacing="1">
+                                <MudItem xs="4"><MudText Typo="Typo.h5" Style="font-weight: bold;">Trays</MudText></MudItem>
+                                <MudItem xs="8">
+                                    <div class="d-flex align-center">
+                                        <MudText Typo="Typo.h5" Style="font-weight: bold;" Color="Color.Primary">
+                                            @CompletedTrayCount
+                                        </MudText>
+                                        <MudText Typo="Typo.h5" Style="font-weight: bold; margin-left: 4px;">
+                                            / @JobTrayList.Count()
+                                        </MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+                        </div>
+                        <div class="mt-2 position-relative">
+                            <MudCard Outlined="true" Class="pa-8">
+                                <MudItem xs="12">
+                                    <div class="d-flex align-center gap-4">
+
+                                        <MudProgressLinear Value="@ProgressPercentage"
+                                                           Style="height: 28px; flex: 1; background: #2d465a; border-radius: 10px; overflow: hidden;"
+                                                           Color="Color.Primary" />
+                                        <MudText Typo="Typo.h3"
+                                                 Class="ml-4"
+                                                 Style="min-width: 50px; font-weight: bold;"
+                                                 Color="Color.Success">
+                                            @(JobTrayList.Count() - CompletedTrayCount)
+                                        </MudText> left
+                                    </div>
+                                </MudItem>
+                            </MudCard>
+                        </div>
+                        <div class="mt-6">
+                            <MudGrid Spacing="8">
+                                <MudItem xs="4"><MudText Typo="Typo.body1" Style="font-weight: bold;">Tray type:</MudText></MudItem>
+                                <MudItem xs="8"><MudText Typo="Typo.body1" Style="font-weight: bold;">@GetTrayType()</MudText></MudItem>
+                                <MudItem xs="4"><MudText Typo="Typo.body1" Style="font-weight: bold;">Destination:</MudText></MudItem>
+                                <MudItem xs="8">
+                                    <MudText Typo="Typo.body1" Style="font-weight: bold;">
+                                        @if (CurrentJobTray.DestinationLayer == null)
+                                        {
+                                            if (CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TOWASHER)
+                                            {
+                                                <span class="text-secondary">Washer</span>
+                                            }
+                                            else if (CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TOTRANSPLANT)
+                                            {
+                                                <span class="text-secondary">Transplanter</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-secondary">Not set</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            @CurrentJobTray.DestinationLayer.Name
+                                        }
+                                    </MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="6">
+
+                <MudCard Elevation="2" Class="d-flex align-center justify-center pa-4" Style="height: 100%;">
+                    @if (CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_SEEDING_GERMINATION
+                                    || CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_SEEDING_PROPAGATION)
+                    {
+                        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: bold;">@Recipe?.Product?.Name</MudText>
+                        @if (@Recipe?.Product?.SeedIdentifier != null)
+                        {
+                            <MudText Typo="Typo.body1" Color="Color.Primary" Style="font-weight: bold;">Seed: @Recipe?.Product?.SeedIdentifier @Recipe?.Product?.SeedSupplier</MudText>
+                        }
+                        @if (!string.IsNullOrEmpty(@CurrentJob.LotReference))
+                        {
+                            <MudText Typo="Typo.body1" Color="Color.Primary" Style="font-weight: bold;">LOT: @CurrentJob.LotReference</MudText>
+                        }
+                    }
+
+                    @if (CurrentJobTray.RecipeId.HasValue && Recipe?.Product?.Id != null)
+                    {
+                        <div style="width: 100%; max-width: 480px; height: 480px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                            <MudImage Src="@ProductClientService.GetProductImageUrl(Recipe.Product.Id)"
+                                      Alt="@($"Image for {Recipe.Product.Name}")"
+                                      Style="height: auto; width: auto; max-height: 130%; max-width: 130%; object-fit: contain;" />
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h6">Empty Trays</MudText>
+                    }
+                </MudCard>
+            </MudItem>
+        }
+        else if (IsLoading)
+        {
+            <MudItem xs="12">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </MudItem>
+        }
+    </MudGrid>
+</MudPaper>
+
+<MudGrid Class="mt-1">
+    <MudItem xs="12" md="6">
+        <MudCard Elevation="2" Class="pa-6">
+            @if (!NextJobList.Any())
+            {
+                <div class="d-flex justify-center align-center text-center">
+                    <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: bold;">No next job(s) available</MudText>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex justify-center align-center text-center">
+                    <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: bold;">Next jobs</MudText>
+                </div>
+                <MudDataGrid T="JobDTO" Items="@NextJobList" Hover="true" ReadOnly="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" HideHeader="true">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Name" Title="Name" />
+                        <PropertyColumn Property="x => x.OrderOnDay" Title="Order" />
+                        <PropertyColumn Property="x => x.ScheduledDate" Title="Scheduled">
+                            <CellTemplate>
+                                @context.Item.ScheduledDate.ToString("MM/dd/yyyy")
+                            </CellTemplate>
+                        </PropertyColumn>
+                    </Columns>
+                </MudDataGrid>
+            }
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudCard Elevation="2" Class="pa-6">
+            @if (!CompletedJobList.Any())
+            {
+                <div class="d-flex justify-center align-center text-center">
+                    <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: bold;">No completed jobs yet</MudText>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex justify-center align-center text-center">
+                    <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: bold;">Completed jobs</MudText>
+                </div>
+                <MudDataGrid T="JobDTO" Items="@CompletedJobList" Hover="true" ReadOnly="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" HideHeader="true">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Name" Title="Name" />
+                        <PropertyColumn Property="x => x.TrayCount" Title="Trays" />
+                        <PropertyColumn Property="x => x.ScheduledDate" Title="Scheduled">
+                            <CellTemplate>
+                                @context.Item.ScheduledDate.ToString("MM/dd/yyyy")
+                            </CellTemplate>
+                        </PropertyColumn>
+                    </Columns>
+                </MudDataGrid>
+            }
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+
+@code {
+    [Parameter] public Guid? JobLocationId { get; set; }
+
+    private IEnumerable<JobDTO> JobList = new List<JobDTO>();
+    private IEnumerable<JobDTO> NextJobList = new List<JobDTO>();
+    private IEnumerable<JobDTO> CompletedJobList = new List<JobDTO>();
+
+    private List<JobTrayDTO> JobTrayList = new List<JobTrayDTO>();
+    private JobDTO CurrentJob = null;
+    private JobTrayDTO CurrentJobTray = null;
+    private bool IsLoading = true;
+    public DateOnly Today = DateOnly.FromDateTime(DateTime.Now.Date);
+
+    public RecipeDTO Recipe;
+
+    private bool RequireLotReference = false;
+    private string LotReferenceInput = string.Empty;
+
+    private int CompletedTrayCount => JobTrayList.Count(jt => jt.TrayId != null);
+    private int ProgressPercentage => JobTrayList.Any() ? (int)Math.Round(((double)CompletedTrayCount / JobTrayList.Count()) * 100) : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadJobs();
+    }
+
+    public async Task LoadJobs()
+    {
+        IsLoading = true;
+        CurrentJob = null;
+        //StateHasChanged();
+        IEnumerable<JobDTO> allJobs = new List<JobDTO>();
+
+        if (JobLocationId == GlobalConstants.JOBLOCATION_SEEDER)
+        {
+            allJobs = await JobClientService.GetAllSeedingJobsAsync() ?? Enumerable.Empty<JobDTO>();
+        }
+        else if (JobLocationId == GlobalConstants.JOBLOCATION_TRANSPLANTER)
+        {
+            allJobs = await JobClientService.GetAllTransplantingJobsAsync() ?? Enumerable.Empty<JobDTO>();
+        }
+        else if (JobLocationId == GlobalConstants.JOBLOCATION_HARVESTER)
+        {
+            allJobs = await JobClientService.GetAlHarvestingJobsAsync() ?? Enumerable.Empty<JobDTO>();
+        }
+        else if (!JobLocationId.HasValue)
+        {
+            allJobs = await JobClientService.GetAllJobsAsync() ?? Enumerable.Empty<JobDTO>();
+        }
+
+        var todayDate = Today.ToDateTime(TimeOnly.MinValue).Date;
+        JobList = allJobs.Where(x => x.ScheduledDate.Date == todayDate).OrderBy(x => x.OrderOnDay).ToList();
+
+        CompletedJobList = JobList.Where(x => x.StatusId == GlobalConstants.JOBSTATUS_COMPLETED).OrderByDescending(x => x.OrderOnDay).ToList();
+        var pendingJobs = JobList.Where(x => x.StatusId != GlobalConstants.JOBSTATUS_COMPLETED).OrderBy(x => x.OrderOnDay).ToList();
+
+        if (pendingJobs.Any())
+        {
+            CurrentJob = pendingJobs.FirstOrDefault();
+            NextJobList = pendingJobs.Skip(1).ToList();
+
+            if (CurrentJob != null)
+            {
+                JobTrayList = (await JobClientService.GetJobTrays(CurrentJob.Id) ?? new List<JobTrayDTO>()).ToList();
+                var availableTrays = JobTrayList.Where(x => x.TrayId == null);
+                CurrentJobTray = availableTrays.OrderBy(x => x.OrderInJob).FirstOrDefault() ?? JobTrayList.OrderBy(x => x.OrderInJob).LastOrDefault();
+
+                if (CurrentJobTray?.RecipeId is Guid recipeId)
+                {
+                    Recipe = await RecipeClientService.GetRecipeByIdAsync(recipeId);
+                }
+
+                if (CurrentJob.BatchId.HasValue && string.IsNullOrWhiteSpace(CurrentJob.LotReference))
+                {
+                    RequireLotReference = true;
+                    LotReferenceInput = string.Empty;
+                }
+            }
+        }
+        else
+        {
+            NextJobList = Enumerable.Empty<JobDTO>();
+        }
+
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private string GetJobLocationTypeName()
+    {
+        var pauseText = "";
+        @if (CurrentJob.Paused)
+        {
+            pauseText = " (Paused)";
+        }
+        if (JobLocationId == GlobalConstants.JOBLOCATION_SEEDER) return $"Seeder{pauseText}";
+        if (JobLocationId == GlobalConstants.JOBLOCATION_TRANSPLANTER) return $"Transplanter{pauseText}";
+        if (JobLocationId == GlobalConstants.JOBLOCATION_HARVESTER) return $"Harvester{pauseText}";
+        return $"{pauseText}";
+    }
+
+    private string GetTrayType()
+    {
+        if (CurrentJobTray == null) return string.Empty;
+
+        if (CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TORACK
+            || CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TOWASHER)
+        {
+            return "Empty";
+        }
+        else if (CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_SEEDING_GERMINATION)
+        {
+            return "Vilt";
+        }
+        else if (CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_SEEDING_PROPAGATION)
+        {
+            return "Plug";
+        }
+        else if (CurrentJob.JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TOTRANSPLANT)
+        {
+            return "Topper";
+        }
+
+        return string.Empty;
+    }
+
+    private async Task ConfirmLotReference()
+    {
+        if (string.IsNullOrWhiteSpace(LotReferenceInput) || CurrentJob == null || !CurrentJob.BatchId.HasValue)
+        {
+            Snackbar.Add("Invalid lot reference or missing batch ID.", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            await BatchClientService.UpdateBatchAsync(CurrentJob.BatchId.Value, CurrentJob.Id, LotReferenceInput);
+            CurrentJob.LotReference = LotReferenceInput;
+            CurrentJob.Paused = false;
+            RequireLotReference = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update lot reference: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ChangePaused()
+    {
+        CurrentJob.Paused = !CurrentJob.Paused;
+        if (CurrentJob.Paused)
+        {
+            await JobClientService.SetPausedAsync(CurrentJob.Id);
+        }
+        else
+        {
+            await JobClientService.SetUnPausedAsync(CurrentJob.Id);
+        }
+
+    }
+}

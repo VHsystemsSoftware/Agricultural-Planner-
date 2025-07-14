@@ -1,0 +1,90 @@
+﻿@using VHS.Services.Auth.DTO
+@inject ISnackbar Snackbar
+
+<Dialog Title="@DialogTitle" ShowDefaultActions="false">
+    <ChildContent>
+        @if (!IsLoading)
+        {
+            <MudForm @ref="_form" Model="@User" ValidationDelay="0">
+                <MudTextField @bind-Value="User.FirstName"
+                              Label="First Name"
+                              For="@(() => User.FirstName)"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="First name is required." />
+
+                <MudTextField @bind-Value="User.LastName"
+                              Label="Last Name"
+                              For="@(() => User.LastName)"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Last name is required."
+                              Class="mt-3" />
+
+                <MudTextField @bind-Value="User.Email"
+                              Label="Email"
+                              For="@(() => User.Email)"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              InputType="InputType.Email"
+                              RequiredError="A valid email is required."
+                              Class="mt-3" />
+                <MudSelect T="string" @bind-Value="User.Role" Label="Role" For="@(() => User.Role)"
+                           Variant="Variant.Outlined" Required="true" RequiredError="Role is required."
+                           Class="mt-3">
+                    @foreach (var role in Roles)
+                    {
+                        <MudSelectItem Value="@role">@role</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (User.Id == Guid.Empty)
+                {
+                    <MudTextField @bind-Value="User.Password"
+                                  For="@(() => User.Password)"
+                                  Label="Password"
+                                  InputType="InputType.Password"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Password is required for new users."
+                                  Class="mt-3" />
+                }
+            </MudForm>
+        }
+    </ChildContent>
+    <ActionsContent>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="Save" Disabled="@(_form == null || !_form.IsValid)" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+    </ActionsContent>
+</Dialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public UserDTO User { get; set; } = new();
+    [Parameter]
+    public List<string> Roles { get; set; } = new();
+
+    private MudForm _form;
+    private bool IsLoading { get; set; } = true;
+    private string DialogTitle => User.Id == Guid.Empty ? "Create New User" : "Edit User";
+
+    protected override void OnInitialized()
+    {
+        IsLoading = false;
+    }
+
+    private async Task Save()
+    {
+        if (_form == null) return;
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            MudDialog.Close(DialogResult.Ok(User));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

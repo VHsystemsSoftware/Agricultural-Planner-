@@ -1,227 +1,481 @@
-﻿using VHS.Data.Infrastructure;
-using VHS.Data.Models.Farming;
-using VHS.Services.Common;
-using VHS.Services.Farming.Constants;
+﻿using Microsoft.EntityFrameworkCore;
 using VHS.Services.Farming.DTO;
 
-namespace VHS.Services.Farming
+namespace VHS.Services;
+
+public interface IRackService
 {
-    public interface IRackService
-    {
-        Task<IEnumerable<RackDTO>> GetAllRacksByTypeAsync(Guid farmId, Guid typeId);
-        Task<RackDTO?> GetRackByIdAsync(Guid id);
-        Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid? farmId = null);
-        Task<RackDTO> CreateRackAsync(RackDTO rackDto);
-        Task UpdateRackAsync(RackDTO rackDto);
-        Task DeleteRackAsync(Guid id);
-        Task InsertRacksForFarmAsync(Guid farmId, List<Floor> floors);
-    }
-    public class RackService : IRackService
-    {
-        private readonly IUnitOfWork _unitOfWork;
+	Task<IEnumerable<RackDTO>> GetAllRacksByTypeAsync(Guid farmId, Guid typeId);
+	Task<RackDTO?> GetRackByIdAsync(Guid id);
+	Task<List<RackDTO>> GetRacksByTypeIdAsync(Guid typeId);
+	Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid? farmId = null);
+	Task<RackDTO> CreateRackAsync(RackDTO rackDto);
+	Task UpdateRackAsync(RackDTO rackDto);
+	Task UpdateRackEnabledAsync(EnabledDTO enabledDto);
 
-        public RackService(IUnitOfWork unitOfWork)
-        {
-            _unitOfWork = unitOfWork;
-        }
+	Task DeleteRackAsync(Guid id);
+	Task InsertRacksForFarmAsync(Guid farmId, List<Floor> floors);
 
-        private static RackDTO SelectRackToDTO(Rack r) => new RackDTO(r.Id, r.LayerCount)
-        {
-            Id = r.Id,
-            Name = r.Name,
-            Enabled = r.Enabled,
-            Floor = new FloorDTO()
-            {
-                Id = r.Floor.Id,
-                Name = r.Floor.Name,
-                FarmId = r.Floor.FarmId,
-                Enabled = r.Floor.Enabled                
-            },
-            TypeId = r.TypeId,
-            LayerCount = r.LayerCount,
-            TrayCountPerLayer = r.TrayCountPerLayer,
-            Layers = r.Layers.Select(x => new LayerDTO
-            {
-                Id = x.Id,
-                RackId = x.RackId,
-                LayerNumber = x.LayerNumber,
-                Enabled = x.Enabled
-            }).ToList()
-        };
+	Task<Layer> GetBufferLayer(Guid rackId);
+}
+public class RackService : IRackService
+{
+	private readonly IUnitOfWorkCore _unitOfWork;
 
-        public async Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid? farmId = null)
-        {
-            var racks = farmId.HasValue && farmId.Value != Guid.Empty
-                ? await _unitOfWork.Rack.GetAllAsync(x => x.Floor.FarmId == farmId.Value)
-                : await _unitOfWork.Rack.GetAllAsync(x => x.Floor.Farm.DeletedDateTime == null);
+	public RackService(IUnitOfWorkCore unitOfWork)
+	{
+		_unitOfWork = unitOfWork;
+	}
 
-            return racks
-                .OrderBy(r => r.Name)
-                .Select(SelectRackToDTO);
-        }
+	private static RackDTO SelectRackToDTO(Rack r) => new RackDTO(r.Id, r.LayerCount)
+	{
+		Id = r.Id,
+		Name = r.Name,
+		Number = r.Number,
+		Enabled = r.Enabled,
+		Floor = new FloorDTO()
+		{
+			Id = r.Floor.Id,
+			Name = r.Floor.Name,
+			FarmId = r.Floor.FarmId,
+			Enabled = r.Floor.Enabled,
+			Number = r.Floor.Number,
+		},
+		TypeId = r.TypeId,
+		LayerCount = r.LayerCount,
+		TrayCountPerLayer = r.TrayCountPerLayer,
+		Layers = r.Layers.Select(x => new LayerDTO
+		{
+			Id = x.Id,
+			RackId = x.RackId,
+			Number = x.Number,
+			Enabled = x.Enabled
+		}).ToList()
+	};
 
-        public async Task<IEnumerable<RackDTO>> GetAllRacksByTypeAsync(Guid farmId, Guid typeId)
-        {
-            var racks = await _unitOfWork.Rack.GetAllAsync(x => x.Floor.FarmId == farmId && x.TypeId == typeId);
-            return racks
-                .Select(SelectRackToDTO);
-        }
+	public async Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid? farmId = null)
+	{
+		var racks = farmId.HasValue && farmId.Value != Guid.Empty
+			? await _unitOfWork.Rack.GetAllAsync(x => x.Floor.FarmId == farmId.Value && x.Floor.Enabled)
+			: await _unitOfWork.Rack.GetAllAsync(x => x.Floor.Farm.DeletedDateTime == null && x.Floor.Enabled);
 
+		return racks
+			.OrderBy(r => r.Name)
+			.Select(SelectRackToDTO);
+	}
 
-        public async Task<RackDTO?> GetRackByIdAsync(Guid id)
-        {
-            var rack = await _unitOfWork.Rack.GetByIdAsync(id);
-            if (rack == null)
-                return null;
-
-            return SelectRackToDTO(rack);
-        }
+	public async Task<IEnumerable<RackDTO>> GetAllRacksByTypeAsync(Guid farmId, Guid typeId)
+	{
+		var racks = await _unitOfWork.Rack.GetAllAsync(x => x.Floor.FarmId == farmId && x.TypeId == typeId);
+		return racks
+			.Select(SelectRackToDTO);
+	}
 
 
+	public async Task<RackDTO?> GetRackByIdAsync(Guid id)
+	{
+		var rack = await _unitOfWork.Rack.GetByIdAsync(id);
+		if (rack == null)
+			return null;
 
-        public async Task<RackDTO> CreateRackAsync(RackDTO rackDto)
-        {
-            var rack = new Rack
-            {
-                Id = rackDto.Id == Guid.Empty ? Guid.NewGuid() : rackDto.Id,
-                Name = rackDto.Name,
-                FloorId = rackDto.Floor.Id,
-                Layers = new List<Layer>(),
-                LayerCount = rackDto.LayerCount,
-                TrayCountPerLayer = rackDto.TrayCountPerLayer
-            };
+		return SelectRackToDTO(rack);
+	}
 
-            await _unitOfWork.Rack.AddAsync(rack);
-            await _unitOfWork.SaveChangesAsync();
+	public async Task<List<RackDTO>> GetRacksByTypeIdAsync(Guid typeId)
+	{
+		var racks = await _unitOfWork.Rack.GetAllAsync(
+			r => (typeId == Guid.Empty || r.TypeId == typeId),
+			"Layers", "Floor"
+		);
 
-            return SelectRackToDTO(rack);
-        }
+		return racks
+			.OrderByDescending(r => r.TrayCountPerLayer)
+			.ThenBy(r => r.Name)
+			.Select(SelectRackToDTO)
+			.ToList();
+	}
 
-        public async Task UpdateRackAsync(RackDTO rackDto)
-        {
-            var rack = await _unitOfWork.Rack.GetByIdAsync(rackDto.Id);
-            if (rack == null)
-                throw new Exception("Rack not found");
+	public async Task<RackDTO> CreateRackAsync(RackDTO rackDto)
+	{
+		var rack = new Rack
+		{
+			Id = rackDto.Id == Guid.Empty ? Guid.NewGuid() : rackDto.Id,
+			Name = rackDto.Name,
+			FloorId = rackDto.Floor.Id,
+			Layers = new List<Layer>(),
+			LayerCount = rackDto.LayerCount,
+			TrayCountPerLayer = rackDto.TrayCountPerLayer
+		};
 
-            rack.Name = rackDto.Name;
-            rack.FloorId = rackDto.Floor.Id;
-            rack.TrayCountPerLayer = rackDto.TrayCountPerLayer;
-            rack.LayerCount = rackDto.LayerCount;
-            _unitOfWork.Rack.Update(rack);
-            await _unitOfWork.SaveChangesAsync();
-        }
+		await _unitOfWork.Rack.AddAsync(rack);
+		await _unitOfWork.SaveChangesAsync();
 
-        public async Task DeleteRackAsync(Guid id)
-        {
-            var rack = await _unitOfWork.Rack.GetByIdAsync(id);
-            if (rack == null)
-                throw new Exception("Rack not found");
+		return SelectRackToDTO(rack);
+	}
 
-            rack.DeletedDateTime = DateTime.UtcNow;
-            _unitOfWork.Rack.Update(rack);
-            await _unitOfWork.SaveChangesAsync();
-        }
+	public async Task UpdateRackAsync(RackDTO rackDto)
+	{
+		var rack = await _unitOfWork.Rack.GetByIdAsync(rackDto.Id);
+		if (rack == null)
+			throw new Exception("Rack not found");
 
-        public async Task InsertRacksForFarmAsync(Guid farmId, List<Floor> floors)
-        {
-            if (floors == null || !floors.Any())
-            {
-                throw new ArgumentException("No floors available to assign racks.");
-            }
+		rack.Name = rackDto.Name;
+		rack.FloorId = rackDto.Floor.Id;
+		rack.TrayCountPerLayer = rackDto.TrayCountPerLayer;
+		rack.LayerCount = rackDto.LayerCount;
+		rack.Enabled = rackDto.Enabled;
+		_unitOfWork.Rack.Update(rack);
+		await _unitOfWork.SaveChangesAsync();
+	}
 
-            var racksToInsert = new List<Rack>();
-            foreach (var floor in floors)
-            {
-                if (floor.Name == FloorConstant.SK1)
-                {
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK1aName,
-                        TypeId = RackConstant.SK1aTypeId,
-                        FloorId = floor.Id,
-                        LayerCount = RackConstant.SK1aLayers,
-                        TrayCountPerLayer = RackConstant.SK1aDepth
-                    });
-                }
-                if (floor.Name == FloorConstant.SK2)
-                {
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK2aName,
-                        TypeId = RackConstant.SK2aTypeId,
-                        LayerCount = RackConstant.SK2aLayers,
-                        TrayCountPerLayer = RackConstant.SK2aDepth,
-                        FloorId = floor.Id
-                    });
+	public async Task UpdateRackEnabledAsync(EnabledDTO enabledDto)
+	{
+		var rack = await _unitOfWork.Rack.GetByIdAsync(enabledDto.Id);
+		if (rack == null)
+			throw new KeyNotFoundException("Rack not found");
 
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK2bName,
-                        TypeId = RackConstant.SK2bTypeId,
-                        LayerCount = RackConstant.SK2bLayers,
-                        TrayCountPerLayer = RackConstant.SK2bDepth,
-                        FloorId = floor.Id
-                    });
+		rack.Enabled = enabledDto.Enabled;
 
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK2cName,
-                        TypeId = RackConstant.SK2cTypeId,
-                        LayerCount = RackConstant.SK2cLayers,
-                        TrayCountPerLayer = RackConstant.SK2cDepth,
-                        FloorId = floor.Id
-                    });
+		_unitOfWork.Rack.Update(rack);
+		await _unitOfWork.SaveChangesAsync();
+	}
 
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK2dName,
-                        TypeId = RackConstant.SK2dTypeId,
-                        LayerCount = RackConstant.SK2dLayers,
-                        TrayCountPerLayer = RackConstant.SK2dDepth,
-                        FloorId = floor.Id
-                    });
-                }
-                if (floor.Name == FloorConstant.SK3)
-                {
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK3aName,
-                        TypeId = RackConstant.SK3aTypeId,
-                        LayerCount = RackConstant.SK3aLayers,
-                        TrayCountPerLayer = RackConstant.SK3aDepth,
-                        FloorId = floor.Id
-                    });
+	public async Task DeleteRackAsync(Guid id)
+	{
+		var rack = await _unitOfWork.Rack.GetByIdAsync(id);
+		if (rack == null)
+			throw new Exception("Rack not found");
 
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK3bName,
-                        TypeId = RackConstant.SK3bTypeId,
-                        LayerCount = RackConstant.SK3bLayers,
-                        TrayCountPerLayer = RackConstant.SK3bDepth,
-                        FloorId = floor.Id
-                    });
+		rack.DeletedDateTime = DateTime.UtcNow;
+		_unitOfWork.Rack.Update(rack);
+		await _unitOfWork.SaveChangesAsync();
+	}
 
-                    racksToInsert.Add(new Rack
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = RackConstant.SK3cName,
-                        TypeId = RackConstant.SK3cTypeId,
-                        LayerCount = RackConstant.SK3cLayers,
-                        TrayCountPerLayer = RackConstant.SK3cDepth,
-                        FloorId = floor.Id
-                    });
-                }
-            }
+	public async Task InsertRacksForFarmAsync(Guid farmId, List<Floor> floors)
+	{
+		if (floors == null || !floors.Any())
+		{
+			throw new ArgumentException("No floors available to assign racks.");
+		}
 
-            await _unitOfWork.Rack.AddRangeAsync(racksToInsert);
-            await _unitOfWork.SaveChangesAsync();
-        }
-    }
+		var racksToInsert = new List<Rack>();
+		foreach (var floor in floors)
+		{
+			if (floor.Name == "SK1")
+			{
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "1",
+					Number = 1,
+					TypeId = GlobalConstants.RACKTYPE_GERMINATION,
+					FloorId = floor.Id,
+					LayerCount = 76,
+					TrayCountPerLayer = 27
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "2",
+					Number = 2,
+					TypeId = GlobalConstants.RACKTYPE_GERMINATION,
+					FloorId = floor.Id,
+					LayerCount = 76,
+					TrayCountPerLayer = 27
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "3",
+					Number = 3,
+					TypeId = GlobalConstants.RACKTYPE_GERMINATION,
+					FloorId = floor.Id,
+					LayerCount = 76,
+					TrayCountPerLayer = 27
+				});
+			}
+			if (floor.Name == "SK2")
+			{
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "1",
+					Number = 1,
+					TypeId = GlobalConstants.RACKTYPE_PROPAGATION,
+					LayerCount = 9,
+					TrayCountPerLayer = 54,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "2",
+					Number = 2,
+					TypeId = GlobalConstants.RACKTYPE_PROPAGATION,
+					LayerCount = 9,
+					TrayCountPerLayer = 54,
+					FloorId = floor.Id
+				});
+
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "3",
+					Number = 3,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 54,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "4",
+					Number = 4,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 88,
+					FloorId = floor.Id
+				});
+
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "5",
+					Number = 5,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "6",
+					Number = 6,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "7",
+					Number = 7,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "8",
+					Number = 8,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "9",
+					Number = 9,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "10",
+					Number = 10,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "11",
+					Number = 11,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "12",
+					Number = 12,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 9,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+			}
+
+			if (floor.Name == "SK3")
+			{
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "1",
+					Number = 1,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 79,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "2",
+					Number = 2,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 79,
+					FloorId = floor.Id
+				});
+
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "3",
+					Number = 3,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 113,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "4",
+					Number = 4,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 113,
+					FloorId = floor.Id
+				});
+
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "5",
+					Number = 5,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "6",
+					Number = 6,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "7",
+					Number = 7,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "8",
+					Number = 8,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "9",
+					Number = 9,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "10",
+					Number = 10,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "11",
+					Number = 11,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "12",
+					Number = 12,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "13",
+					Number = 13,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+				racksToInsert.Add(new Rack
+				{
+					Id = Guid.NewGuid(),
+					Name = "14",
+					Number = 14,
+					TypeId = GlobalConstants.RACKTYPE_GROWING,
+					LayerCount = 18,
+					TrayCountPerLayer = 131,
+					FloorId = floor.Id
+				});
+			}
+		}
+
+		await _unitOfWork.Rack.AddRangeAsync(racksToInsert);
+		await _unitOfWork.SaveChangesAsync();
+	}
+
+	public async Task<Layer> GetBufferLayer(Guid rackId)
+	{
+		//get second last layer for buffer
+		return await _unitOfWork.Layer
+			.Query(x => x.RackId == rackId)
+			.OrderByDescending(x => x.Number).Skip(1).FirstAsync();
+	}
 }

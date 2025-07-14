@@ -1,22 +1,109 @@
-﻿@inject IStringLocalizer<Shared> Localizer
+﻿@using VHS.Client.Services
+@inject SystemService SystemService
+@inject IStringLocalizer<Shared> Localizer
 
 <MudNavMenu Class="sidebar-nav">
-    <MudText Color="Color.Default" Class="sidebar-menu-parent" Typo="Typo.subtitle2">
-        Main Menu
-    </MudText>
-@*     <div class="sidebar-menu-child">
-        <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Class="sidebar-menu-link">
-            <i class="bi bi-speedometer2"></i>
-            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["Dashboard"]</MudText>
-        </MudNavLink>
-    </div> *@
+
     <div class="sidebar-menu-child">
+        <MudNavLink Href="/" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-speedometer2"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["Home"]</MudText>
+        </MudNavLink>
+    </div>
+    @*     <div class="sidebar-menu-child">
         <MudNavLink Href="/farm-overview" Match="NavLinkMatch.All" Class="sidebar-menu-link">
             <i class="bi bi-building-up"></i>
             <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["FarmOverview"]</MudText>
         </MudNavLink>
+    </div> *@
+    <MudText Color="Color.Default" Class="sidebar-menu-parent" Typo="Typo.subtitle2">
+        Planning
+    </MudText>
+    <div class="sidebar-menu-child">
+        <MudNavLink Disabled="true" Href="/batches/growplans" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-bar-chart-steps"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["GrowPlans"]</MudText>
+        </MudNavLink>
     </div>
-   @*  <MudText Color="Color.Default" Class="sidebar-menu-parent" Typo="Typo.subtitle2">
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/batches/plans" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-bar-chart-steps"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["JobPlans"]</MudText>
+        </MudNavLink>
+    </div>
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/batches/jobs" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-card-checklist"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["Jobs"]</MudText>
+        </MudNavLink>
+    </div>
+@*     <div class="sidebar-menu-child">
+        <MudNavLink Href="/batches/management" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-layers"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["Batches"]</MudText>
+        </MudNavLink>
+    </div> *@
+    <MudText Color="Color.Default" Class="sidebar-menu-parent" Typo="Typo.subtitle2">
+        Overview
+    </MudText>
+    @*     <div class="sidebar-menu-child">
+        <MudNavLink Href="/trays" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-card-checklist"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["Trays"]</MudText>
+        </MudNavLink>
+    </div> *@
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/racks" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-ticket-detailed"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["Racks"]</MudText>
+        </MudNavLink>
+    </div>
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/rackoccupancy" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-ticket-detailed"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["RackOccupancy"]</MudText>
+        </MudNavLink>
+    </div>
+@*     <div class="sidebar-menu-child">
+        <MudNavLink Href="/trays" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-card-checklist"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["Trays"]</MudText>
+        </MudNavLink>
+    </div> *@
+    <MudText Color="Color.Default" Class="sidebar-menu-parent" Typo="Typo.subtitle2">
+        Dashboards
+    </MudText>
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/dashboard-seeding" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-node-plus"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["DashboardSeeder"]</MudText>
+        </MudNavLink>
+    </div>
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/dashboard-harvesting" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-cart4"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["DashboardHarvester"]</MudText>
+        </MudNavLink>
+    </div>
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/dashboard-transplant" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-ui-checks-grid"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["DashboardTransplanter"]</MudText>
+        </MudNavLink>
+    </div>
+    @*     <div class="sidebar-menu-child">
+        <MudNavLink Href="/dashboard-transport" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-truck"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["DashboardTransport"]</MudText>
+        </MudNavLink>
+    </div>  *@   
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/dashboard-all" Match="NavLinkMatch.All" Class="sidebar-menu-link">
+            <i class="bi bi-stack"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["DashboardAll"]</MudText>
+        </MudNavLink>
+    </div>
+    @*  <MudText Color="Color.Default" Class="sidebar-menu-parent" Typo="Typo.subtitle2">
         Workspace
     </MudText>
     <div class="sidebar-menu-child">
@@ -44,7 +131,7 @@
         </MudNavLink>
     </div> *@
     <MudText Color="Color.Default" Class="sidebar-menu-parent" Typo="Typo.subtitle2">
-        General
+        System
     </MudText>
     @* <div class="sidebar-menu-child">
         <MudNavLink Href="/produce-recipes" Match="NavLinkMatch.Prefix" Class="sidebar-menu-link">
@@ -58,4 +145,12 @@
             <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["SystemSettings"]</MudText>
         </MudNavLink>
     </div>
+    <div class="sidebar-menu-child">
+        <MudNavLink Href="/opcstats" Match="NavLinkMatch.Prefix" Class="sidebar-menu-link">
+            <i class="bi bi-gear"></i>
+            <MudText Color="Color.Default" Class="sidebar-menu-text">@Localizer["OPCStats"]</MudText>
+        </MudNavLink>
+    </div>
 </MudNavMenu>
+
+

@@ -1,42 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using VHS.Data.Infrastructure;
-using VHS.Data.Models.Farming;
 
-namespace VHS.Data.Repositories.Farming
+namespace VHS.Data.Core.Repositories;
+
+public interface IRackRepository : IRepository<Rack> {}
+
+public class RackRepository : Repository<Rack>, IRackRepository
 {
-    public interface IRackRepository : IRepository<Rack> {}
+    private readonly VHSCoreDBContext _context;
 
-    public class RackRepository : Repository<Rack>, IRackRepository
+    public RackRepository(VHSCoreDBContext context) : base(context)
     {
-        private readonly VHSDBContext _context;
+        _context = context;
+    }
 
-        public RackRepository(VHSDBContext context) : base(context)
+    public override async Task<IEnumerable<Rack>> GetAllAsync(Expression<Func<Rack, bool>>? filter = null, params string[] includeProperties)
+    {
+        IQueryable<Rack> query = _context.Racks
+                                         .Include(r => r.Floor.Farm);
+        if (filter != null)
         {
-            _context = context;
+            query = query.Where(filter);
         }
 
-        public override async Task<IEnumerable<Rack>> GetAllAsync(Expression<Func<Rack, bool>>? filter = null, params string[] includeProperties)
-        {
-            IQueryable<Rack> query = _context.Racks
-                                             .Include(r => r.Floor.Farm);
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
+        return await query.ToListAsync();
+    }
 
-            return await query.ToListAsync();
-        }
-
-        public override async Task<Rack?> GetByIdAsync(object id)
-        {
-            return await _context.Racks
-                                .Include(r => r.Floor.Farm)
-                                 .FirstOrDefaultAsync(r => r.Id == (Guid)id);
-        }
+    public override async Task<Rack?> GetByIdAsync(object id)
+    {
+        return await _context.Racks
+                            .Include(r => r.Floor.Farm)
+                             .FirstOrDefaultAsync(r => r.Id == (Guid)id);
     }
 }

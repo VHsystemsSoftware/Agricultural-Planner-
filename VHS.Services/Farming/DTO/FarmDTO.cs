@@ -1,115 +1,86 @@
-﻿using VHS.Services.Common;
+﻿namespace VHS.Services.Farming.DTO;
 
-namespace VHS.Services.Farming.DTO
+public class FarmDTO
 {
-    public class FarmDTO
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+
+    public string Description { get; set; } = string.Empty;
+    public Guid FarmTypeId { get; set; }
+    public string FarmTypeName { get; set; } = string.Empty;
+
+    public ICollection<FloorDTO> Floors { get; set; } = new List<FloorDTO>();
+
+    public ICollection<RackDTO> GrowRacks
     {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-
-        public string Description { get; set; } = string.Empty;
-        public Guid FarmTypeId { get; set; }
-        public string FarmTypeName { get; set; } = string.Empty;
-
-        public ICollection<FloorDTO> Floors { get; set; } = new List<FloorDTO>();
-
-        public ICollection<RackDTO> GrowRacks
+        get
         {
-            get
+            var racks = new List<RackDTO>();
+            foreach (var floor in Floors)
             {
-                var racks = new List<RackDTO>();
-                foreach (var floor in Floors)
-                {
-                    racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_GROWING));
-                }
-                return racks;
+                racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_GROWING));
             }
-        }
-
-        public ICollection<RackDTO> GerminationRacks
-        {
-            get
-            {
-                var racks = new List<RackDTO>();
-                foreach (var floor in Floors)
-                {
-                    racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_GERMINATION));
-                }
-                return racks;
-            }
-        }
-
-        public ICollection<RackDTO> PropagationRacks
-        {
-            get
-            {
-                var racks = new List<RackDTO>();
-                foreach (var floor in Floors)
-                {
-                    racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_PROPAGATION));
-                }
-                return racks;
-            }
-        }
-
-        public ICollection<RackDTO> HarvestingRacks
-        {
-            get
-            {
-                var racks = new List<RackDTO>();
-                foreach (var floor in Floors)
-                {
-                    racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_HARVESTING));
-                }
-                return racks;
-            }
-        }
-
-        public ICollection<RackDTO> WashingRacks
-        {
-            get
-            {
-                var racks = new List<RackDTO>();
-                foreach (var floor in Floors)
-                {
-                    racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_WASHING));
-                }
-                return racks;
-            }
-        }
-
-        public void AddOccupiedDays(DateTime currentDateTime)
-        {
-            foreach (var rack in GrowRacks)
-            {
-                foreach (var layer in rack.Layers)
-                {
-                    foreach (var tray in layer.Trays)
-                    {
-                        tray.AddOccupiedDay(currentDateTime);
-                    }
-                }
-            }
-            foreach (var rack in PropagationRacks)
-            {
-                foreach (var layer in rack.Layers)
-                {
-                    foreach (var tray in layer.Trays)
-                    {
-                        tray.AddOccupiedDay(currentDateTime);
-                    }
-                }
-            }
-            foreach (var rack in GerminationRacks)
-            {
-                foreach (var layer in rack.Layers)
-                {
-                    foreach (var tray in layer.Trays)
-                    {
-                        tray.AddOccupiedDay(currentDateTime);
-                    }
-                }
-            }
+            return racks;
         }
     }
+
+    public ICollection<RackDTO> GerminationRacks
+    {
+        get
+        {
+            var racks = new List<RackDTO>();
+            foreach (var floor in Floors)
+            {
+                racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_GERMINATION));
+            }
+            return racks;
+        }
+    }
+
+    public ICollection<RackDTO> PropagationRacks
+    {
+        get
+        {
+            var racks = new List<RackDTO>();
+            foreach (var floor in Floors)
+            {
+                racks.AddRange(floor.Racks.Where(x => x.TypeId == GlobalConstants.RACKTYPE_PROPAGATION));
+            }
+            return racks;
+        }
+    }
+
+    //public void AddOccupiedDays(DateTime currentDateTime)
+    //{
+    //    foreach (var rack in GrowRacks)
+    //    {
+    //        foreach (var layer in rack.Layers)
+    //        {
+    //            foreach (var tray in layer.Trays)
+    //            {
+    //                tray.AddOccupiedDay(currentDateTime);
+    //            }
+    //        }
+    //    }
+    //    foreach (var rack in PropagationRacks)
+    //    {
+    //        foreach (var layer in rack.Layers)
+    //        {
+    //            foreach (var tray in layer.Trays)
+    //            {
+    //                tray.AddOccupiedDay(currentDateTime);
+    //            }
+    //        }
+    //    }
+    //    foreach (var rack in GerminationRacks)
+    //    {
+    //        foreach (var layer in rack.Layers)
+    //        {
+    //            foreach (var tray in layer.Trays)
+    //            {
+    //                tray.AddOccupiedDay(currentDateTime);
+    //            }
+    //        }
+    //    }
+    //}
 }

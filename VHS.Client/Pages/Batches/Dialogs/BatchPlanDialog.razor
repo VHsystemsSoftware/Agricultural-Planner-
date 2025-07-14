@@ -1,0 +1,533 @@
+﻿@using VHS.Services.Batches.DTO
+@using VHS.Services.Farming.DTO
+@using VHS.Services.Produce.DTO
+@using VHS.Client.Services.Farming
+@using VHS.Client.Services.Batches
+@using VHS.Client.Services.Produce
+@using MudExtensions
+
+@inject ISnackbar Snackbar
+@inject FarmClientService FarmClientService
+@inject RecipeClientService RecipeClientService
+@inject BatchPlanClientService BatchPlanClientService
+@inject FloorClientService FloorClientService
+@inject RackClientService RackClientService
+@inject LayerClientService LayerClientService
+@inject IDialogService Dialog
+
+<MudLoading @bind-Loading="@IsLoading">
+    <Dialog Title="@DialogTitle" ShowDefaultActions="false" @ref="dialog">
+        <ChildContent>
+            @if (!IsLoading)
+            {
+                <MudForm Model="BatchPlan" @ref="form" @bind-IsValid="_formIsValid">
+                    <MudGrid>
+                        <MudItem xs="12" sm="@(IsWasherOrTransplanter ? 12 : 3)">
+                            <MudStack Spacing="3">
+                                @if (Recipes.Any())
+                                {
+                                    <MudTextField @bind-Value="BatchPlan.Name" Label="Plan Name" Variant="Variant.Outlined" Required="true" />
+                                    <MudSelect T="Guid" Label="Recipe" @bind-Value="SelectedRecipeId" Variant="Variant.Outlined" Required="true" HelperText="@GetRecipeHelperText()">
+                                        <MudSelectItem Value="Guid.Empty">-- No Recipe, empty trays --</MudSelectItem>
+                                        @foreach (var recipe in Recipes.OrderBy(x => x.Name))
+                                        {
+                                            <MudSelectItem Value="@recipe.Id">@recipe.Name</MudSelectItem>
+                                        }
+                                    </MudSelect>
+
+                                    @if (SelectedRecipeId == Guid.Empty)
+                                    {
+                                        <MudSelect T="Guid" Label="Manual Type" @bind-Value="BatchPlan.BatchPlanTypeId" Variant="Variant.Outlined">
+                                            <MudSelectItem Disabled="SelectedRecipeId == Guid.Empty" Value="GlobalConstants.BATCHPLANTYPE_RECIPE">Recipe</MudSelectItem>
+                                            <MudSelectItem Value="GlobalConstants.BATCHPLANTYPE_RACK">Rack</MudSelectItem>
+                                            <MudSelectItem Value="GlobalConstants.BATCHPLANTYPE_WASHER">Washer</MudSelectItem>
+                                            <MudSelectItem Value="GlobalConstants.BATCHPLANTYPE_TRANSPLANTER">Transplanter</MudSelectItem>
+                                        </MudSelect>
+                                    }
+                                }
+                                <MudField Label="Start Date" Variant="Variant.Outlined">
+                                    <MudDatePicker PickerVariant="PickerVariant.Inline" @bind-Date="BatchPlan.StartDate" Orientation="Orientation.Portrait" DateFormat="yyyy-MM-dd" Required="true" />
+                                </MudField>
+
+                                @if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RECIPE
+                                                            || BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RACK)
+                                {
+                                    <MudGrid>
+                                        @*  <MudItem xs="12" sm="6">
+                                            <MudNumericField T="int"
+                                                             Value="BatchPlan.DaysForPlan"
+                                                             ValueChanged="@(v => { BatchPlan.DaysForPlan = v; GenerateAssignments(); })"
+                                                             Label="Days"
+                                                             Variant="Variant.Outlined"
+                                                             Required="true"
+                                                             Disabled="true"
+                                                             Min="1"
+                                                             Immediate="true" />
+                                        </MudItem> *@
+
+
+                                        <MudItem xs="12" sm="6">
+                                            <MudNumericField T="int"
+                                                             Value="BatchPlan.TraysPerDay"
+                                                             ValueChanged="@(v => { BatchPlan.TraysPerDay = v; GenerateAssignments(); })"
+                                                             Label="Trays"
+                                                             Variant="Variant.Outlined"
+                                                             Required="true"
+                                                             Min="1"
+                                                             Immediate="true" />
+                                        </MudItem>
+
+                                    </MudGrid>
+                                    @*   <MudGrid>
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField T="string" Label="End Date of Plan" Variant="Variant.Outlined" ReadOnly="true" Value="@EndDateDisplay.ToString("yyyy-MM-dd")" />
+                                        </MudItem>
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField T="string" Label="Total Amount of Trays" Variant="Variant.Outlined" ReadOnly="true" Value="@TotalTraysDisplay" />
+                                        </MudItem>
+                                    </MudGrid> *@
+                                }
+                                @if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_WASHER
+                                                            || BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_TRANSPLANTER)
+                                {
+                                    <MudGrid>
+                                        <MudItem xs="12" sm="2">
+                                            <MudNumericField T="int"
+                                                             Value="BatchPlan.TraysPerDay"
+                                                             ValueChanged="@(v => { BatchPlan.TraysPerDay = v; GenerateAssignments(); })"
+                                                             Label="Trays"
+                                                             Variant="Variant.Outlined"
+                                                             Required="true"
+                                                             Min="1"
+                                                             Immediate="true"
+                                                             DebounceInterval=2000 />
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+
+                            </MudStack>
+                        </MudItem>
+
+                        @if (!IsWasherOrTransplanter)
+                        {
+                            <MudItem xs="12" sm="9">
+                                <MudExpansionPanels MultiExpansion="true">
+                                    @if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RACK)
+                                    {
+                                        <MudExpansionPanel Text="Layers" Expanded="true">
+                                            <LayerAssignment BatchRows="SelectedLayers"
+                                                             Floors="Floors"
+                                                             Racks="Racks"
+                                                             Layers="Layers"
+                                                             TraysPerDay="BatchPlan.TraysPerDay"
+                                                             Days="BatchPlan.DaysForPlan"
+                                                             IsManualMode="true" />
+                                        </MudExpansionPanel>
+                                    }
+                                    else if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RECIPE)
+                                    {
+                                        @if (BatchPlan.Recipe.GerminationDays > 0)
+                                        {
+                                            <MudExpansionPanel Text="Germination Layers" Expanded="true">
+                                                <LayerAssignment BatchRows="GerminationBatchRows"
+                                                                 Floors="Floors"
+                                                                 Racks="Racks"
+                                                                 Layers="Layers"
+                                                                 TraysPerDay="BatchPlan.TraysPerDay"
+                                                                 Days="BatchPlan.DaysForPlan"
+                                                                 RackType="GlobalConstants.RACKTYPE_GERMINATION" />
+                                            </MudExpansionPanel>
+                                        }
+                                        @if (BatchPlan.Recipe.PropagationDays > 0)
+                                        {
+                                            <MudExpansionPanel Text="Propagation Layers" Expanded="true">
+                                                <LayerAssignment BatchRows="PropagationBatchRows"
+                                                                 Floors="Floors"
+                                                                 Racks="Racks"
+                                                                 Layers="Layers"
+                                                                 TraysPerDay="BatchPlan.TraysPerDay"
+                                                                 Days="BatchPlan.DaysForPlan"
+                                                                 RackType="GlobalConstants.RACKTYPE_PROPAGATION"
+                                                                 OnChange="@(v => { BatchRowsChanged();  })" />
+                                            </MudExpansionPanel>
+                                        }
+                                        @if (BatchPlan.Recipe.GrowDays > 0)
+                                        {
+                                            <MudExpansionPanel Text="Growing Layers" Expanded="true">
+                                                <LayerAssignment BatchRows="GrowingBatchRows"
+                                                                 Floors="Floors"
+                                                                 Racks="Racks"
+                                                                 Layers="Layers"
+                                                                 TraysPerDay="BatchPlan.TraysPerDay"
+                                                                 Days="BatchPlan.DaysForPlan"
+                                                                 RackType="GlobalConstants.RACKTYPE_GROWING" />
+                                            </MudExpansionPanel>
+                                        }
+                                    }
+                                </MudExpansionPanels>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudForm>
+            }
+        </ChildContent>
+        <ActionsContent>
+            <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
+            <MudButton OnClick="Save" Disabled="@(form == null || IsLoading || !Recipes.Any() || hasStarted || isFinished)" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+            <MudButton OnClick="StartPlan"
+                       Disabled="@(form == null || IsLoading || BatchPlan.Id == Guid.Empty || hasStarted || isFinished)"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary">
+                Start Plan
+            </MudButton>
+        </ActionsContent>
+    </Dialog>
+</MudLoading>
+@code {
+
+    private Dialog? dialog;
+
+
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+    [Parameter]
+    public BatchPlanDTO BatchPlan { get; set; } = new BatchPlanDTO()
+    {
+        DaysForPlan = 1,
+        TraysPerDay = 1,
+        BatchPlanTypeId = GlobalConstants.BATCHPLANTYPE_WASHER,
+        Batches = new List<BatchDTO>()
+    };
+
+    private MudForm form = new MudForm();
+    private bool _formIsValid;
+    private List<FarmDTO> Farms = new List<FarmDTO>();
+    private List<RecipeDTO> Recipes = new List<RecipeDTO>();
+
+    private Guid SelectedFarmId { get; set; }
+
+    private List<FloorDTO> Floors = new();
+    private List<RackDTO> Racks = new();
+    private List<LayerDTO> Layers = new();
+
+    private DateTime? StartDate { get; set; }
+    private DateTime EndDateDisplay => CalculateEndDate();
+    private string TotalTraysDisplay => CalculateTotalTrays().ToString();
+
+    private int DaysForPlan { get; set; }
+    private int TraysPerDay { get; set; }
+
+    private Guid _selectedRecipeId;
+    private Guid SelectedRecipeId
+    {
+        get => _selectedRecipeId;
+        set
+        {
+            if (_selectedRecipeId != value)
+            {
+                _selectedRecipeId = value;
+
+                if (_selectedRecipeId != Guid.Empty)
+                {
+                    BatchPlan.BatchPlanTypeId = GlobalConstants.BATCHPLANTYPE_RECIPE;
+                    UpdateBatchPlanFromRecipe();
+                    GenerateAssignments();
+                }
+                else
+                {
+                    BatchPlan.BatchPlanTypeId = GlobalConstants.BATCHPLANTYPE_WASHER;
+                    GerminationBatchRows = new();
+                    PropagationBatchRows = new();
+                    GrowingBatchRows = new();
+                    SelectedLayers = new();
+
+                    GenerateAssignments(1, 1);
+                }
+            }
+            StateHasChanged();
+        }
+    }
+
+    private string DialogTitle => BatchPlan.Id == Guid.Empty ? "Add Plan" : "Edit Plan";
+    private bool IsLoading { get; set; } = true;
+    private bool hasStarted;
+    private bool isFinished => BatchPlan.StatusId == GlobalConstants.BATCHPLANSTATUS_FINISHED;
+    private bool IsWasherOrTransplanter =>
+        BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_WASHER ||
+        BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_TRANSPLANTER;
+
+    private List<BatchRowDTO> GerminationBatchRows = new();
+    private List<BatchRowDTO> PropagationBatchRows = new();
+    private List<BatchRowDTO> GrowingBatchRows = new();
+
+    private List<BatchRowDTO> SelectedLayers = new();
+
+    private string GetRecipeHelperText()
+    {
+        var selected = Recipes.FirstOrDefault(r => r.Id == SelectedRecipeId);
+        return selected != null
+            ? $"Germination: {selected.GerminationDays}d, Propagation: {selected.PropagationDays}d, Grow: {selected.GrowDays}d"
+            : string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+
+        Farms = (await FarmClientService.GetAllFarmsSimpleAsync())?.ToList() ?? new List<FarmDTO>();
+        Recipes = (await RecipeClientService.GetAllRecipesAsync())?.ToList() ?? new List<RecipeDTO>();
+        Floors = (await FloorClientService.GetAllFloorsAsync(enabledOnly: true)).OrderBy(x => x.Number).ToList();
+        Racks = (await RackClientService.GetAllRacksAsync()).OrderBy(x => x.Number).ToList();
+        Layers = (await LayerClientService.GetAllLayersAsync()).OrderBy(x => x.Number).ToList();
+
+        if (!Recipes.Any())
+        {
+            Snackbar.Add("No recipes available. Please add a recipe before proceeding.", Severity.Error);
+        }
+
+        SelectedFarmId = BatchPlan.FarmId != Guid.Empty ? BatchPlan.FarmId : Farms.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (BatchPlan.BatchPlanTypeId == Guid.Empty) BatchPlan.BatchPlanTypeId = GlobalConstants.BATCHPLANTYPE_WASHER;
+
+        if (BatchPlan.Id == Guid.Empty)
+        {
+            StartDate = BatchPlan.StartDate ?? DateTime.Now.Date;
+            BatchPlan.StartDate = StartDate;
+
+            BatchPlan.Recipe ??= new RecipeDTO();
+            if (_selectedRecipeId != Guid.Empty)
+            {
+                BatchPlan.BatchPlanTypeId = GlobalConstants.BATCHPLANTYPE_RECIPE;
+                UpdateBatchPlanFromRecipe();
+            }
+
+            BatchPlan.Batches.Add(new BatchDTO { Id = Guid.NewGuid(), BatchRows = new List<BatchRowDTO>() });
+
+            GerminationBatchRows = new List<BatchRowDTO>();
+            PropagationBatchRows = new List<BatchRowDTO>();
+            GrowingBatchRows = new List<BatchRowDTO>();
+        }
+        else if (BatchPlan.Id != Guid.Empty)
+        {
+            hasStarted = BatchPlan?.StatusId == GlobalConstants.BATCHPLANSTATUS_PLANNED;
+
+            _selectedRecipeId = BatchPlan.Recipe?.Id ?? Guid.Empty;
+
+            var rows = BatchPlan.Batches.First().BatchRows?.OrderBy(r => r.AddedDateTime).ToList() ?? new List<BatchRowDTO>();
+            if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RACK)
+            {
+                SelectedLayers = rows.ToList();
+            }
+            else if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RECIPE)
+            {
+                var racks = Racks.ToDictionary(r => r.Id);
+
+                GerminationBatchRows = rows.Where(r => r.RackId != null && racks.ContainsKey(r.RackId.Value) && racks[r.RackId.Value].TypeId == GlobalConstants.RACKTYPE_GERMINATION).ToList();
+                PropagationBatchRows = rows.Where(r => r.RackId != null && racks.ContainsKey(r.RackId.Value) && racks[r.RackId.Value].TypeId == GlobalConstants.RACKTYPE_PROPAGATION).ToList();
+                GrowingBatchRows = rows.Where(r => r.RackId != null && racks.ContainsKey(r.RackId.Value) && racks[r.RackId.Value].TypeId == GlobalConstants.RACKTYPE_GROWING).ToList();
+            }
+        }
+        else
+        {
+            BatchPlan.Batches = new List<BatchDTO>();
+            await GenerateAssignments();
+        }
+
+        IsLoading = false;
+    }
+
+    private async Task GenerateAssignments(int? traysPerDay = null, int? daysForPlan = null)
+    {
+        if (BatchPlan == null)
+            return;
+
+        BatchPlan.Recipe ??= new RecipeDTO();
+
+        int trays = traysPerDay ?? BatchPlan.TraysPerDay;
+        int days = daysForPlan ?? BatchPlan.DaysForPlan;
+
+        // if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RACK)
+        // {
+        //     SelectedLayers = await BatchPlanClientService.CalculateAssignmentsAsync(
+        //             rackTypeId: Guid.Empty,
+        //             traysPerDay: trays,
+        //             days: days
+        //         );
+        // }
+        // else
+        {
+            if (BatchPlan.Recipe.GerminationDays > 0)
+            {
+                GerminationBatchRows = await BatchPlanClientService.CalculateAssignmentsAsync(
+                    rackTypeId: GlobalConstants.RACKTYPE_GERMINATION,
+                    traysPerDay: trays,
+                    days: days
+                );
+            }
+
+            if (BatchPlan.Recipe.PropagationDays > 0)
+            {
+                PropagationBatchRows = await BatchPlanClientService.CalculateAssignmentsAsync(
+                    rackTypeId: GlobalConstants.RACKTYPE_PROPAGATION,
+                    traysPerDay: trays,
+                    days: days
+                );
+            }
+
+            if (BatchPlan.Recipe.GrowDays > 0)
+            {
+                GrowingBatchRows = await BatchPlanClientService.CalculateAssignmentsAsync(
+                    rackTypeId: GlobalConstants.RACKTYPE_GROWING,
+                    traysPerDay: trays,
+                    days: days
+                );
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private DateTime CalculateEndDate()
+    {
+        return (BatchPlan.StartDate ?? DateTime.Now.Date).AddDays((BatchPlan?.DaysForPlan ?? 1));
+    }
+
+    private int CalculateTotalTrays()
+    {
+        return (BatchPlan?.DaysForPlan ?? 0) * (BatchPlan?.TraysPerDay ?? 0);
+    }
+
+    private void UpdateBatchPlanFromRecipe()
+    {
+        var selectedRecipe = Recipes.Single(r => r.Id == _selectedRecipeId);
+        BatchPlan.Recipe ??= new RecipeDTO();
+        BatchPlan.Recipe.GerminationDays = selectedRecipe.GerminationDays;
+        BatchPlan.Recipe.PropagationDays = selectedRecipe.PropagationDays;
+        BatchPlan.Recipe.GrowDays = selectedRecipe.GrowDays;
+    }
+
+    private async Task StartPlan()
+    {
+        var parameters = new DialogParameters
+        {
+            { "ConfirmTitle", "Confirm Start" },
+            { "ConfirmMessage", "Are you sure you want to start this plan? This action cannot be undone." }
+        };
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            MaxWidth = MaxWidth.Small,
+            Position = DialogPosition.TopCenter
+        };
+
+        var dialog = await Dialog.ShowAsync<Confirm>("Start Plan", parameters, options);
+        var result = await dialog.Result;
+
+        if (result.Canceled)
+            return;
+
+        try
+        {
+            IsLoading = true;
+
+            var allRows = GerminationBatchRows
+            .Concat(PropagationBatchRows)
+            .Concat(GrowingBatchRows)
+            .Concat(SelectedLayers)
+            .ToList();
+
+            BatchPlan.Batches.First().BatchRows = allRows;
+
+            BatchPlan.StatusId = GlobalConstants.BATCHPLANSTATUS_PLANNED;
+
+            await BatchPlanClientService.StartBatchPlanAsync(BatchPlan);
+
+            hasStarted = true;
+            MudDialog?.Close(DialogResult.Ok(BatchPlan));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to start plan: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task BatchRowsChanged()
+    {
+        await BatchPlanClientService.UpdateBatchPlanAsync(BatchPlan);
+    }
+
+    private async Task Save()
+    {
+        await form.Validate();
+        if (!_formIsValid)
+            return;
+
+        if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RECIPE)
+        {
+            var emptyTrays = GrowingBatchRows.Sum(x => x.EmptyCount);
+            if (emptyTrays > 0)
+            {
+                var parameters = new DialogParameters
+            {
+                { "ConfirmTitle", "Confirm Save" },
+                { "ConfirmMessage", $"You have {emptyTrays} empty grow trays, do you want to continue?" }
+            };
+                var options = new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = false,
+                    MaxWidth = MaxWidth.Small,
+                    Position = DialogPosition.TopCenter
+                };
+
+                var dialog = await Dialog.ShowAsync<Confirm>("Confirm", parameters, options);
+                var result = await dialog.Result;
+
+                if (result.Canceled)
+                    return;
+            }
+        }
+
+        if (form != null && !IsLoading)
+        {
+            BatchPlan.FarmId = SelectedFarmId;
+
+            if (Recipes.Any() && SelectedRecipeId != Guid.Empty)
+            {
+                var selectedRecipe = Recipes.FirstOrDefault(r => r.Id == SelectedRecipeId);
+                BatchPlan.Recipe = selectedRecipe ?? new RecipeDTO();
+                BatchPlan.Recipe.Id = _selectedRecipeId;
+            }
+            else
+            {
+                BatchPlan.Recipe = new RecipeDTO();
+            }
+
+            var allRows = GerminationBatchRows
+                .Concat(PropagationBatchRows)
+                .Concat(GrowingBatchRows)
+                .Concat(SelectedLayers)
+            .ToList();
+
+            if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RECIPE || BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RACK)
+            {
+                allRows = allRows.Where(r => !r.IsTransportLayer).ToList();
+            }
+
+            BatchPlan.Batches.First().BatchRows = allRows;
+            BatchPlan.Batches.First().BatchName = BatchPlan.Name;
+
+            //if (BatchPlan.BatchPlanTypeId == GlobalConstants.BATCHPLANTYPE_RACK)
+            //{
+            //   BatchPlan.TraysPerDay = BatchPlan.Batch?.BatchRows?.Sum(a => a.TrayCount) ?? 0;
+            //}
+
+            MudDialog?.Close(DialogResult.Ok(BatchPlan));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

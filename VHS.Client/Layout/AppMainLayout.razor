@@ -1,9 +1,17 @@
 ﻿@inherits LayoutComponentBase
+@using VHS.Client.Services
 @using VHS.Services.Auth
 @using VHS.Services.Auth.DTO
 @inject IStringLocalizer<Shared> Localizer
 @inject LocalStorage LocalStorage
 @inject PageTitleService PageTitleService
+@inject SystemService SystemService
+
+@inject FireAlarmStateService FireAlarmState
+@inject HubConnection _hubConnection
+
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
 <MudThemeProvider Theme="AppCustomTheme" />
 <MudPopoverProvider />
@@ -17,16 +25,31 @@
         </MudLink>
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" Class="mx-14" Edge="Edge.Start" OnClick="DrawerToggle" />
         <MudSpacer />
+        @if (FireAlarmState.IsAlarmActive)
+        {
+            <MudIcon Size="Size.Large" Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Class="mr-2" />
+            <MudText Typo="Typo.h4" Color="Color.Error">FIRE ALARM ACTIVE!</MudText>
+            <MudSpacer />
+        }
         <MudIconButton Icon="@Icons.Material.Outlined.Search" Size="Size.Medium" Color="Color.Default" Class="mx-1" Edge="Edge.End" />
         <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Size="Size.Medium" Color="Color.Default" Class="mx-1" Edge="Edge.End" />
         <AuthUser />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <AppNavMenu />
+        <MudSpacer />
+        <MudText Typo="Typo.subtitle2">@Version</MudText>
     </MudDrawer>
     <MudMainContent>
         <MudContainer Class="mt-8 mb-8 px-8" MaxWidth="MaxWidth.False">
-            <MudText Typo="Typo.h4" Class="page-title pb-8" Color="Color.Primary">@PageTitleService.Title</MudText>
+            @if (!String.IsNullOrEmpty(PageTitleService.BackText))
+            {
+                <MudLink Href="@PageTitleService.BackUrl">@PageTitleService.BackText</MudLink>
+            }
+            @if (!string.IsNullOrEmpty(PageTitleService.Title))
+            {
+                <MudText Typo="Typo.h4" Class="page-title pb-8" Color="Color.Primary">@PageTitleService.Title</MudText>
+            }
             @Body
         </MudContainer>
     </MudMainContent>
@@ -34,6 +57,11 @@
 
 @code {
     bool _drawerOpen = true;
+    public string Version = string.Empty;
+
+    const string VERSION_KEY = "VHS_APP_VERSION";
+    string? _loadedVersion;
+
     private List<BreadcrumbItem> BreadcrumbItems = new()
     {
         new BreadcrumbItem("Home", href: "/"),
@@ -49,6 +77,24 @@
     {
         await SetCultureFromLocalStorageAsync();
         PageTitleService.OnChange += StateHasChanged;
+
+        _loadedVersion = await SystemService.Version();
+        Version = _loadedVersion ?? "1.0.0.0";
+
+        var storedVersion = await LocalStorage.GetStateAsync(VERSION_KEY);
+
+        if (!string.IsNullOrEmpty(_loadedVersion) && _loadedVersion != storedVersion)
+        {
+            await LocalStorage.SaveStateAsync(VERSION_KEY, _loadedVersion);
+
+            if (!string.IsNullOrEmpty(storedVersion))
+            {
+                await InvokeAsync(() => Snackbar.Add("New version available. Refreshing pages...", Severity.Info));
+                await Task.Delay(5000);
+                NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+                return;
+            }
+        }
     }
 
     public void Dispose()

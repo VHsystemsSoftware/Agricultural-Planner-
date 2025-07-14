@@ -1,12 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿namespace VHS.Services.Common.DataGrid.Enums;
 
-namespace VHS.Services.Common.DataGrid.Enums
+public enum SortDirectionEnum
 {
-    public enum SortDirectionEnum
-    {
-        None,
-        Ascending,
-        Descending
-    }
+    None,
+    Ascending,
+    Descending
 }

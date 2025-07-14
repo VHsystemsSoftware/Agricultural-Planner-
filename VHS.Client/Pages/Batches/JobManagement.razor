@@ -1,0 +1,336 @@
+﻿@page "/batches/jobs"
+@using VHS.Client.Pages.Batches.Dialogs
+@using VHS.Services.Batches.DTO
+@using VHS.Client.Services.Batches
+@using VHS.Services.Common
+@inject BatchClientService BatchClientService
+@inject JobClientService JobClientService
+@inject NavigationManager Nav
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+@inject PageTitleService PageTitleService
+
+<MudDataGrid T="JobDTO" Items="@JobList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" RowClick="@(args => EditJob(args.Item))" RowStyle="cursor: pointer;">
+    <ToolBarContent>
+        <MudTextField T="string"
+                      Label="Filter by Job Name"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      Value="JobNameFilterText"
+                      ValueChanged="OnJobNameFilterTextChanged"
+                      Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      AdornmentColor="Color.Dark"
+                      Placeholder="Enter Job Name" />
+        <MudSpacer />
+        <MudTextField T="string"
+                      Label="Filter by Batch Name"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      Value="BatchNameFilterText"
+                      ValueChanged="OnBatchNameFilterTextChanged"
+                      Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      AdornmentColor="Color.Dark"
+                      Placeholder="Enter Batch Name" />
+        <MudSpacer />
+        <MudStack Style="width:20%;">
+            <MudDateRangePicker @ref="_jobDateRangePicker"
+                Label="Scheduled Date Range"
+                @bind-DateRange="SelectedScheduledDateRange"
+                Variant="Variant.Outlined"
+                Clearable="true"
+                AutoClose="false">
+                    <PickerActions>
+                        <MudButton OnClick="@(() => _jobDateRangePicker?.CloseAsync(false))">Cancel</MudButton>
+                        <MudButton Color="Color.Primary" OnClick="OnJobDateRangeOkClicked">OK</MudButton>
+                    </PickerActions>
+            </MudDateRangePicker>
+        </MudStack>
+        <MudSpacer />
+        <MudAutocomplete T="KeyValuePair<Guid, string>"
+                         Label="Filter by Location"
+                         Variant="Variant.Outlined"
+                         Clearable="true"
+                         SearchFunc="@SearchJobLocations"
+                         ToStringFunc="@(loc => loc.Equals(default(KeyValuePair<Guid, string>)) ? null : loc.Value)"
+                         Value="SelectedJobLocationForFilter"
+                         ValueChanged="OnJobLocationFilterChanged"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         AdornmentColor="Color.Dark"
+                         Placeholder="Select a Location">
+            <ItemTemplate Context="loc">
+                <MudText>@loc.Value</MudText>
+            </ItemTemplate>
+        </MudAutocomplete>
+        <MudSpacer />
+        <MudCheckBox @bind-Value="CB_NotStarted" @bind-Value:after="LoadJobs">Not Started</MudCheckBox>
+        <MudCheckBox @bind-Value="CB_InProgress" @bind-Value:after="LoadJobs">In Progress</MudCheckBox>
+        <MudCheckBox @bind-Value="CB_Completed" @bind-Value:after="LoadJobs">Completed</MudCheckBox>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
+        <PropertyColumn Property="x => x.BatchName" Title="Batch Name" Sortable="true" />
+        <PropertyColumn Property="x => x.OrderOnDay" Title="Run Order" Sortable="true" />
+        <PropertyColumn Property="x => x.TrayCount" Title="Trays" Sortable="true" />
+        <PropertyColumn Property="x => x.ScheduledDate" Title="Scheduled Date" Format="dd MMM yyyy" Sortable="true" />
+
+        <TemplateColumn Title="Location">
+            <CellTemplate Context="context">
+                <VHS.Client.Components.Status.JobLocationType StatusId="@context.Item.JobLocationTypeId" />
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Status">
+            <CellTemplate Context="context">
+                <VHS.Client.Components.Status.JobStatus StatusId="@context.Item.StatusId" />
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Actions">
+            <CellTemplate Context="context">
+                <MudStack Row Spacing="1">
+                    <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton Disabled="!context.Item.IsEditable" Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditJob(context.Item))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton Disabled="!context.Item.IsDeletable" Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteJob(context.Item))" />
+                    </MudTooltip>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager Items="@JobList" />
+    </PagerContent>
+</MudDataGrid>
+
+@if (JobList == null || !JobList.Any())
+{
+    <MudAlert Severity="Severity.Info">No jobs found.</MudAlert>
+}
+
+@code {
+    private MudDateRangePicker? _jobDateRangePicker;
+
+    private IEnumerable<JobDTO>? JobListAll;
+    private IEnumerable<JobDTO>? JobList;
+    private List<JobDTO>? _suggestedJobs;
+    private bool IsLoading = true;
+
+    private bool CB_Completed = false;
+    private bool CB_NotStarted = true;
+    private bool CB_InProgress = true;
+
+    private string? JobNameFilterText;
+    private string? BatchNameFilterText;
+
+    private KeyValuePair<Guid, string> SelectedJobLocationForFilter = default;
+    private bool IsLocationFilterSet = false;
+
+    private DateRange SelectedScheduledDateRange { get; set; } = new DateRange(null, null);
+
+    private readonly Dictionary<Guid, string> _locations = new()
+    {
+        [GlobalConstants.JOBLOCATION_SEEDER] = "Seeding",
+        // [GlobalConstants.JOBLOCATION_GERMINATING] = "Germinating",
+        // [GlobalConstants.JOBLOCATION_PROPAGATING] = "Propagating",
+        // [GlobalConstants.JOBLOCATION_GROWING] = "Growing",
+        [GlobalConstants.JOBLOCATION_HARVESTER] = "Harvesting",
+        //[GlobalConstants.JOBLOCATION_WASHER = "Washing",
+        [GlobalConstants.JOBLOCATION_TRANSPLANTER] = "Transplanting",
+       // [GlobalConstants.JOBLOCATION_TRANSPORT] = "Transport",
+    };
+
+    private readonly Dictionary<Guid, string> _statuses = new()
+    {
+        [GlobalConstants.JOBSTATUS_NOTSTARTED] = "Not Started",
+        [GlobalConstants.JOBSTATUS_INPROGRESS] = "In Progress",
+        [GlobalConstants.JOBSTATUS_COMPLETED] = "Completed",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "";
+        await LoadJobs();
+    }
+
+    private async Task LoadJobs()
+    {
+        IsLoading = true;
+
+        var selectedStatusIds = new List<Guid>();
+        if (CB_NotStarted) selectedStatusIds.Add(GlobalConstants.JOBSTATUS_NOTSTARTED);
+        if (CB_InProgress) selectedStatusIds.Add(GlobalConstants.JOBSTATUS_INPROGRESS);
+        if (CB_Completed) selectedStatusIds.Add(GlobalConstants.JOBSTATUS_COMPLETED);
+
+        JobList = (await JobClientService.GetAllJobsAsync(
+            name: JobNameFilterText,
+            batchName: BatchNameFilterText,
+            jobLocationTypeId: IsLocationFilterSet ? SelectedJobLocationForFilter.Key : null,
+            scheduledDateFrom: SelectedScheduledDateRange.Start,
+            scheduledDateTo: SelectedScheduledDateRange.End,
+            statusIds: selectedStatusIds.Any() ? selectedStatusIds : null))
+            .OrderBy(x => x.ScheduledDate).ThenBy(x => x.OrderOnDay)
+            .ToList();
+
+        IsLoading = false;
+    }
+
+    private async Task OnJobNameFilterTextChanged(string? value)
+    {
+        JobNameFilterText = value;
+        await LoadJobs();
+    }
+
+    private async Task OnBatchNameFilterTextChanged(string? value)
+    {
+        BatchNameFilterText = value;
+        await LoadJobs();
+    }
+
+    private Task<IEnumerable<KeyValuePair<Guid, string>>> SearchJobLocations(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult<IEnumerable<KeyValuePair<Guid, string>>>(_locations.OrderBy(loc => loc.Value).ToList());
+
+        var result = _locations
+            .Where(loc => loc.Value.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .OrderBy(loc => loc.Value)
+            .ToList();
+
+        return Task.FromResult<IEnumerable<KeyValuePair<Guid, string>>>(result);
+    }
+
+    private async Task OnJobLocationFilterChanged(KeyValuePair<Guid, string> selected)
+    {
+        if (selected.Equals(default(KeyValuePair<Guid, string>)))
+        {
+            IsLocationFilterSet = false;
+            SelectedJobLocationForFilter = default;
+        }
+        else
+        {
+            IsLocationFilterSet = true;
+            SelectedJobLocationForFilter = selected;
+        }
+
+        await LoadJobs();
+    }
+
+    private async Task OnJobDateRangeOkClicked()
+    {
+        await _jobDateRangePicker!.CloseAsync(true);
+        await LoadJobs();
+    }
+
+    private async Task ShowVirtualJobs()
+    {
+        _suggestedJobs = (await JobClientService.GetSuggestedJobsAsync())?.ToList() ?? new List<JobDTO>();
+        var parameters = new DialogParameters { { "SuggestedJobs", _suggestedJobs } };
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            Position = DialogPosition.TopCenter
+        };
+        var dialog = await Dialog.ShowAsync<JobSuggestionsDialog>("Suggested Jobs", parameters, options);
+        var result = await dialog.Result;
+        await LoadJobs();
+    }
+
+    private async Task AddJob()
+    {
+        var newJob = new JobDTO
+        {
+            StatusId = GlobalConstants.JOBSTATUS_NOTSTARTED
+        };
+
+        var parameters = new DialogParameters
+        {
+            { "Job", newJob }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            Position = DialogPosition.TopCenter
+        };
+
+        var dialog = await Dialog.ShowAsync<JobDialog>("Add New Job", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var createdJob = (JobDTO)result.Data;
+            await JobClientService.CreateJobAsync(createdJob);
+            await LoadJobs();
+            Snackbar.Add("Job added successfully", Severity.Success);
+        }
+    }
+
+    private async Task EditJob(JobDTO job)
+    {
+        if (job.IsEditable)
+        {
+            var parameters = new DialogParameters
+        {
+            { "Job", job }
+        };
+
+            var options = new DialogOptions
+                {
+                    CloseButton = true,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true,
+                    Position = DialogPosition.TopCenter
+                };
+
+            var dialog = await Dialog.ShowAsync<JobDialog>("Edit Job", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Canceled)
+            {
+                var updatedJob = (JobDTO)result.Data;
+                await JobClientService.UpdateJobAsync(updatedJob);
+                await LoadJobs();
+                Snackbar.Add("Job updated successfully", Severity.Success);
+            }
+        }
+    }
+
+    private async Task DeleteJob(JobDTO job)
+    {
+        if (job.IsDeletable)
+        {
+
+
+            var parameters = new DialogParameters
+        {
+            { "ConfirmTitle", "Confirm Delete" },
+            { "ConfirmMessage", "Are you sure you want to delete this job?" }
+        };
+
+            var options = new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = false,
+                    MaxWidth = MaxWidth.Small,
+                    Position = DialogPosition.TopCenter
+                };
+
+            var dialog = await Dialog.ShowAsync<Confirm>("Confirm Delete", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Canceled)
+            {
+                await JobClientService.DeleteJobAsync(job.Id);
+                JobList = JobList?.Where(x => x.Id != job.Id).ToList();
+                Snackbar.Add("Job deleted successfully", Severity.Success);
+            }
+        }
+    }
+}

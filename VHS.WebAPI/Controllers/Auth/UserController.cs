@@ -1,61 +1,76 @@
-﻿using Auth0.ManagementApi;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VHS.Services.Auth;
-using VHS.Services.Auth.DTO;
 
-namespace VHS.WebAPI.Controllers.Auth
+namespace VHS.WebAPI.Controllers.Auth;
+
+[ApiController]
+[Route("api/[controller]")]
+[AllowAnonymous] // Temp allow
+public class UserController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [AllowAnonymous] // Temp allow
-    public class UserController : ControllerBase
+    private readonly IUserService _userService;
+
+    public UserController(IUserService userService)
     {
-        private readonly IManagementApiClient _managementApiClient;
-        private readonly IUserService _userService;
+        _userService = userService;
+    }
 
-        public UserController(IManagementApiClient managementApiClient, IUserService userService)
+    [HttpGet]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _userService.GetAllUsersAsync();
+        return Ok(users);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserById(Guid id)
+    {
+        var user = await _userService.GetUserByIdAsync(id);
+        if (user == null)
+            return NotFound();
+
+        return Ok(user);
+    }
+
+    [HttpPost("create")]
+    public async Task<IActionResult> CreateUser([FromBody] UserDTO userDto)
+    {
+        try
         {
-            _managementApiClient = managementApiClient;
-            _userService = userService;
+            var createdUser = await _userService.CreateUserAsync(userDto);
+            return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
         }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserById(Guid id)
+        catch (Exception ex)
         {
-            var user = await _userService.GetUserByIdAsync(id);
-            if (user == null)
-                return NotFound();
-
-            return Ok(user);
+            return BadRequest(ex.Message);
         }
+    }
 
-        [HttpPost("create")]
-        public async Task<IActionResult> CreateUser([FromBody] UserDTO userDto)
+    [HttpPut("update")]
+    public async Task<IActionResult> UpdateUser([FromBody] UserDTO userDto)
+    {
+        try
         {
-            try
-            {
-                var createdUser = await _userService.CreateUserAsync(userDto);
-                return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var updatedUser = await _userService.UpdateUserAsync(userDto);
+            return Ok(updatedUser);
         }
-
-        [HttpPut("update")]
-        public async Task<IActionResult> UpdateUser([FromBody] UserDTO userDto)
+        catch (Exception ex)
         {
-            try
-            {
-                var updatedUser = await _userService.UpdateUserAsync(userDto);
-                return Ok(updatedUser);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        try
+        {
+            await _userService.DeleteUserAsync(id);
+            return NoContent(); // Success, no content to return
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 }

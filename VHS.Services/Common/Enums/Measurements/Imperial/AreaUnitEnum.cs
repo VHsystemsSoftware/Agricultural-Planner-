@@ -1,11 +1,10 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Imperial
+﻿namespace VHS.Services.Common.Enums.Measurements.Imperial;
+
+public enum AreaUnitEnum
 {
-    public enum AreaUnitEnum
-    {
-        SquareMile,
-        Acre,
-        SquareYard,
-        SquareFoot,
-        SquareInch
-    }
+    SquareMile,
+    Acre,
+    SquareYard,
+    SquareFoot,
+    SquareInch
 }

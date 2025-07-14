@@ -1,9 +1,8 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Metric
+﻿namespace VHS.Services.Common.Enums.Measurements.Metric;
+
+public enum VolumeUnitEnum
 {
-    public enum VolumeUnitEnum
-    {
-        CubicMeter,
-        Liter,
-        Milliliter
-    }
+    CubicMeter,
+    Liter,
+    Milliliter
 }

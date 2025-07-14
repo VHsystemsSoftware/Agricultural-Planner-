@@ -1,0 +1,254 @@
+﻿@page "/racks"
+@using VHS.Client.Services.Farming
+@using VHS.Services.Farming.DTO
+@using VHS.Services.Batches.DTO
+@using MudExtensions
+
+@inject FarmClientService FarmClientService
+@inject FloorClientService FloorClientService
+@inject PageTitleService PageTitleService
+
+<MudPaper Class="pa-2">
+    <MudGrid Class="mt-2">
+        <MudItem xs="4" sm="2">
+            <MudSelect T="Guid"
+                       Label="Filter by Floor"
+                       Value="_selectedFloorId"
+                       ValueChanged="OnFloorChanged"
+                       Dense
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="Guid.Empty">All floors</MudSelectItem>
+                @foreach (var floor in _floors
+                                .Where(r => r.FarmId == _selectedFarm && r.Enabled)
+                                .OrderBy(r => r.Number))
+                {
+                    <MudSelectItem Value="@floor.Id">
+                        @floor.Number – @floor.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        @*         <MudItem xs="2" sm="2">
+            <MudDatePicker Date="_asOf"
+                           DateChanged="OnAsOfChanged"
+                           Label="As of Date"
+                           PickerVariant="PickerVariant.Inline" />
+        </MudItem> 
+         <MudItem xs="2" sm="2" Class="d-flex align-end">
+            <MudButton OnClick="Load"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@IsLoading">
+                Load
+            </MudButton>
+        </MudItem> *@
+        <MudItem xs="4" sm="2">
+            <div class="d-flex flex-row gap-4 mb-4">
+                <div class="d-flex align-center">
+                    <div class="legend-box bg-empty"></div>
+                    <span class="ml-2">Empty</span>
+                </div>
+                <div class="d-flex align-center">
+                    <div class="legend-box bg-full"></div>
+                    <span class="ml-2">Filled</span>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="4" sm="2">
+            <div class="d-flex flex-row gap-4 mb-4">
+                <div class="d-flex align-center">
+                    <div class="legend-box" style="background-color:lavender"></div>
+                    <span class="ml-2">Germination</span>
+                </div>
+                <div class="d-flex align-center">
+                    <div class="legend-box" style="background-color:khaki"></div>
+                    <span class="ml-2">Propagation</span>
+                </div>
+                <div class="d-flex align-center">
+                    <div class="legend-box" style="background-color:lightblue"></div>
+                    <span class="ml-2">Growing</span>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
+
+    <MudLoading @bind-Loading="@IsLoading">
+        <MudTabs Rounded="true" Class="mt-2" Outlined="true">
+            <MudTabPanel Text="Rack Towers">
+                <MudPaper Class="pa-4">
+
+                    @{
+                        var floorsToShow = _selectedFloorId == Guid.Empty
+                        ? _floors.Where(r => r.FarmId == _selectedFarm && r.Enabled)
+                        : _floors.Where(r => r.Id == _selectedFloorId);
+                    }
+
+                    @foreach (var floor in floorsToShow)
+                    {
+                        <div class="d-flex flex-row gap-4 flex-wrap justify-content-center">
+                            @foreach (var rack in floor.Racks.OrderBy(r => r.Number))
+                            {
+                                <MudPaper Style="@GetRackTypeBackgroundColor(rack.TypeId)">
+
+                                    <MudLink Href="@($"/rackoccupancy/{rack.Id}")" Underline="Underline.Always">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                            @($"{floor.Name}-{rack.Name} ({rack.TrayCountPerLayer})")
+                                        </MudText>
+                                    </MudLink>
+                                    <div class="d-flex flex-row gap-1 flex-wrap justify-content-center">
+                                        @{
+                                            <div class="rack-set-container">
+                                                <div class="rack-head"></div>
+
+                                                @foreach (var layer in rack.Layers.OrderBy(l => l.Number))
+                                                {
+                                                    var colorClass = GetOccupancyColor(layer.Id);
+                                                    <div class="rack-tray @colorClass">
+                                                        <div class="rack-tray-overlay">
+                                                            <div class="rack-tray-overlay-text overlay-dot">
+                                                                <i class="pe-1 bi-circle-fill"></i>
+                                                                @($"{layer.Number.ToString("D2")}")
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                <div class="rack-footer"></div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                </MudPaper>
+                            }
+                        </div>
+                    }
+
+                </MudPaper>
+            </MudTabPanel>
+            <MudTabPanel Text="Occupancy Table">
+                <MudTable Items="_dataFiltered" Hover="true" Elevation="1" Class="mt-4">
+                    <HeaderContent>
+                        <MudTh>Floor</MudTh>
+                        <MudTh>Rack</MudTh>
+                        <MudTh>RackType</MudTh>
+                        <MudTh>Layer</MudTh>
+                        <MudTh>Capacity</MudTh>
+                        <MudTh>Current</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.FloorName</MudTd>
+                        <MudTd>@context.RackName</MudTd>
+                        <MudTd><RacKTypeName TypeId="@context.RackTypeId" /></MudTd>
+                        <MudTd>@context.LayerName</MudTd>
+                        <MudTd>@context.Capacity</MudTd>
+                        <MudTd>@context.Trays.Count()</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudTabPanel>
+        </MudTabs>
+    </MudLoading>
+</MudPaper>
+
+
+@code {
+    private IEnumerable<FarmDTO> _farms = Array.Empty<FarmDTO>();
+    private List<FloorDTO> _floors = new();
+    private Guid _selectedFarm;
+    private Guid _selectedFloorId;
+    private DateTime? _asOf = DateTime.Today;
+    private bool IsLoading { get; set; } = true;
+    private List<LayerOccupancyDTO> _data = new();
+
+    private IEnumerable<LayerOccupancyDTO> _dataFiltered
+    {
+        get
+        {
+            if (_selectedFloorId == Guid.Empty)
+                return _data;
+
+            var selected = _floors.First(r => r.Id == _selectedFloorId);
+            return _data
+                .Where(x =>
+                    x.FloorNumber == selected.Number
+                ).OrderBy(x => x.FloorNumber).ThenBy(x => x.RackNumber).ThenBy(x => x.LayerNumber);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "";
+
+        _farms = await FarmClientService.GetAllFarmsAsync() ?? Array.Empty<FarmDTO>();
+        _floors = (await FloorClientService.GetAllFloorsAsync())
+            ?.OrderBy(r => r.Number)
+            .ToList()
+        ?? new();
+
+        if (_farms.Any())
+            _selectedFarm = _farms.First().Id;
+        //if (_floors.Any())
+        //    _selectedFloorId = _floors.First().Id;
+
+        await Load();
+    }
+
+    private async Task OnAsOfChanged(DateTime? newDate)
+    {
+        _asOf = newDate ?? DateTime.Today;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        if (_selectedFarm == Guid.Empty || !_asOf.HasValue)
+            return;
+        IsLoading = true;
+        StateHasChanged();
+        _data = (await FarmClientService.GetLayerOccupancyAsync(_selectedFarm, _asOf.Value)).ToList();
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private void OnFloorChanged(Guid floorId)
+    {
+        _selectedFloorId = floorId;
+        StateHasChanged();
+    }
+
+    private string GetRackTypeBackgroundColor(Guid typeId)
+    {
+        if (typeId == GlobalConstants.RACKTYPE_GROWING) return "background-color:lightblue";
+        if (typeId == GlobalConstants.RACKTYPE_GERMINATION) return "background-color:lavender";
+        if (typeId == GlobalConstants.RACKTYPE_PROPAGATION) return "background-color:khaki";
+
+        return string.Empty;
+    }
+
+    private string GetOccupancyColor(Guid layerId)
+    {
+        var occ = _data.FirstOrDefault(x => x.LayerId == layerId);
+        if (occ == null) return string.Empty;
+
+        // Overload: projected > capacity
+        //if (occ.ProjectedTrayCount > occ.Capacity)
+        //    return "bg-overload";
+
+        // Exactly full: projected == capacity
+        if (occ.Trays.Where(x => x.RecipeId.HasValue).Any())
+            return "bg-full";
+
+        // High utilization ≥75% but not full
+        //if (occ.Utilization >= 0.75)
+        //    return "bg-warning";
+
+        // Medium utilization ≥50%
+        //if (occ.Utilization >= 0.5)
+        //    return "bg-info";
+
+        // Low utilization >0
+        // if (occ.Utilization > 0)
+        //    return "bg-low";
+
+        // Empty
+        return "bg-empty";
+    }
+}

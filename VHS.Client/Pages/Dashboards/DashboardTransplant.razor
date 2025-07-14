@@ -1,0 +1,23 @@
+﻿@page "/dashboard-transplant"
+@inject HubConnection _hubConnection
+@inject PageTitleService PageTitleService
+<DashboardComponent JobLocationId="@GlobalConstants.JOBLOCATION_TRANSPLANTER" @ref="dc" />
+
+@code {
+    private DashboardComponent? dc;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "";
+
+        await ConnectNotification();
+    }
+
+    private async Task ConnectNotification()
+    {
+        _hubConnection.On<Guid, Guid>("Transport", (jobId, trayId) =>
+        {
+            dc.LoadJobs();
+        });
+    }
+}

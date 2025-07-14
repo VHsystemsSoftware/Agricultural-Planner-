@@ -1,10 +1,9 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Metric
+﻿namespace VHS.Services.Common.Enums.Measurements.Metric;
+
+public enum AreaUnitEnum
 {
-    public enum AreaUnitEnum
-    {
-        SquareKilometer,
-        Hectare,
-        SquareMeter,
-        SquareCentimeter
-    }
+    SquareKilometer,
+    Hectare,
+    SquareMeter,
+    SquareCentimeter
 }

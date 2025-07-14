@@ -1,0 +1,137 @@
+﻿@page "/trays"
+@using VHS.Services.Farming.DTO
+@using VHS.Client.Services.Batches
+@inject IDialogService DialogService
+@inject TrayStateClientService TrayStateClientService
+@inject PageTitleService PageTitleService
+@inject ISnackbar Snackbar
+
+<MudDataGrid T="TrayStateDTO" Items="@TrayStateList" Bordered="true" Dense="true" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" RowClick="@(args => EditTrayState(args.Item))" RowStyle="cursor: pointer;">
+    <Columns>
+
+        <!-- General Info -->
+        <PropertyColumn Property="x => x.TrayTag" Class="tray-rotated-header" CellClass="tray-square-cell" Title="" />
+        <PropertyColumn T="TrayStateDTO" TProperty="string" Class="tray-rotated-header" CellClass="tray-square-cell" Title="">
+            <CellTemplate Context="x">
+                @x.Item.Recipe?.Name
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.PreGrowLayerName" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Germ/Prop Layer" />
+        <PropertyColumn Property="x => x.GrowLayerName" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Grow Layer" />
+
+        <!-- Seeding & Pre-Grow -->
+        <PropertyColumn Property="x => x.SeedDate" Title="Seed Date" Class="tray-rotated-header" CellClass="tray-square-cell" CellStyle="background-color:#D3D3D3" />
+        <TemplateColumn Title="Arrived Seeder" CellStyleFunc="@SeederStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <PropertyColumn Property="x => x.PreGrowFinishedDate" Title="Germ/Prop Done" Class="tray-rotated-header" CellClass="tray-square-cell" CellStyle="background-color:#D3D3D3" />
+        <TemplateColumn Title="Push Out Germ/Prop" CellStyleFunc="@PushedOutPreGrowStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+
+        <!-- Paternoster -->
+        <TemplateColumn Title="To Paternoster" CellStyleFunc="@ToPaternosterStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <TemplateColumn Title="Arrived Paternoster" CellStyleFunc="@PaternosterStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+
+        <!-- Grow Phase -->
+        <TemplateColumn Title="Empty To Transplant" CellStyleFunc="@EmptyStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <TemplateColumn Title="Prop To Transplant" CellStyleFunc="@PropagationStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <TemplateColumn Title="Arrived Grow" CellStyleFunc="@GrowStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <PropertyColumn Property="x => x.GrowFinishedDate" Title="Grow Done" Class="tray-rotated-header" CellClass="tray-square-cell" CellStyle="background-color:#D3D3D3" />
+        <TemplateColumn Title="Push Out Grow" CellStyleFunc="@PushedOutGrowStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+
+        <!-- Harvest & Washing -->
+        <TemplateColumn Title="To Harvest" CellStyleFunc="@ToHarvestStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <TemplateColumn Title="Arrived Harvest" CellStyleFunc="@HarvestStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <TemplateColumn Title="To Washing" CellStyleFunc="@ToWashingStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <TemplateColumn Title="Arrived Washing" CellStyleFunc="@WashingStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+
+        <!-- Finalization -->
+        <TemplateColumn Title="Finished" CellStyleFunc="@FinishedStyle" Class="tray-rotated-header" CellClass="tray-square-cell"></TemplateColumn>
+        <PropertyColumn Property="x => x.HarvestedWeightKG" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Weight (kg)" />
+        <PropertyColumn Property="x => x.WeightRegistered" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Weight Registered" />
+        <PropertyColumn T="TrayStateDTO" TProperty="string" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Empty">
+            <CellTemplate Context="x">
+                @GetEmptyReasonLabel(x.Item.EmptyReason)
+            </CellTemplate>
+        </PropertyColumn>
+
+        <!-- Actions -->
+        <TemplateColumn Class="tray-rotated-header" CellClass="tray-square-cell" Title="">
+            <CellTemplate Context="context">
+                <MudStack Row Spacing="1">
+                    <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditTrayState(context.Item))" />
+                    </MudTooltip>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    private List<TrayStateDTO> TrayStateList = new();
+    private bool IsLoading = true;
+
+    private Func<TrayStateDTO, string> SeederStyle => x => x.ArrivedAtSeeder != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> GrowStyle => x => x.ArrivedGrow != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> ToHarvestStyle => x => x.TransportToHarvest != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> HarvestStyle => x => x.ArrivedHarvest != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> ToWashingStyle => x => x.TransportToWashing != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> WashingStyle => x => x.ArrivedWashing != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> ToPaternosterStyle => x => x.TransportToPaternosterUp != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> PaternosterStyle => x => x.ArrivedPaternosterUp != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> FinishedStyle => x => x.FinishedDateTime != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> EmptyStyle => x => x.EmptyToTransplant != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> PushedOutPreGrowStyle => x => x.WillBePushedOutPreGrow != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> PushedOutGrowStyle => x => x.WillBePushedOutGrow != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+    private Func<TrayStateDTO, string> PropagationStyle => x => x.PropagationToTransplant != null ? "background-color:#C8E6C9" : "background-color:#FFCDD2";
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "Trays";
+        await LoadTrayStates();
+    }
+
+    private async Task LoadTrayStates()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        TrayStateList = await TrayStateClientService.GetCurrentStates();
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private static readonly Dictionary<Guid, string> EmptyReasonLabels = new()
+    {
+        { GlobalConstants.TRAYSTATE_EMPTYREASON_UNKNOW, "Unknown" },
+        { GlobalConstants.TRAYSTATE_EMPTYREASON_LAYERFILL, "Layer Fill" },
+        { GlobalConstants.TRAYSTATE_EMPTYREASON_TOTRANSPLANT, "To Transplant" },
+        { GlobalConstants.TRAYSTATE_EMPTYREASON_HARVESTED, "Harvested" },
+        { GlobalConstants.TRAYSTATE_EMPTYREASON_FROMTRANSPLANT, "From Transplant" },
+        { GlobalConstants.TRAYSTATE_EMPTYREASON_TOWASHING, "To Washing" }
+    };
+
+    private string GetEmptyReasonLabel(Guid? reason)
+    {
+        if (reason.HasValue && EmptyReasonLabels.TryGetValue(reason.Value, out var label))
+            return label;
+        return string.Empty;
+    }
+
+    private async Task EditTrayState(TrayStateDTO trayState)
+    {
+        var parameters = new DialogParameters { { "TrayState", trayState } };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
+        var dialog = await DialogService.ShowAsync<TrayStatesDialog>("Edit Tray State", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var updatedTray = (TrayStateDTO)result.Data;
+            await TrayStateClientService.UpdateTrayStateAsync(updatedTray);
+            var index = TrayStateList.FindIndex(t => t.Id == updatedTray.Id);
+            if (index >= 0)
+            {
+                TrayStateList[index] = updatedTray;
+            }
+            Snackbar.Add("Tray state updated", Severity.Success);
+        }
+    }
+}

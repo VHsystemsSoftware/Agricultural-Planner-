@@ -1,23 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VHS.Data.Infrastructure;
-using VHS.Data.Models.Growth;
+﻿namespace VHS.Data.Core.Repositories;
 
-namespace VHS.Data.Repositories.Growth
+public interface ILightZoneRepository : IRepository<LightZone>
 {
-    public interface ILightZoneRepository : IRepository<LightZone>
-    {
-    }
-    public class LightZoneRepository : Repository<LightZone>, ILightZoneRepository
-    {
-        private readonly VHSDBContext _context;
+}
+public class LightZoneRepository : Repository<LightZone>, ILightZoneRepository
+{
+    private readonly VHSCoreDBContext _context;
 
-        public LightZoneRepository(VHSDBContext context) : base(context)
-        {
-            _context = context;
-        }
+    public LightZoneRepository(VHSCoreDBContext context) : base(context)
+    {
+        _context = context;
     }
 }

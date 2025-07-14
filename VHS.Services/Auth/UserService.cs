@@ -1,146 +1,150 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using VHS.Data.Models.Auth;
+using VHS.Data.Auth.Models.Auth;
 using VHS.Services.Auth.DTO;
-using VHS.Data.Infrastructure;
 
-namespace VHS.Services.Auth
+namespace VHS.Services;
+
+public interface IUserService
 {
-    public class UserService : IUserService
+    Task<IEnumerable<UserDTO>> GetAllUsersAsync();
+    Task<UserDTO> CreateUserAsync(UserDTO userDto);
+    Task<UserDTO> UpdateUserAsync(UserDTO userDto);
+    Task<UserDTO?> GetUserByIdAsync(Guid id);
+    Task DeleteUserAsync(Guid id);
+}
+
+public class UserService : IUserService
+{
+    private readonly UserManager<User> _userManager;
+
+    public UserService(UserManager<User> userManager)
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IUserSettingService _userSettingsService;
+        _userManager = userManager;
+    }
 
-        public UserService(IUnitOfWork unitOfWork, IUserSettingService userSettingsService)
+    public async Task<IEnumerable<UserDTO>> GetAllUsersAsync()
+    {
+        var users = await _userManager.Users.Where(u => u.DeletedDateTime == null).ToListAsync();
+        var userDtos = new List<UserDTO>();
+
+        foreach (var user in users)
         {
-            _unitOfWork = unitOfWork;
-            _userSettingsService = userSettingsService;
-        }
-
-        public async Task<UserDTO> CreateUserAsync(UserDTO userDto)
-        {
-            try
-            {
-                User? existingUser = null;
-
-                if (string.IsNullOrEmpty(userDto.Auth0Id))
-                {
-                    if (userDto.Id != Guid.Empty)
-                    {
-                        existingUser = await _unitOfWork.User.GetByIdAsync(userDto.Id);
-                    }
-                }
-                else
-                {
-                    existingUser = await _unitOfWork.User.GetFirstOrDefaultAsync(u => u.Auth0Id == userDto.Auth0Id);
-                }
-
-                if (existingUser != null)
-                {
-                    return await UpdateUserAsync(userDto);
-                }
-
-                var newUser = new User
-                {
-                    Id = userDto.Id == Guid.Empty ? Guid.NewGuid() : userDto.Id,
-                    Email = userDto.Email,
-                    FirstName = userDto.FirstName,
-                    LastName = userDto.LastName,
-                    Auth0Id = userDto.Auth0Id,
-                    AddedDateTime = DateTime.UtcNow,
-                    ModifiedDateTime = DateTime.UtcNow
-                };
-
-                await _unitOfWork.User.AddAsync(newUser);
-                await _unitOfWork.SaveChangesAsync();
-
-                await _userSettingsService.CreateUserSettingsAsync(newUser.Id);
-
-                return new UserDTO
-                {
-                    Id = newUser.Id,
-                    Email = newUser.Email,
-                    FirstName = newUser.FirstName,
-                    LastName = newUser.LastName,
-                    Auth0Id = newUser.Auth0Id,
-                    AddedDateTime = newUser.AddedDateTime,
-                    ModifiedDateTime = newUser.ModifiedDateTime
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Failed to create user: " + ex.Message);
-            }
-        }
-
-        public async Task<UserDTO> UpdateUserAsync(UserDTO userDto)
-        {
-            try
-            {
-                User? existingUser = null;
-
-                if (string.IsNullOrEmpty(userDto.Auth0Id))
-                {
-                    existingUser = await _unitOfWork.User.GetByIdAsync(userDto.Id);
-                }
-                else
-                {
-                    existingUser = await _unitOfWork.User.GetFirstOrDefaultAsync(
-                        u => u.Auth0Id == userDto.Auth0Id && u.Id == userDto.Id);
-
-                    if (existingUser == null)
-                    {
-                        existingUser = await _unitOfWork.User.GetFirstOrDefaultAsync(
-                            u => u.Auth0Id == userDto.Auth0Id);
-                    }
-                }
-
-                if (existingUser == null)
-                {
-                    throw new Exception("User not found.");
-                }
-
-                existingUser.FirstName = userDto.FirstName;
-                existingUser.LastName = userDto.LastName;
-                existingUser.Email = userDto.Email;
-                existingUser.ModifiedDateTime = DateTime.UtcNow;
-
-                _unitOfWork.User.Update(existingUser);
-                await _unitOfWork.SaveChangesAsync();
-
-                return new UserDTO
-                {
-                    Id = existingUser.Id,
-                    Email = existingUser.Email,
-                    FirstName = existingUser.FirstName,
-                    LastName = existingUser.LastName,
-                    Auth0Id = existingUser.Auth0Id,
-                    AddedDateTime = existingUser.AddedDateTime,
-                    ModifiedDateTime = existingUser.ModifiedDateTime
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Failed to update user: " + ex.Message);
-            }
-        }
-
-        public async Task<UserDTO?> GetUserByIdAsync(Guid id)
-        {
-            var user = await _unitOfWork.User.GetByIdAsync(id);
-            if (user == null)
-                return null;
-
-            return new UserDTO
+            var roles = await _userManager.GetRolesAsync(user);
+            userDtos.Add(new UserDTO
             {
                 Id = user.Id,
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                Auth0Id = user.Auth0Id,
-                AddedDateTime = user.AddedDateTime,
-                ModifiedDateTime = user.ModifiedDateTime
-            };
+                Role = roles.FirstOrDefault()
+            });
+        }
+        return userDtos;
+    }
+
+    public async Task<UserDTO?> GetUserByIdAsync(Guid id)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null || user.DeletedDateTime != null)
+        {
+            return null;
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        return new UserDTO
+        {
+            Id = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            AddedDateTime = user.AddedDateTime,
+            ModifiedDateTime = user.ModifiedDateTime,
+            Role = roles.FirstOrDefault()
+        };
+    }
+
+    public async Task<UserDTO> CreateUserAsync(UserDTO userDto)
+    {
+        if (userDto == null || string.IsNullOrWhiteSpace(userDto.Email) || string.IsNullOrWhiteSpace(userDto.Password))
+        {
+            throw new ArgumentException("User data, email, and password are required for creation.");
+        }
+
+        var newUser = new User
+        {
+            UserName = userDto.Email,
+            Email = userDto.Email,
+            FirstName = userDto.FirstName,
+            LastName = userDto.LastName
+        };
+
+        var result = await _userManager.CreateAsync(newUser, userDto.Password);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        }
+
+        var roleToAssign = !string.IsNullOrWhiteSpace(userDto.Role) ? userDto.Role : "user";
+        await _userManager.AddToRoleAsync(newUser, roleToAssign);
+
+        userDto.Id = newUser.Id;
+        userDto.Password = null;
+        return userDto;
+    }
+
+    public async Task<UserDTO> UpdateUserAsync(UserDTO userDto)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userDto.Id.ToString());
+        if (existingUser == null)
+        {
+            throw new Exception("User not found.");
+        }
+
+        existingUser.FirstName = userDto.FirstName;
+        existingUser.LastName = userDto.LastName;
+        existingUser.Email = userDto.Email;
+        existingUser.UserName = userDto.Email;
+        existingUser.ModifiedDateTime = DateTime.UtcNow;
+
+        var updateResult = await _userManager.UpdateAsync(existingUser);
+        if (!updateResult.Succeeded)
+        {
+            throw new InvalidOperationException("Failed to update user details.");
+        }
+
+        var currentRoles = await _userManager.GetRolesAsync(existingUser);
+        var roleToAssign = !string.IsNullOrWhiteSpace(userDto.Role) ? userDto.Role : "user";
+
+        if (!currentRoles.Contains(roleToAssign))
+        {
+            var removeResult = await _userManager.RemoveFromRolesAsync(existingUser, currentRoles);
+            if (!removeResult.Succeeded)
+            {
+                throw new InvalidOperationException("Failed to remove existing user roles.");
+            }
+
+            var addResult = await _userManager.AddToRoleAsync(existingUser, roleToAssign);
+            if (!addResult.Succeeded)
+            {
+                throw new InvalidOperationException("Failed to add new user role.");
+            }
+        }
+
+        return userDto;
+    }
+
+    public async Task DeleteUserAsync(Guid id)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user != null)
+        {
+            user.DeletedDateTime = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
         }
     }
 }

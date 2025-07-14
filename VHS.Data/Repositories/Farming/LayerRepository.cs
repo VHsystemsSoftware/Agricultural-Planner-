@@ -1,17 +1,14 @@
-﻿using VHS.Data.Models.Farming;
-using VHS.Data.Infrastructure;
+﻿namespace VHS.Data.Core.Repositories;
 
-namespace VHS.Data.Repositories.Farming
+public interface ILayerRepository : IRepository<Layer> {}
+
+public class LayerRepository : Repository<Layer>, ILayerRepository
 {
-    public interface ILayerRepository : IRepository<Layer> {}
+    private readonly VHSCoreDBContext _context;
 
-    public class LayerRepository : Repository<Layer>, ILayerRepository
+    public LayerRepository(VHSCoreDBContext context) : base(context)
     {
-        private readonly VHSDBContext _context;
-
-        public LayerRepository(VHSDBContext context) : base(context)
-        {
-            _context = context;
-        }
+        _context = context;
     }
+
 }

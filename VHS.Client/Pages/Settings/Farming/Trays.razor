@@ -6,30 +6,31 @@
 @using VHS.Services.Common.DataGrid.Enums
 @inject TrayClientService TrayClientService
 @inject ISnackbar Snackbar
+@inject PageTitleService PageTitleService
 
-<FarmSettings>
+<MudPaper Outlined="true" Square="true">
     <MudDataGrid @ref="dataGrid" T="TrayDTO" ServerData="LoadTrayData">
         <ToolBarContent>
             <MudText Typo="Typo.h5" Color="Color.Default">Trays</MudText>
             <MudSpacer />
-            <MudSelect T="Guid" Label="Select Tray Status" Variant="Variant.Outlined" Value="@SelectedTrayStatus" ValueChanged="OnTrayStatusChanged">
+            @* <MudSelect T="Guid" Label="Select Tray Status" Variant="Variant.Outlined" Value="@SelectedTrayStatus" ValueChanged="OnTrayStatusChanged">
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_EMPTY">Empty</MudSelectItem>
-                <MudSelectItem Value="@GlobalConstants.TRAYPHASE_SEEDED">Seeded</MudSelectItem>
+                <MudSelectItem Value="@GlobalConstants.TRAYPHASE_SEEDING">Seedint</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_GERMINATING">Germinating</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_PROPAGATING">Propagating</MudSelectItem>
-                <MudSelectItem Value="@GlobalConstants.TRAYPHASE_REPLANTED">Replanted</MudSelectItem>
+                <MudSelectItem Value="@GlobalConstants.TRAYPHASE_TRANSPLANTED">Transplanting</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_GROWING">Growing</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_FULLYGROWN">Fully Grown</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_TOHARVESTING">To Harvesting</MudSelectItem>
-                <MudSelectItem Value="@GlobalConstants.TRAYPHASE_HARVESTED">Harvested</MudSelectItem>
+                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_HARVESTED">Harvested</MudSelectItem> 
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_TOWASHING">To Washing</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_WASHED">Washed</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.TRAYPHASE_INFEEDER">In Feeder</MudSelectItem>
-            </MudSelect>
+            </MudSelect> *@
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.RFIDTag" Title="RFID Tag" Sortable="true" />
-            <PropertyColumn Property="x => x.Status" Title="Status" Sortable="true" />
+            <PropertyColumn Property="x => x.Tag" Title="RFID Tag" Sortable="true" />
+            @* <PropertyColumn Property="x => x.Status" Title="Status" Sortable="true" /> *@
         </Columns>
         <PagerContent>
             <MudDataGridPager Items="@TrayList" />
@@ -39,18 +40,21 @@
     {
         <MudAlert Severity="Severity.Info">No trays found.</MudAlert>
     }
-</FarmSettings>
+</MudPaper>
 
 @code {
     private MudDataGrid<TrayDTO> dataGrid = new();
-    private Guid SelectedTrayStatus { get; set; } = GlobalConstants.TRAYPHASE_EMPTY;
+    private Guid SelectedTrayStatus { get; set; }
     private List<TrayDTO> TrayList = new();
     private int TotalTrayCount;
     private bool IsLoading;
 
     protected override async Task OnInitializedAsync()
     {
-        SelectedTrayStatus = GlobalConstants.TRAYPHASE_EMPTY;
+        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackUrl = "/system-settings";
+        PageTitleService.Title = "Trays";
+
         await dataGrid.ReloadServerData();
     }
 
@@ -63,7 +67,7 @@
 
         IsLoading = true;
         var sortDefinition = state.SortDefinitions.FirstOrDefault();
-        var sortLabel = sortDefinition?.SortBy ?? nameof(TrayDTO.RFIDTag);
+        var sortLabel = sortDefinition?.SortBy ?? nameof(TrayDTO.Tag);
         var sortDirection = (sortDefinition?.Descending ?? false)
             ? SortDirectionEnum.Descending
             : SortDirectionEnum.Ascending;

@@ -1,8 +1,7 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Metric
+﻿namespace VHS.Services.Common.Enums.Measurements.Metric;
+
+public enum TemperatureUnitEnum
 {
-    public enum TemperatureUnitEnum
-    {
-        Celsius,
-        Kelvin
-    }
+    Celsius,
+    Kelvin
 }

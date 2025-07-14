@@ -1,0 +1,484 @@
+﻿@* @page "/system-settings/batches/jobs/details/{JobId:guid?}"
+@using VHS.Services.Auth.DTO
+@using VHS.Services.Batches.DTO
+@using VHS.Services.Farming.DTO
+@using VHS.Client.Services.Auth
+@using VHS.Client.Services.Batches
+@using VHS.Services.Common
+@inject NavigationManager Nav
+@inject LocalStorage LocalStorage
+@inject ISnackbar Snackbar
+@inject UserClientService UserClientService
+@inject JobClientService JobClientService
+
+<BatchSettings>
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudText Typo="Typo.h6">@(_isNew ? "Add New Job" : "Edit Job")</MudText>
+
+        <MudForm @ref="_form" Model="_job" Immediate="true">
+            <!-- Job Info -->
+            <MudGrid>
+                <MudItem xs="12" sm="5">
+                    <MudTextField @bind-Value="_job.Name" Variant="Variant.Outlined" Label="Job Name" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudNumericField T="int" @bind-Value="_job.RunOrder" Variant="Variant.Outlined" Label="Run Order" Min="1" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_job.ScheduledDate" Variant="Variant.Outlined" Label="Scheduled Date" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudNumericField T="int?" @bind-Value="_job.TraysCount" Variant="Variant.Outlined" Label="Total Tray Count" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <!-- Assignments -->
+            <MudText Typo="Typo.h6">Assignments</MudText>
+            <MudTable Items="_job.JobAssignments">
+                <HeaderContent>
+                    <MudTh>Operator</MudTh>
+                    <MudTh>Start</MudTh>
+                    <MudTh>End</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="assign">
+                    <MudTd>
+                        <MudSelect T="Guid?" @bind-Value="assign.OperatorId" Variant="Variant.Outlined" Dense="true" Label="Select Operator">
+                            @if (!IsLoading)
+                            {
+                                @if (_users is { Count: > 0 })
+                                {
+                                    @foreach (var u in _users)
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@(u.User.Id)">
+                                            @u.User.FirstName @u.User.LastName
+                                        </MudSelectItem>
+                                    }
+                                }
+                                else
+                                {
+                                    <MudSelectItem T="Guid?" Value="null" Disabled="true">No users found</MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudDatePicker T="DateTime?" @bind-Date="assign.StartedAtDate" Label="Start Date" Variant="Variant.Outlined" />
+                        <MudTimePicker T="TimeSpan?" @bind-Time="assign.StartedAtTime" Label="Start Time" Variant="Variant.Outlined" AmPm="true" />
+                    </MudTd>
+                    <MudTd>
+                        <MudDatePicker T="DateTime?" @bind-Date="assign.CompletedAtDate" Label="End Date" Variant="Variant.Outlined" />
+                        <MudTimePicker T="TimeSpan?" @bind-Time="assign.CompletedAtTime" Label="End Time" Variant="Variant.Outlined" AmPm="true" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                        OnClick="@(() => _job.JobAssignments.Remove(assign))" />
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd ColSpan="4">
+                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                        OnClick="AddAssignment">Add Assignment</MudButton>
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+
+            <MudDivider Class="my-4" />
+
+            <!-- Batch Phases -->
+            <MudText Typo="Typo.h6">Batch Phases</MudText>
+            <MudTable Items="_job.JobBatchPhases">
+                <HeaderContent>
+                    <MudTh>Phase Order</MudTh>
+                    <MudTh>Tray Phase</MudTh>
+                    <MudTh>Tray Count</MudTh>
+                    <MudTh>Batch</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="phase">
+                    <MudTd>
+                        <MudNumericField T="int" @bind-Value="phase.PhaseOrder" Variant="Variant.Outlined" Dense="true" />
+                    </MudTd>
+                    <MudTd>
+                        <MudSelect T="Guid" @bind-Value="phase.PhaseId" Dense="true" Variant="Variant.Outlined" Label="Select Tray Phase" Required="true">
+                            <MudSelectItem T="Guid" Value="@Guid.Empty" Disabled="true">-- Select Tray Phase --</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_EMPTY">Empty</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_SEEDED">Seeded</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_GERMINATING">Germinating</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_PROPAGATING">Propagating</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_REPLANTED">Replanted</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_GROWING">Growing</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_FULLYGERMINATED">Fully Germinated</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_FULLYPROPAGATED">Fully Propagated</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_FULLYGROWN">Fully Grown</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_TOHARVESTING">To Harvesting</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_HARVESTED">Harvested</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_TOWASHING">To Washing</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_WASHED">Washed</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@GlobalConstants.TRAYPHASE_INFEEDER">In Feeder</MudSelectItem>
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="int" @bind-Value="phase.TrayCount" Min="1" Variant="Variant.Outlined" />
+                    </MudTd>
+                    <MudTd>
+                        <MudSelect T="Guid?" @bind-Value="phase.BatchId" Dense="true" Label="Select Batch" Variant="Variant.Outlined">
+                            <MudSelectItem T="Guid?" Value="@null" Disabled="true">-- Select Batch --</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@Guid.Empty">—- No Batch -—</MudSelectItem>
+                            @foreach (var b in _batches)
+                            {
+                                <MudSelectItem T="Guid?" Value="@b.Id">@b.BatchId</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                        Color="Color.Error"
+                        OnClick="@(async () =>
+                     {
+                         _job.JobBatchPhases.Remove(phase);
+                         await InvokeAsync(StateHasChanged);
+                     })" />
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd ColSpan="5">
+                        <MudButton Variant="Variant.Text"
+                        StartIcon="@Icons.Material.Filled.Add"
+                        OnClick="@(async () =>
+                 {
+                     AddPhase();
+                     await InvokeAsync(StateHasChanged);
+                 })">
+                            Add Phase
+                        </MudButton>
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+
+            <MudDivider Class="my-4" />
+
+            <!-- Batch Scans -->
+            <MudText Typo="Typo.h6">Batch Scans</MudText>
+            <MudTable Items="_job.JobBatchPhaseScans">
+                <HeaderContent>
+                    <MudTh>Batch Phase Order</MudTh>
+                    <MudTh>Tray RFID</MudTh>
+                    <MudTh>Scanned Date</MudTh>
+                    <MudTh>Scanned Time</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="scan">
+                    <MudTd>
+                        @GetPhaseNumber(scan.JobBatchPhase.Id)
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="scan.TrayId" Dense="true" Variant="Variant.Outlined" />
+                    </MudTd>
+                    <MudTd>
+                        <MudDatePicker Date="@(_scanDates.TryGetValue(scan.Id, out var date) ? date : null)"
+                        DateChanged="@(date => OnScanDateChanged(scan, date))"
+                        Dense="true" Variant="Variant.Outlined" />
+                    </MudTd>
+                    <MudTd>
+                        <MudTimePicker Time="@(_scanTimes.TryGetValue(scan.Id, out var time) ? time : null)"
+                        TimeChanged="@(time => OnScanTimeChanged(scan, time))"
+                        AmPm="true" Variant="Variant.Outlined" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                        OnClick="@(() => RemoveScan(scan))" />
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd ColSpan="5">
+                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                        OnClick="AddScan">Add Scan</MudButton>
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+
+            <MudDivider Class="my-4" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.FlexEnd" Spacing="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large"
+                OnClick="Cancel">
+                    Back
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                Color="Color.Primary"
+                OnClick="Save"
+                Disabled="@(!_form.IsValid)">
+                    Save
+                </MudButton>
+            </MudStack>
+        </MudForm>
+    </MudPaper>
+</BatchSettings>
+
+@code {
+    [Parameter] public Guid? JobId { get; set; }
+
+    private MudForm _form;
+    private JobDTO _job = new();
+    private List<JobAssignmentDTO> _users = new();
+    private UserDTO? userProfile;
+    private List<JobBatchPhaseDTO> _phases = new();
+    private List<BatchDTO> _batches = new();
+    private Guid selectedPhase = GlobalConstants.TRAYPHASE_EMPTY;
+
+    private readonly Dictionary<JobAssignmentDTO, (DateTime? Start, DateTime? End)> _dateTimeMap = new();
+    private bool _isNew => !JobId.HasValue;
+
+    private Dictionary<Guid, DateTime?> _scanDates = new();
+    private Dictionary<Guid, TimeSpan?> _scanTimes = new();
+    private bool IsLoading = true;
+
+    private Dictionary<Guid, int> PhaseOrderLookup => _job.JobBatchPhases.ToDictionary(bp => bp.Id, bp => bp.PhaseOrder);
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        _users = (await JobClientService.GetAllUsersAsync()).ToList();
+        if (JobId.HasValue)
+        {
+            _phases = (await JobClientService.GetAllPhasesAsync(JobId.Value)).ToList();
+        }
+        _batches = (await JobClientService.GetAllBatchesAsync()).ToList();
+        // await SetDefaultOperatorAsync();
+
+        if (!_isNew && JobId.HasValue)
+        {
+            _job = await JobClientService.GetJobByIdAsync(JobId.Value);
+            if (_job != null)
+            {
+                foreach (var a in _job.JobAssignments)
+                {
+                    _dateTimeMap[a] = (a.StartedAt, a.CompletedAt);
+                }
+
+                foreach (var scan in _job.JobBatchPhaseScans)
+                {
+                    _scanDates[scan.Id] = scan.ScannedAt?.Date;
+                    _scanTimes[scan.Id] = scan.ScannedAt?.TimeOfDay;
+                }
+            }
+        }
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SetDefaultOperatorAsync()
+    {
+        try
+        {
+            var userJson = await LocalStorage.GetStateAsync("VHS_USER");
+            if (!string.IsNullOrWhiteSpace(userJson))
+            {
+                var storedUser = System.Text.Json.JsonSerializer.Deserialize<UserDTO>(userJson);
+                if (storedUser != null)
+                {
+                    var user = await UserClientService.GetUserByIdAsync(storedUser.Id);
+                    if (user != null)
+                    {
+                        userProfile = user;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("User profile not found.");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to load user: {ex.Message}");
+        }
+    }
+
+    private void AddAssignment()
+    {
+        _job.JobAssignments.Add(new JobAssignmentDTO
+            {
+                Id = Guid.NewGuid(),
+                StartedAtDate = DateTime.Today,
+                StartedAtTime = new TimeSpan(8, 0, 0),
+            });
+    }
+
+    private void AddPhase()
+    {
+        _job.JobBatchPhases.Add(new JobBatchPhaseDTO
+            {
+                Id = Guid.NewGuid(),
+                PhaseOrder = _job.JobBatchPhases.Count + 1
+            });
+    }
+
+    private void AddScan()
+    {
+        if (_job.JobBatchPhases == null || !_job.JobBatchPhases.Any())
+        {
+            Snackbar.Add("No batch phases available. Please add batch phases before adding scans.", Severity.Warning);
+            return;
+        }
+
+        var nextPhase = _job.JobBatchPhases
+            .OrderBy(bp => bp.PhaseOrder)
+            .FirstOrDefault(bp => !_job.JobBatchPhaseScans.Any(scan => scan.JobBatchPhase?.Id == bp.Id));
+
+        if (nextPhase == null)
+        {
+            Snackbar.Add("All batch phases already have a scan associated. No more can be added.", Severity.Info);
+            return;
+        }
+
+        var newScan = new JobBatchPhaseScanDTO
+            {
+                Id = Guid.NewGuid(),
+                ScannedAt = DateTime.Now,
+                JobBatchPhase = nextPhase
+            };
+
+        _job.JobBatchPhaseScans.Add(newScan);
+
+        _scanDates[newScan.Id] = newScan.ScannedAt?.Date;
+        _scanTimes[newScan.Id] = newScan.ScannedAt?.TimeOfDay;
+    }
+
+    private void RemoveScan(JobBatchPhaseScanDTO scan)
+    {
+        _job.JobBatchPhaseScans.Remove(scan);
+        _scanDates.Remove(scan.Id);
+        _scanTimes.Remove(scan.Id);
+    }
+
+    private void OnScanDateChanged(JobBatchPhaseScanDTO scan, DateTime? newDate)
+    {
+        _scanDates[scan.Id] = newDate;
+        UpdateScannedAt(scan);
+    }
+
+    private void OnScanTimeChanged(JobBatchPhaseScanDTO scan, TimeSpan? newTime)
+    {
+        _scanTimes[scan.Id] = newTime;
+        UpdateScannedAt(scan);
+    }
+
+    private void UpdateScannedAt(JobBatchPhaseScanDTO scan)
+    {
+        var date = _scanDates.TryGetValue(scan.Id, out var d) ? d : null;
+        var time = _scanTimes.TryGetValue(scan.Id, out var t) ? t : null;
+
+        if (date != null && time != null)
+        {
+            scan.ScannedAt = date.Value.Date + time.Value;
+        }
+    }
+
+    private int GetPhaseNumber(Guid batchPhaseId)
+    {
+        return PhaseOrderLookup.TryGetValue(batchPhaseId, out var order) ? order : 0;
+    }
+
+  async Task Save()
+  {
+    if (!_form.IsValid) return;
+
+    // push date/time back into DTO
+    foreach (var kv in _dateTimeMap)
+    {
+      kv.Key.StartedAt   = kv.Value.Start;
+      kv.Key.CompletedAt = kv.Value.End;
+    }
+
+    try
+    {
+      if (_isNew)
+        await CreateJobAsync();
+      else
+        await UpdateJobAsync();
+    }
+    catch (Exception ex)
+    {
+      Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+    }
+  }
+
+    private async Task CreateJobAsync()
+    {
+        try
+        {
+            // Populate JobAssignmentDTOs
+            foreach (var assignment in _job.JobAssignments)
+            {
+                assignment.StartedAt = _dateTimeMap[assignment].Start;
+                assignment.CompletedAt = _dateTimeMap[assignment].End;
+            }
+
+            // Populate JobBatchPhaseScans
+            foreach (var scan in _job.JobBatchPhaseScans)
+            {
+                scan.ScannedAt = _scanDates.ContainsKey(scan.Id) ? _scanDates[scan.Id].Value.Add(_scanTimes[scan.Id].GetValueOrDefault()) : (DateTime?)null;
+            }
+
+            // Create the job
+            var createdJob = await JobClientService.CreateJobAsync(_job);
+
+            if (createdJob != null)
+            {
+                // Navigate to details page or show success message
+                Snackbar.Add("Job created successfully!", Severity.Success);
+                Nav.NavigateTo($"/system-settings/batches/jobs/details/{createdJob.Id}");
+            }
+            else
+            {
+                Snackbar.Add("Failed to create job.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating job: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task UpdateJobAsync()
+    {
+        try
+        {
+            // Populate JobAssignmentDTOs
+            foreach (var assignment in _job.JobAssignments)
+            {
+                assignment.StartedAt = _dateTimeMap[assignment].Start;
+                assignment.CompletedAt = _dateTimeMap[assignment].End;
+            }
+
+            // Populate JobBatchPhaseScans
+            foreach (var scan in _job.JobBatchPhaseScans)
+            {
+                scan.ScannedAt = _scanDates.ContainsKey(scan.Id) ? _scanDates[scan.Id].Value.Add(_scanTimes[scan.Id].GetValueOrDefault()) : (DateTime?)null;
+            }
+
+            // Update the job
+            bool updateSuccess = await JobClientService.UpdateJobAsync(_job);
+
+            if (updateSuccess)
+            {
+                Snackbar.Add("Job updated successfully!", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update job.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating job: {ex.Message}", Severity.Error);
+        }
+    }
+
+  void Cancel()
+    => Nav.NavigateTo("/system-settings/batches/jobs");
+}
+ *@

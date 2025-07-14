@@ -1,10 +1,9 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Imperial
+﻿namespace VHS.Services.Common.Enums.Measurements.Imperial;
+
+public enum WeightUnitEnum
 {
-    public enum WeightUnitEnum
-    {
-        Ton,
-        Stone,
-        Pound,
-        Ounce
-    }
+    Ton,
+    Stone,
+    Pound,
+    Ounce
 }

@@ -1,0 +1,92 @@
+﻿@using VHS.Services.Batches.DTO
+@using VHS.Services.Farming.DTO
+@using VHS.Services.Produce.DTO
+@using VHS.Client.Services.Farming
+@using VHS.Client.Services.Batches
+@using VHS.Client.Services.Produce
+@using VHS.Services.Common
+@inject ISnackbar Snackbar
+@inject BatchPlanClientService BatchPlanClientService
+
+<Dialog Title="@DialogTitle" ShowDefaultActions="false">
+    <ChildContent>
+        <MudForm Model="Batch" @ref="form">
+            <MudTextField @bind-Value="Batch.BatchName" Label="Batch Name" Variant="Variant.Outlined" Required="true" />
+            @if (!IsLoading)
+            {
+                @if (Plans.Any())
+                {
+                    <MudSelect T="Guid" Label="Plan" @bind-Value="SelectedPlanId" Variant="Variant.Outlined" Required="true">
+                        @foreach (var plan in Plans)
+                        {
+                            <MudSelectItem Value="@plan.Id">@plan.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            }
+            <MudDatePicker @bind-Date="Batch.SeedDate" Label="Seed Date" Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Required="true" />
+            <MudDatePicker @bind-Date="Batch.HarvestDate" Label="Harvest Date" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="Batch.LotReference" Label="Lot Reference" Variant="Variant.Outlined" Required="true" />
+            @if (!IsLoading)
+            {
+                <MudSelect T="Guid" Label="Status" @bind-Value="Batch.StatusId" Variant="Variant.Outlined" Required="true">
+                    <MudSelectItem Value="@GlobalConstants.BATCHSTATUS_CANCELLED">Cancelled</MudSelectItem>
+                    <MudSelectItem Value="@GlobalConstants.BATCHSTATUS_COMPLETED">Completed</MudSelectItem>
+                    <MudSelectItem Value="@GlobalConstants.BATCHSTATUS_PLANNED">Planned</MudSelectItem>
+                </MudSelect>
+            }
+        </MudForm>
+    </ChildContent>
+    <ActionsContent>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="Save" Disabled="@(form == null || IsLoading || !Plans.Any())" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+    </ActionsContent>
+</Dialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public BatchDTO Batch { get; set; } = new BatchDTO();
+
+    private MudForm form = new MudForm();
+    private List<BatchPlanDTO> Plans = new List<BatchPlanDTO>();
+    private Guid SelectedPlanId { get; set; }
+    private string DialogTitle => Batch.Id == Guid.Empty ? "Add Batch" : "Edit Batch";
+    private bool IsLoading { get; set; } = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Plans = (await BatchPlanClientService.GetAllBatchPlansAsync())?.ToList() ?? new List<BatchPlanDTO>();
+
+        if (!Plans.Any())
+        {
+            Snackbar.Add("No plans available. Please add a plan before proceeding.", Severity.Error);
+        }
+
+        if (Batch.BatchPlan != null && Batch.BatchPlan.Id != Guid.Empty)
+        {
+            SelectedPlanId = Batch.BatchPlan.Id;
+        }
+        else if (Plans.Any())
+        {
+            SelectedPlanId = Plans.First().Id;
+        }
+
+        if (Batch.StatusId == Guid.Empty)
+        {
+            Batch.StatusId = GlobalConstants.BATCHSTATUS_PLANNED;
+        }
+        IsLoading = false;
+    }
+
+    private void Save()
+    {
+        if (form != null && !IsLoading && Plans.Any())
+        {
+            Batch.BatchPlan = Plans.FirstOrDefault(c => c.Id == SelectedPlanId) ?? new BatchPlanDTO();
+            MudDialog.Close(DialogResult.Ok(Batch));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
+ 

@@ -1,0 +1,71 @@
+﻿@page "/system-settings/product/types"
+@using VHS.Services.Common
+@using VHS.Services.Produce.DTO
+@inject ISnackbar Snackbar
+@inject PageTitleService PageTitleService
+
+<MudPaper Outlined="true" Square="true">
+    <MudGrid>
+        <MudItem xs="6">
+            <MudPaper Outlined="true" Square="true">
+                <MudDataGrid Items="@ProduceTypesList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
+                        <TemplateColumn Title="Image">
+                            <CellTemplate Context="item">
+                                @if (!string.IsNullOrWhiteSpace(item.Item.ImagePath))
+                                {
+                                    <MudImage Src="@item.Item.ImagePath" Height="50" Alt=@($"Image for {item.Item.Name}") />
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            </MudPaper>
+
+            @if (!ProduceTypesList.Any() && !IsLoading)
+            {
+                <MudAlert Severity="Severity.Info">No product types found.</MudAlert>
+            }
+
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+
+
+@code {
+    private List<ProductCategoryDTO> ProduceTypesList = new();
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackUrl = "/system-settings";
+        PageTitleService.Title = "Product Types";
+        ProduceTypesList = new List<ProductCategoryDTO>
+        {
+            new ProductCategoryDTO
+            {
+                Id = GlobalConstants.PRODUCTCATEGORY_LETTUCE,
+                Name = "Lettuce Heads",
+                ImagePath = "images/farm/produce/lettuceheads.png"
+            },
+            new ProductCategoryDTO
+            {
+                Id = GlobalConstants.PRODUCTCATEGORY_PETITEGREENS,
+                Name = "Petite Greens",
+                ImagePath = "images/farm/produce/petitegreens.png"
+            },
+            new ProductCategoryDTO
+            {
+                Id = GlobalConstants.PRODUCTCATEGORY_MICROGREENS,
+                Name = "Micro Greens",
+                ImagePath = "images/farm/produce/microgreens.png"
+            }
+        };
+
+        IsLoading = false;
+        await Task.CompletedTask;
+    }
+}

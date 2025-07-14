@@ -5,43 +5,54 @@ using VHS.Client.Services.Produce;
 using VHS.Client.Services.Growth;
 using VHS.Client.Services.Batches;
 using VHS.Client.Common;
+using VHS.Client.Services.Audit;
 
 namespace VHS.Client
 {
     public static class ClientServiceInitialization
     {
-        public static void Initialize(IServiceCollection services)
+        public static void Initialize(IServiceCollection services, Uri apiBaseAddress)
         {
             // General
             services.AddScoped<LocalStorage>();
             services.AddScoped<PageTitleService>();
+            services.AddSingleton<FireAlarmStateService>();
 
-            // Auth
-            services.AddScoped<UserClientService>();
-            services.AddScoped<UserSettingClientService>();
+            // User
+            services.AddHttpClient<RoleClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<UserClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<UserSettingClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
 
             // Farming
-            services.AddScoped<FarmClientService>();
-            services.AddScoped<FloorClientService>();
-            services.AddScoped<RackClientService>();
-            services.AddScoped<LayerClientService>();
-            services.AddScoped<TrayClientService>();
+            services.AddHttpClient<FarmClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<FloorClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<RackClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<LayerClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<TrayClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+			services.AddHttpClient<TrayStateClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
 
-            // Produce
-            services.AddScoped<ProductClientService>();
-            services.AddScoped<RecipeClientService>();
-            services.AddScoped<RecipeLightScheduleClientService>();
-            services.AddScoped<RecipeWaterScheduleClientService>();
+			// Produce
+			services.AddHttpClient<ProductClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<RecipeClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<RecipeLightScheduleClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<RecipeWaterScheduleClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
 
             // Growth
-            services.AddScoped<LightZoneClientService>();
-            services.AddScoped<LightZoneScheduleClientService>();
-            services.AddScoped<WaterZoneClientService>();
-            services.AddScoped<WaterZoneScheduleClientService>();
+            services.AddHttpClient<LightZoneClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<LightZoneScheduleClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<WaterZoneClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<WaterZoneScheduleClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
 
             // Batches
-            services.AddScoped<BatchClientService>();
-            services.AddScoped<BatchConfigurationClientService>();
-        }
+            services.AddHttpClient<BatchClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<BatchPlanClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+            services.AddHttpClient<JobClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+
+            // OPC
+            services.AddHttpClient<OPCAuditClientService>(client => client.BaseAddress = apiBaseAddress).AddHttpMessageHandler<AuthClientMessageService>();
+
+			// Admin
+			services.AddHttpClient<SystemService>(client => client.BaseAddress = apiBaseAddress);
+		}
     }
 }

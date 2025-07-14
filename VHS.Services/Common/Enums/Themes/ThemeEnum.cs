@@ -1,8 +1,7 @@
-﻿namespace VHS.Services.Common.Enums.Themes
+﻿namespace VHS.Services.Common.Enums.Themes;
+
+public enum ThemeEnum
 {
-    public enum ThemeEnum
-    {
-        Light,
-        Dark
-    }
+    Light,
+    Dark
 }

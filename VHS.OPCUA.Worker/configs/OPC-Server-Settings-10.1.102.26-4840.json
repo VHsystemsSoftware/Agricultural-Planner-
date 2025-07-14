@@ -1,0 +1,88 @@
+{
+  "HostnameOrIP": "10.1.102.26",
+  "PortNumber": 4840,
+  "ServerId": 200,
+  "DiscoveryUrl": "opc.tcp://10.1.102.26:4840",
+  "NamespaceUrn": "urn:B&R/pv/",
+  "LastBrowseDate": "2025-05-06T22:55:04.9564216+02:00",
+  "Components": [
+	{
+      "Name": "General",
+      "Node": "ns=6;s=::ExtComm:CS.General",
+      "Id": 1,
+      "Variables": [
+        {
+          "Name": "HeartBeat",
+          "Node": "ns=6;s=::ExtComm:CS.General.HeartBeat",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 2000101
+        },
+        {
+          "Name": "FireAlarmActive",
+          "Node": "ns=6;s=::ExtComm:STS.General.FireAlarmActive",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 2,
+          "HandleId": 2000102
+        },
+        {
+          "Name": "HeartBeat",
+          "Node": "ns=6;s=::ExtComm:STS.General.HeartBeat",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 3,
+          "HandleId": 2000103
+        }
+      ]
+    },
+    {
+      "Name": "GrowLineInput",
+      "Node": "ns=6;s=::ExtComm:CS.GrowLineInput",
+      "Id": 2,
+      "Variables": [
+        {
+          "Name": "Destination",
+          "Node": "ns=6;s=::ExtComm:CS.GrowLineInput.Destination",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 2000201
+        },
+        {
+          "Name": "RequestTrayInfo",
+          "Node": "ns=6;s=::ExtComm:STS.GrowLineInput.RequestTrayInfo",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 2,
+          "HandleId": 2000202
+        },
+        {
+          "Name": "TrayId",
+          "Node": "ns=6;s=::ExtComm:STS.GrowLineInput.TrayId",
+          "Type": 2,
+          "MustSubscribe": false,
+          "Id": 3,
+          "HandleId": 2000203
+        },
+        {
+          "Name": "TrayInfoAccepted",
+          "Node": "ns=6;s=::ExtComm:STS.GrowLineInput.TrayInfoAccepted",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 4,
+          "HandleId": 2000204
+        },
+        {
+          "Name": "Layer",
+          "Node": "ns=6;s=::ExtComm:CS.GrowLineInput.Layer",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 5,
+          "HandleId": 2000205
+        }
+      ]
+    }
+  ]
+}

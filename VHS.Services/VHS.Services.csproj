@@ -7,11 +7,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\VHS.Data\VHS.Data.csproj" />
+		<ProjectReference Include="..\VHS.Data.Audit\VHS.Data.Audit.csproj" />
+		<ProjectReference Include="..\VHS.Data.Auth\VHS.Data.Auth.csproj" />
+		<ProjectReference Include="..\VHS.Data\VHS.Data.Core.csproj" />
+		<ProjectReference Include="..\VHS.OPC.Models\VHS.OPC.Models.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="9.0.3" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.3" />
+	  <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="9.0.7" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.7" />
 	</ItemGroup>
 </Project>

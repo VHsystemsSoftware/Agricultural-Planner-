@@ -1,45 +1,43 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VHS.Services.Auth;
-using VHS.Services.Auth.DTO;
 
-namespace VHS.WebAPI.Controllers.Auth
+
+namespace VHS.WebAPI.Controllers.Auth;
+
+[ApiController]
+[Route("api/user/settings")]
+[AllowAnonymous] // Temp allow
+public class UserSettingController : ControllerBase
 {
-    [ApiController]
-    [Route("api/user/settings")]
-    [AllowAnonymous] // Temp allow
-    public class UserSettingController : ControllerBase
+    private readonly IUserSettingService _userSettingService;
+
+    public UserSettingController(IUserSettingService userSettingService)
     {
-        private readonly IUserSettingService _userSettingService;
+        _userSettingService = userSettingService;
+    }
 
-        public UserSettingController(IUserSettingService userSettingService)
+    [HttpGet("{userId}")]
+    public async Task<IActionResult> GetUserSettings(Guid userId)
+    {
+        var settings = await _userSettingService.GetUserSettingsByUserIdAsync(userId);
+        if (settings == null)
         {
-            _userSettingService = userSettingService;
+            return NotFound();
         }
+        return Ok(settings);
+    }
 
-        [HttpGet("{userId}")]
-        public async Task<IActionResult> GetUserSettings(Guid userId)
+    [HttpPut("update")]
+    public async Task<IActionResult> UpdateUserSettings([FromBody] UserSettingDTO settingsDto)
+    {
+        try
         {
-            var settings = await _userSettingService.GetUserSettingsByUserIdAsync(userId);
-            if (settings == null)
-            {
-                return NotFound();
-            }
-            return Ok(settings);
+            var updatedSettings = await _userSettingService.UpdateUserSettingsAsync(settingsDto);
+            return Ok(updatedSettings);
         }
-
-        [HttpPut("update")]
-        public async Task<IActionResult> UpdateUserSettings([FromBody] UserSettingDTO settingsDto)
+        catch (Exception ex)
         {
-            try
-            {
-                var updatedSettings = await _userSettingService.UpdateUserSettingsAsync(settingsDto);
-                return Ok(updatedSettings);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return BadRequest(new { message = ex.Message });
         }
     }
 }

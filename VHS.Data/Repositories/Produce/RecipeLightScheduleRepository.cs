@@ -1,23 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VHS.Data.Infrastructure;
-using VHS.Data.Models.Produce;
+﻿namespace VHS.Data.Core.Repositories;
 
-namespace VHS.Data.Repositories.Produce
+public interface IRecipeLightScheduleRepository : IRepository<RecipeLightSchedule>
 {
-    public interface IRecipeLightScheduleRepository : IRepository<RecipeLightSchedule>
-    {
-    }
-    public class RecipeLightScheduleRepository : Repository<RecipeLightSchedule>, IRecipeLightScheduleRepository
-    {
-        private readonly VHSDBContext _context;
+}
+public class RecipeLightScheduleRepository : Repository<RecipeLightSchedule>, IRecipeLightScheduleRepository
+{
+    private readonly VHSCoreDBContext _context;
 
-        public RecipeLightScheduleRepository(VHSDBContext context) : base(context)
-        {
-            _context = context;
-        }
+    public RecipeLightScheduleRepository(VHSCoreDBContext context) : base(context)
+    {
+        _context = context;
     }
 }

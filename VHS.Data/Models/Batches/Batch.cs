@@ -1,38 +1,44 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.ComponentModel.DataAnnotations;
-using VHS.Data.Models.Farming;
-using VHS.Data.Models.Produce;
 
-namespace VHS.Data.Models.Batches
+namespace VHS.Data.Core.Models;
+public class Batch
 {
-    public class Batch
-    {
-        public Guid Id { get; set; }
-        [Required]
-        public string BatchId { get; set; } = string.Empty;
+	public Guid Id { get; set; }
+	[Required]
+	public string BatchName { get; set; } = string.Empty;
 
-        [Required]
-        public Guid FarmId { get; set; }
-        public virtual Farm Farm { get; set; }
+	[Required]
+	public Guid FarmId { get; set; }
+	public virtual Farm Farm { get; set; }
 
-        [Required]
-        public Guid BatchConfigurationId { get; set; }
-        public virtual BatchConfiguration BatchConfiguration { get; set; }
+	[Required]
+	public Guid BatchPlanId { get; set; }
+	public virtual BatchPlan BatchPlan { get; set; }
 
-        [Required]
-        public DateTime? SeedDate { get; set; }
-        public DateTime? HarvestDate { get; set; }
-        public Guid StatusId { get; set; } = Guid.Empty;
+	[Required]
+	public int TrayCount { get; set; } = 0;
 
-        public DateTime AddedDateTime { get; set; }
-        public DateTime ModifiedDateTime { get; set; }
-        public DateTime? DeletedDateTime { get; set; }
+	[Required]
+	public DateTime ScheduledDateTime { get; set; }
 
-        public Batch()
-        {
-            AddedDateTime = DateTime.UtcNow;
-            ModifiedDateTime = DateTime.UtcNow;
-        }
-    }
+	[Required]
+	public DateTime? SeedDate { get; set; }
+	public DateTime? HarvestDate { get; set; }
+	public Guid StatusId { get; set; }
+
+	public string? LotReference { get; set; }
+
+	public virtual ICollection<Job> Jobs { get; set; }
+    public virtual ICollection<BatchRow> BatchRows { get; set; } = new List<BatchRow>();
+
+    public DateTime AddedDateTime { get; set; }
+	public DateTime ModifiedDateTime { get; set; }
+	public DateTime? DeletedDateTime { get; set; }
+
+	public Batch()
+	{
+		AddedDateTime = DateTime.UtcNow;
+		ModifiedDateTime = DateTime.UtcNow;
+	}
 }

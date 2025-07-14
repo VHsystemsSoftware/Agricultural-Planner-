@@ -1,0 +1,36 @@
+<MudChip T="string" Variant="Variant.Outlined" Color="@chipColor">@label</MudChip>
+
+@code {
+
+    [Parameter] public Guid statusId { get; set; }
+
+    string label = string.Empty;
+    Color chipColor = Color.Default;
+
+    protected override Task OnParametersSetAsync()
+    {
+        (label, chipColor) = GetStatus(statusId);
+        return base.OnParametersSetAsync();
+    }
+
+    public (string, Color) GetStatus(Guid statusId)
+    {
+        // if (statusId == GlobalConstants.JOBLOCATION_GERMINATER)
+        //     return ("Germinating", Color.Default);
+        if (statusId == GlobalConstants.JOBLOCATION_SEEDER)
+            return ("Seeder", Color.Primary);
+        // if (statusId == GlobalConstants.JOBLOCATION_GROWING)
+        //     return ("Growing", Color.Success);
+        //if (statusId == GlobalConstants.JOBLOCATION_TRANSPORT)
+       //     return ("Transport", Color.Error);
+        // if (statusId == GlobalConstants.JOBLOCATION_PROPAGATING)
+        //     return ("Propagating", Color.Warning);      
+        if (statusId == GlobalConstants.JOBLOCATION_TRANSPLANTER)
+            return ("Transplanter", Color.Warning);
+        // if (statusId == GlobalConstants.JOBLOCATION_WASHER)
+        //     return ("Washing", Color.Warning);
+        if (statusId == GlobalConstants.JOBLOCATION_HARVESTER)
+            return ("Harvester", Color.Warning);
+            return ("New", Color.Primary);
+    }
+}

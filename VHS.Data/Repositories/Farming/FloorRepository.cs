@@ -1,44 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using VHS.Data.Infrastructure;
-using VHS.Data.Models.Farming;
 
-namespace VHS.Data.Repositories.Farming
+namespace VHS.Data.Core.Repositories;
+
+public interface IFloorRepository : IRepository<Floor> {}
+
+public class FloorRepository : Repository<Floor>, IFloorRepository
 {
-    public interface IFloorRepository : IRepository<Floor> {}
+    private readonly VHSCoreDBContext _context;
 
-    public class FloorRepository : Repository<Floor>, IFloorRepository
+    public FloorRepository(VHSCoreDBContext context) : base(context)
     {
-        private readonly VHSDBContext _context;
+        _context = context;
+    }
 
-        public FloorRepository(VHSDBContext context) : base(context)
+    public override async Task<IEnumerable<Floor>> GetAllAsync(Expression<Func<Floor, bool>>? filter = null, params string[] includeProperties)
+    {
+        IQueryable<Floor> query = _context.Floors
+                                          .Include(f => f.Farm)
+                                          .Include(f => f.Racks);
+        if (filter != null)
         {
-            _context = context;
+            query = query.Where(filter);
         }
 
-        public override async Task<IEnumerable<Floor>> GetAllAsync(Expression<Func<Floor, bool>>? filter = null, params string[] includeProperties)
-        {
-            IQueryable<Floor> query = _context.Floors
-                                              .Include(f => f.Farm)
-                                              .Include(f => f.Racks);
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
+        return await query.ToListAsync();
+    }
 
-            return await query.ToListAsync();
-        }
-
-        public override async Task<Floor?> GetByIdAsync(object id)
-        {
-            return await _context.Floors
-                                 .Include(f => f.Farm)
-                                 .Include(f => f.Racks)
-                                 .FirstOrDefaultAsync(f => f.Id == (Guid)id);
-        }
+    public override async Task<Floor?> GetByIdAsync(object id)
+    {
+        return await _context.Floors
+                             .Include(f => f.Farm)
+                             .Include(f => f.Racks)
+                             .FirstOrDefaultAsync(f => f.Id == (Guid)id);
     }
 }

@@ -1,10 +1,9 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Imperial
+﻿namespace VHS.Services.Common.Enums.Measurements.Imperial;
+
+public enum LengthUnitEnum
 {
-    public enum LengthUnitEnum
-    {
-        Mile,
-        Yard,
-        Foot,
-        Inch
-    }
+    Mile,
+    Yard,
+    Foot,
+    Inch
 }

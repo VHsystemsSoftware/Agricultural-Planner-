@@ -1,0 +1,112 @@
+﻿@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+@using VHS.Services.Auth.DTO
+@using VHS.Client.Common
+@using VHS.Client.Services.Auth
+@inject PageTitleService PageTitleService
+@inject AuthClientService AuthService
+@inject AuthClientStateService AuthStateService
+@inject LocalStorage LocalStorageService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Align="Align.Center">Welcome Back</MudText>
+                <MudText Typo="Typo.body2" Align="Align.Center">Sign in to continue</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="loginModel.Email"
+                              For="@(() => loginModel.Email)"
+                              Label="Email Address"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email"
+                              Required="true"
+                              RequiredError="Email is required."
+                              Class="mb-4" />
+
+                <MudTextField @bind-Value="loginModel.Password"
+                              For="@(() => loginModel.Password)"
+                              Label="Password"
+                              Variant="Variant.Outlined"
+                              InputType="@(isPasswordVisible ? InputType.Text : InputType.Password)"
+                              Required="true"
+                              RequiredError="Password is required."
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@(isPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                              OnAdornmentClick="@(() => isPasswordVisible = !isPasswordVisible)" />
+
+                <div class="d-flex justify-end my-2">
+                    <MudLink Href="/reset-password">Forgot Password?</MudLink>
+                </div>
+
+                <MudCardActions Class="d-flex justify-center pa-4">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               Disabled="@isProcessing"
+                               FullWidth="true"
+                               Class="mt-2">
+                        @if (isProcessing)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                            <MudText Class="ms-2">Signing In...</MudText>
+                        }
+                        else
+                        {
+                            <MudText>Sign In</MudText>
+                        }
+                    </MudButton>
+                </MudCardActions>
+            </EditForm>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private LoginDTO loginModel = new();
+    private bool isProcessing = false;
+    private bool isPasswordVisible = false;
+
+    protected override void OnInitialized()
+    {
+        PageTitleService.Title = "Login";
+    }
+
+    private async Task HandleLogin()
+    {
+        isProcessing = true;
+        try
+        {
+            var result = await AuthService.LoginAsync(loginModel);
+
+            if (!string.IsNullOrEmpty(result.Token) && result.User != null)
+            {
+                await LocalStorageService.SaveStateAsync("VHS_AUTH_TOKEN", result.Token);
+                await LocalStorageService.SaveStateAsync("VHS_USER", JsonSerializer.Serialize(result.User));
+                await AuthStateService.MarkUserAsAuthenticatedAsync(result.Token);
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                Snackbar.Add("Login failed. Please check your credentials.", Severity.Error);
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Login failed. An error occurred.", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+}

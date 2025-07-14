@@ -3,35 +3,31 @@
 @using VHS.Services.Farming.DTO
 @using VHS.Client.Services.Farming
 @using VHS.Client.Pages.Settings.Farming
-@inject FloorClientService FloorsClientService
 @inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject FloorClientService FloorsClientService
+@inject PageTitleService PageTitleService
 
-<FarmSettings>
+<MudPaper Outlined="true" Square="true">
     <MudDataGrid Items="@FloorList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info">
-        <ToolBarContent>
-            <MudText Typo="Typo.h5" Color="Color.Default">Floors</MudText>
-            <MudSpacer />
-        </ToolBarContent>
         <Columns>
             <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
-            <PropertyColumn Property="x => x.FloorNumber" Title="Floor Number" Sortable="true" />
+            <PropertyColumn Property="x => x.Number" Title="Floor Number" Sortable="true" />
             <TemplateColumn Title="Enabled" Sortable="true">
                 <CellTemplate Context="context">
-                    <MudChip Color="@(context.Item.Enabled ? Color.Success : Color.Error)" Label="true" Variant="Variant.Outlined" Size="Size.Medium">
-                        @(context.Item.Enabled ? "Yes" : "No")
-                    </MudChip>
+                    <MudSwitch T="bool" Label="@(context.Item.Enabled ? "Yes" : "No")"
+                        Value="context.Item.Enabled"
+                        ValueChanged="@(async (bool newValue) => await OnToggleEnabled(context.Item, newValue))"
+                        Color="Color.Success" />
                 </CellTemplate>
             </TemplateColumn>
         </Columns>
-        <PagerContent>
-            <MudDataGridPager Items="@FloorList" />
-        </PagerContent>
     </MudDataGrid>
     @if (FloorList == null || !FloorList.Any())
     {
         <MudAlert Severity="Severity.Info">No floors found.</MudAlert>
     }
-</FarmSettings>
+</MudPaper>
 
 @code {
     private IEnumerable<FloorDTO>? FloorList;
@@ -39,6 +35,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackUrl = "/system-settings";
+        PageTitleService.Title = "Floors";
+
         await LoadFloors();
     }
 
@@ -47,5 +47,47 @@
         IsLoading = true;
         FloorList = await FloorsClientService.GetAllFloorsAsync();
         IsLoading = false;
+    }
+
+    private async Task OnToggleEnabled(FloorDTO floor, bool newValue)
+    {
+        var parameters = new DialogParameters
+            {
+                { "ConfirmTitle", "Confirm Change" },
+                { "ConfirmMessage", $"Are you sure you want to {(newValue ? "enable" : "disable")} this floor?" }
+            };
+
+        var options = new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = false,
+                MaxWidth = MaxWidth.Small,
+                Position = DialogPosition.TopCenter
+            };
+
+        var dialog = await Dialog.ShowAsync<Confirm>("Confirm", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var dto = new EnabledDTO
+                    {
+                        Id = floor.Id,
+                        Enabled = newValue
+                    };
+
+                await FloorsClientService.EnableFloorAsync(dto);
+
+                floor.Enabled = newValue;
+                Snackbar.Add("Floor updated successfully", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Failed to update floor: " + ex.Message, Severity.Error);
+            }
+        }
     }
 }

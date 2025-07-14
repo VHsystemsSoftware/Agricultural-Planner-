@@ -13,7 +13,8 @@ namespace VHS.Services.Auth.DTO
         public string Email { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
-        public string? Auth0Id { get; set; }
+        public string? Password { get; set; }
+        public string? Role { get; set; }
         public DateTime AddedDateTime { get; set; }
         public DateTime ModifiedDateTime { get; set; }
     }

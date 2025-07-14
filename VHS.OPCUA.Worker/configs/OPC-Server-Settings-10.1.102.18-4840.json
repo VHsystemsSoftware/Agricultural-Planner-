@@ -1,0 +1,300 @@
+{
+  "HostnameOrIP": "10.1.102.18",
+  "PortNumber": 4840,
+  "ServerId": 100,
+  "DiscoveryUrl": "opc.tcp://10.1.102.18:4840",
+  "NamespaceUrn": "urn:B&R/pv/",
+  "LastBrowseDate": "2025-05-06T22:55:04.9564216+02:00",
+  "Components": [
+    {
+      "Name": "General",
+      "Node": "ns=6;s=::ExtComm:CS.General",
+      "Id": 1,
+      "Variables": [
+        {
+          "Name": "HeartBeat",
+          "Node": "ns=6;s=::ExtComm:CS.General.HeartBeat",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 1000101
+        },
+        {
+          "Name": "FireAlarmActive",
+          "Node": "ns=6;s=::ExtComm:STS.General.FireAlarmActive",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 2,
+          "HandleId": 1000102
+        },
+        {
+          "Name": "HeartBeat",
+          "Node": "ns=6;s=::ExtComm:STS.General.HeartBeat",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 3,
+          "HandleId": 1000103
+        }
+      ]
+    },
+    {
+      "Name": "Harvester",
+      "Node": "ns=6;s=::ExtComm:CS.Harvester",
+      "Id": 2,
+      "Variables": [
+        {
+          "Name": "HarvestAllowed",
+          "Node": "ns=6;s=::ExtComm:CS.Harvester.HarvestAllowed",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 1000201
+        },
+        {
+          "Name": "RequestHarvest",
+          "Node": "ns=6;s=::ExtComm:STS.Harvester.RequestHarvest",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 2,
+          "HandleId": 1000202
+        },
+        {
+          "Name": "TrayId",
+          "Node": "ns=6;s=::ExtComm:STS.Harvester.TrayId",
+          "Type": 2,
+          "MustSubscribe": false,
+          "Id": 3,
+          "HandleId": 1000203
+        },
+        {
+          "Name": "Weight_kg",
+          "Node": "ns=6;s=::ExtComm:STS.Harvester.Weight_kg",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 4,
+          "HandleId": 1000204
+        },
+        {
+          "Name": "PlannerInControl",
+          "Node": "ns=6;s=::ExtComm:STS.Harvester.PlannerInControl",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 6,
+          "HandleId": 1000205
+        }
+      ]
+    },
+    {
+      "Name": "Harvesting",
+      "Node": "ns=6;s=::ExtComm:CS.Harvesting",
+      "Id": 3,
+      "Variables": [
+        {
+          "Name": "Destination",
+          "Node": "ns=6;s=::ExtComm:CS.Harvesting.Destination",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 1000301
+        },
+        {
+          "Name": "RequestTrayInfo",
+          "Node": "ns=6;s=::ExtComm:STS.Harvesting.RequestTrayInfo",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 2,
+          "HandleId": 1000302
+        },
+        {
+          "Name": "TrayId",
+          "Node": "ns=6;s=::ExtComm:STS.Harvesting.TrayId",
+          "Type": 2,
+          "MustSubscribe": false,
+          "Id": 3,
+          "HandleId": 1000303
+        },
+        {
+          "Name": "TrayInfoAccepted",
+          "Node": "ns=6;s=::ExtComm:STS.Harvesting.TrayInfoAccepted",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 4,
+          "HandleId": 1000304
+        },
+        {
+          "Name": "PlannerInControl",
+          "Node": "ns=6;s=::ExtComm:STS.Harvesting.PlannerInControl",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 5,
+          "HandleId": 1000305
+        }
+      ]
+    },
+    {
+      "Name": "Paternoster",
+      "Node": "ns=6;s=::ExtComm:CS.Paternoster",
+      "Id": 4,
+      "Variables": [
+        {
+          "Name": "Destination",
+          "Node": "ns=6;s=::ExtComm:CS.Paternoster.Destination",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 1000401
+        },
+        {
+          "Name": "RequestTrayInfo",
+          "Node": "ns=6;s=::ExtComm:STS.Paternoster.RequestTrayInfo",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 2,
+          "HandleId": 1000402
+        },
+        {
+          "Name": "TrayId",
+          "Node": "ns=6;s=::ExtComm:STS.Paternoster.TrayId",
+          "Type": 2,
+          "MustSubscribe": false,
+          "Id": 3,
+          "HandleId": 1000403
+        },
+        {
+          "Name": "TrayInfoAccepted",
+          "Node": "ns=6;s=::ExtComm:STS.Paternoster.TrayInfoAccepted",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 4,
+          "HandleId": 1000404
+        },
+        {
+          "Name": "PlannerInControl",
+          "Node": "ns=2;s=::ExtComm:STS.Paternoster.PlannerInControl",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 5,
+          "HandleId": 1000505
+        }
+      ]
+    },
+    {
+      "Name": "Seeding",
+      "Node": "ns=6;s=::ExtComm:CS.Seeding",
+      "Id": 5,
+      "Variables": [
+        {
+          "Name": "DestinationCurrentTray",
+          "Node": "ns=6;s=::ExtComm:CS.Seeding.DestinationCurrentTray",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 1000501
+        },
+        {
+          "Name": "DestinationOutputTray",
+          "Node": "ns=6;s=::ExtComm:CS.Seeding.DestinationOutputTray",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 2,
+          "HandleId": 1000502
+        },
+        {
+          "Name": "Layer",
+          "Node": "ns=6;s=::ExtComm:CS.Seeding.Layer",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 3,
+          "HandleId": 1000503
+        },
+        {
+          "Name": "TrayIdOutputTray",
+          "Node": "ns=6;s=::ExtComm:CS.Seeding.TrayIdOutputTray",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 4,
+          "HandleId": 1000504
+        },
+        {
+          "Name": "TrayInterval",
+          "Node": "ns=6;s=::ExtComm:CS.Seeding.TrayInterval",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 5,
+          "HandleId": 1000505
+        },
+        {
+          "Name": "RequestTrayInfo",
+          "Node": "ns=6;s=::ExtComm:STS.Seeding.RequestTrayInfo",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 6,
+          "HandleId": 1000506
+        },
+        {
+          "Name": "TrayId",
+          "Node": "ns=6;s=::ExtComm:STS.Seeding.TrayId",
+          "Type": 2,
+          "MustSubscribe": false,
+          "Id": 7,
+          "HandleId": 1000507
+        },
+        {
+          "Name": "TrayInfoAccepted",
+          "Node": "ns=6;s=::ExtComm:STS.Seeding.TrayInfoAccepted",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 8,
+          "HandleId": 1000508
+        },
+        {
+          "Name": "PlannerInControl",
+          "Node": "ns=6;s=::ExtComm:STS.Seeding.PlannerInControl",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 9,
+          "HandleId": 1000509
+        }
+      ]
+    },
+    {
+      "Name": "Washing",
+      "Node": "ns=6;s=::ExtComm:CS.Washing",
+      "Id": 6,
+      "Variables": [
+        {
+          "Name": "Accepted",
+          "Node": "ns=6;s=::ExtComm:CS.Washing.Accepted",
+          "Type": 1,
+          "MustSubscribe": false,
+          "Id": 1,
+          "HandleId": 1000601
+        },
+        {
+          "Name": "Request",
+          "Node": "ns=6;s=::ExtComm:STS.Washing.Request",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 2,
+          "HandleId": 1000602
+        },
+        {
+          "Name": "TrayId",
+          "Node": "ns=6;s=::ExtComm:STS.Washing.TrayId",
+          "Type": 2,
+          "MustSubscribe": false,
+          "Id": 3,
+          "HandleId": 1000603
+        },
+        {
+          "Name": "PlannerInControl",
+          "Node": "ns=6;s=::ExtComm:STS.Washing.PlannerInControl",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 4,
+          "HandleId": 1000604
+        }
+      ]
+    }
+  ]
+}

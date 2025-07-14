@@ -1,10 +1,9 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Metric
+﻿namespace VHS.Services.Common.Enums.Measurements.Metric;
+
+public enum WeightUnitEnum
 {
-    public enum WeightUnitEnum
-    {
-        Tonne,
-        Kilogram,
-        Gram,
-        Milligram
-    }
+    Tonne,
+    Kilogram,
+    Gram,
+    Milligram
 }

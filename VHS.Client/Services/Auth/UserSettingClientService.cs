@@ -1,7 +1,5 @@
-﻿using System;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using VHS.Services.Auth.DTO;
 
 namespace VHS.Client.Services.Auth
@@ -17,7 +15,13 @@ namespace VHS.Client.Services.Auth
 
         public async Task<UserSettingDTO?> GetUserSettingsByUserIdAsync(Guid userId)
         {
-            return await _httpClient.GetFromJsonAsync<UserSettingDTO>($"api/user/settings/{userId}");
+            var response = await _httpClient.GetAsync($"api/user/settings/{userId}");
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<UserSettingDTO>();
         }
 
         public async Task<UserSettingDTO?> UpdateUserSettingsAsync(UserSettingDTO settingsDto)

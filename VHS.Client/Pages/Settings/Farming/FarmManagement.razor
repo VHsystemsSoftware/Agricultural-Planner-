@@ -6,15 +6,19 @@
 @inject FarmClientService FarmClientService
 @inject IDialogService Dialog
 @inject ISnackbar Snackbar
+@inject PageTitleService PageTitleService
 
-<FarmSettings>
-    <MudDataGrid Items="@Farms" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info">
+<MudPaper Outlined="true" Square="true">
+    <MudDataGrid T="FarmDTO" Items="@Farms" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" RowClick="@(async args => await EditFarm(args.Item))" RowStyle="cursor: pointer;">
         <ToolBarContent>
-            <MudText Typo="Typo.h5" Color="Color.Default">Farm Management</MudText>
-            <MudSpacer />
-            <MudTooltip Text="Add New Farm" Arrow="true" Placement="Placement.Top">
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@AddFarm">Add New</MudButton>
-            </MudTooltip>
+            @if (Farms.Count == 0)
+            {
+
+                <MudTooltip Text="Add New Farm" Arrow="true" Placement="Placement.Top">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@AddFarm">Add New</MudButton>
+                </MudTooltip>
+
+            }
         </ToolBarContent>
         <Columns>
             <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
@@ -26,22 +30,19 @@
                         <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
                             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditFarm(context.Item))" />
                         </MudTooltip>
-                        <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
+                        @*                         <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
                             <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteFarm(context.Item.Id))" />
                         </MudTooltip>
-                    </MudStack>
+ *@                    </MudStack>
                 </CellTemplate>
             </TemplateColumn>
         </Columns>
-        <PagerContent>
-            <MudDataGridPager Items="@Farms" />
-        </PagerContent>
     </MudDataGrid>
     @if (Farms == null || !Farms.Any())
     {
         <MudAlert Severity="Severity.Info">No farms found.</MudAlert>
     }
-</FarmSettings>
+</MudPaper>
 
 @code {
     private List<FarmDTO> Farms = new List<FarmDTO>();
@@ -51,6 +52,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackUrl = "/system-settings";
+        PageTitleService.Title = "Farm Management";
+
         await LoadFarmTypes();
         await LoadFarms();
     }

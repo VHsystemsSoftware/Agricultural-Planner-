@@ -1,0 +1,336 @@
+﻿@using VHS.Services.Batches.DTO
+@using VHS.Services.Farming.DTO
+
+<MudText Typo="Typo.h6" Class="mb-2">@Title</MudText>
+
+
+@foreach (var batchRow in BatchRows.Where(x => !x.IsTransportLayer).OrderBy(x => x.Number))
+{
+    <MudGrid Class="mb-2" @key="batchRow" Justify="Justify.FlexStart">
+        <MudItem xs="1" sm="1">
+            <MudField Typo="Typo.subtitle1" Label="">
+                <span>@batchRow.Number</span>
+            </MudField>
+        </MudItem>
+        <MudItem xs="2" sm="2">
+            <MudSelect T="Guid?" Label="Floor" Value="batchRow.FloorId" ValueChanged="v => OnFloorChanged(batchRow, v)">
+                @foreach (var f in Floors.Where(x => RackType == Guid.Empty
+                            || (x.HasGrowingRacks && RackType == GlobalConstants.RACKTYPE_GROWING)
+                            || (x.HasGerminationRacks && RackType == GlobalConstants.RACKTYPE_GERMINATION)
+                            || (x.HasPropagationRacks && RackType == GlobalConstants.RACKTYPE_PROPAGATION)))
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)f.Id)">@f.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="Guid?" Label="Rack" Value="batchRow.RackId" ValueChanged="v => OnRackChanged(batchRow, v)">
+                @foreach (var r in Racks.Where(r => r.Floor.Id == batchRow.FloorId && (RackType == Guid.Empty || r.TypeId == RackType)).OrderBy(r => r.Number))
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)r.Id)">
+                        <RacKTypeName TypeId="@r.TypeId" /> Rack @r.Name (@r.TrayCountPerLayer layers)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudGrid Class="items-center">
+                <MudItem xs="@XsValue">
+                    <MudSelect T="Guid?" Label="Layer" @bind-Value="batchRow.LayerId" Dense="true" FullWidth="true">
+                        @foreach (var l in Layers.Where(l => l.RackId == batchRow.RackId && (!l.IsTransportLayer)).OrderBy(l => l.Number))
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)l.Id)">
+                                Layer @l.Number (@l.TrayCountPerLayer trays)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                @if (IsManualMode)
+                {
+                    <MudItem xs="2" Class="d-flex align-center justify-end">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="() => RemoveAssignmentRow(batchRow)"
+                                       Disabled="@(BatchRows.Count(a => !a.IsTransportLayer) <= 1)" />
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudItem>
+    </MudGrid>
+}
+@if (IsManualMode && !BatchRows.Any())
+{
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Secondary" StartIcon="@Icons.Material.Outlined.Add" OnClick="AddAssignmentRow">Add Layer</MudButton>
+}
+
+@if (BatchRows?.Any() == true && TraysPerDay > 0 && Days > 0 && !IsManualMode)
+{
+    <MudText Typo="Typo.subtitle2" Class="mt-4" Color="@TraySummaryColor">
+        Total trays assigned: @TotalTrayCapacity / Needed: @TraysNeeded
+    </MudText>
+    <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-1">
+        @foreach (var line in InfoLines)
+        {
+            @line
+            <br />
+        }
+    </MudText>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public List<BatchRowDTO> BatchRows { get; set; } = new();
+    [Parameter] public List<FloorDTO> Floors { get; set; } = new();
+    [Parameter] public List<RackDTO> Racks { get; set; } = new();
+    [Parameter] public List<LayerDTO> Layers { get; set; } = new();
+    [Parameter] public Guid RackType { get; set; }
+
+    [Parameter] public int TraysPerDay { get; set; }
+    [Parameter] public int Days { get; set; }
+    [Parameter] public bool IsManualMode { get; set; }
+
+    [Parameter]
+    public EventCallback<EventArgs> OnChange { get; set; }
+
+    private int TotalTrayCapacity => BatchRows
+        .Where(a => a.LayerId != null)
+        .Join(Layers, a => a.LayerId, l => l.Id, (a, l) => l.TrayCountPerLayer)
+        .Sum();
+
+    private int TraysNeeded => TraysPerDay * Days;
+    private int XsValue => IsManualMode ? 10 : 12;
+    private List<string> InfoLines = new();
+
+    private MudBlazor.Color TraySummaryColor => TotalTrayCapacity >= TraysNeeded ? MudBlazor.Color.Success : MudBlazor.Color.Error;
+
+    protected override void OnParametersSet()
+    {
+        if (!IsManualMode)
+        {
+            //Console.WriteLine("1");
+            UpdateAssignmentInfoLines();
+        }
+        else
+            if (!BatchRows.Any()) AddAssignmentRow();
+    }
+
+    private void OnFloorChanged(BatchRowDTO assignment, Guid? newFloorId)
+    {
+        assignment.FloorId = newFloorId;
+        assignment.RackId = Floors.Where(x => x.Id == newFloorId).Single().Racks.OrderBy(x => x.Number).First().Id;
+        assignment.LayerId = Racks.Where(x => x.Id == assignment.RackId).Single().Layers.OrderBy(x => x.Number).First().Id;
+
+        if (!IsManualMode)
+        {
+            // Console.WriteLine("2");
+            UpdateAssignmentInfoLines();
+        }
+        StateHasChanged();
+    }
+
+    private void OnRackChanged(BatchRowDTO assignment, Guid? newRackId)
+    {
+        //OnChange.InvokeAsync();
+
+        assignment.RackId = newRackId;
+        assignment.LayerId = Racks.Where(x => x.Id == newRackId).Single().Layers.OrderBy(x => x.Number).First().Id;
+        if (!IsManualMode)
+        {
+            // Console.WriteLine("3");
+            UpdateAssignmentInfoLines();
+        }
+        StateHasChanged();
+    }
+
+    private void AddAssignmentRow()
+    {
+        int transportIndex = BatchRows.FindIndex(a => a.IsTransportLayer);
+
+        var lastNormal = BatchRows.LastOrDefault(a => !a.IsTransportLayer);
+
+        var newAssignment = new BatchRowDTO
+        {
+            Number = BatchRows.Count + 1,
+            IsTransportLayer = false,
+            FloorId = lastNormal?.FloorId,
+            RackId = lastNormal?.RackId,
+            LayerId = lastNormal?.LayerId,
+            LayerRackTypeId = lastNormal?.LayerRackTypeId ?? RackType,
+            TrayCount = lastNormal?.TrayCount ?? 0,
+            EmptyCount = 0
+        };
+
+        if (transportIndex >= 0)
+        {
+            BatchRows.Insert(transportIndex, newAssignment);
+        }
+        else
+        {
+            BatchRows.Add(newAssignment);
+        }
+
+        RecalculateLayerNumbers();
+
+    }
+
+    private void RecalculateLayerNumbers()
+    {
+        int layerNumber = 1;
+        foreach (var a in BatchRows.Where(x => !x.IsTransportLayer))
+        {
+            a.Number = layerNumber++;
+        }
+    }
+
+    private void RemoveAssignmentRow(BatchRowDTO assignmentToRemove)
+    {
+        if (BatchRows.Count(a => !a.IsTransportLayer) <= 1 && !assignmentToRemove.IsTransportLayer)
+            return;
+
+        if (BatchRows.Contains(assignmentToRemove))
+        {
+            BatchRows.Remove(assignmentToRemove);
+            RecalculateLayerNumbers();
+            StateHasChanged();
+        }
+    }
+
+    private void UpdateAssignmentInfoLines()
+    {
+
+        var lines = new List<string>();
+
+        int assignedTrays = 0;
+
+
+        var orderedAssignments = BatchRows
+            .Where(x => x.LayerId.HasValue && !x.IsTransportLayer)
+            .OrderBy(x => x.Number)
+            .ToList();
+
+        var trayCountByType = new Dictionary<string, int>();
+
+        foreach (var batchRow in orderedAssignments)
+        {
+            batchRow.EmptyCount = 0;
+
+            var layer = Layers.OrderBy(a => a.Number).FirstOrDefault(l => l.Id == batchRow.LayerId);
+            if (layer == null) continue;
+
+            if (batchRow.LayerRackTypeId == GlobalConstants.RACKTYPE_PROPAGATION)
+            {
+                var totalTraysPerDay = TraysPerDay;
+                var plugsNeeded = TraysPerDay * 16;
+                lines.Add($"{plugsNeeded} plugs needed ({TraysPerDay}x16)");
+
+                TraysPerDay = (int)Math.Ceiling((double)TraysPerDay / (double)24);
+                var plugsPerDay = (int)Math.Ceiling((double)TraysNeeded * (double)384);
+                int thrashPlugs = plugsPerDay - plugsNeeded;
+
+                lines.Add($"{plugsPerDay} plugs propagated ({TraysNeeded}x384)");
+                lines.Add($"Throwing away {thrashPlugs} plugs");
+            }
+
+            int totalNeededTrays = TraysPerDay > 0 && Days > 0 ? TraysPerDay * Days : 0;
+            assignedTrays += layer.TrayCountPerLayer;
+            if (totalNeededTrays > 0 && assignedTrays > totalNeededTrays)
+            {
+                int traysBefore = assignedTrays - layer.TrayCountPerLayer;
+                if (traysBefore < totalNeededTrays)
+                {
+                    int emptyTrays = assignedTrays - totalNeededTrays;
+                    batchRow.EmptyCount = emptyTrays;
+                    lines.Add($"{emptyTrays} empty Trays on Layer {batchRow.Number}");
+
+
+                }
+            }
+
+            var rack = Racks.OrderBy(a => a.Number).FirstOrDefault(r => r.Id == batchRow.RackId);
+            if (rack == null) continue;
+            batchRow.LayerRackTypeId = rack.TypeId;
+
+            string typeText = null;
+
+            if (rack?.TypeId != null)
+            {
+                if (rack.TypeId == GlobalConstants.RACKTYPE_GROWING)
+                    typeText = "Growing";
+                else if (rack.TypeId == GlobalConstants.RACKTYPE_GERMINATION)
+                    typeText = "Germination";
+                else if (rack.TypeId == GlobalConstants.RACKTYPE_PROPAGATION)
+                    typeText = "Propagation";
+            }
+
+            if (typeText != null)
+            {
+                if (!trayCountByType.ContainsKey(typeText))
+                    trayCountByType[typeText] = 0;
+
+                trayCountByType[typeText] += layer.TrayCountPerLayer;
+            }
+
+        }
+
+
+        if (!IsManualMode)
+        {
+            int totalNeededTrays = TraysPerDay > 0 && Days > 0 ? TraysPerDay * Days : 0;
+
+            // Add more layers when lacks
+            while (assignedTrays < totalNeededTrays)
+            {
+                var last = BatchRows.LastOrDefault(a => !a.IsTransportLayer);
+                var newAssignment = new BatchRowDTO
+                {
+                    Number = BatchRows.Count + 1,
+                    IsTransportLayer = false,
+                    FloorId = last?.FloorId ?? Floors.FirstOrDefault()?.Id,
+                    RackId = last?.RackId,
+                    LayerRackTypeId = last?.LayerRackTypeId ?? RackType,
+                    EmptyCount = 0
+                };
+
+                newAssignment.LayerId = Racks.FirstOrDefault(r => r.Id == newAssignment.RackId)?
+                    .Layers.OrderBy(l => l.Number)
+                    .FirstOrDefault(l => !BatchRows.Any(a => a.LayerId == l.Id))?.Id;
+
+                if (newAssignment.LayerId == null)
+                    break;
+
+                BatchRows.Add(newAssignment);
+                var addedLayer = Layers.FirstOrDefault(l => l.Id == newAssignment.LayerId);
+                if (addedLayer == null) break;
+
+                assignedTrays += addedLayer.TrayCountPerLayer;
+            }
+
+            // Remove excess layers, eg. put back to the bigger rack
+            while (assignedTrays > totalNeededTrays)
+            {
+                var last = BatchRows.LastOrDefault(a => !a.IsTransportLayer);
+                if (last == null) break;
+
+                var layer = Layers.FirstOrDefault(l => l.Id == last.LayerId);
+                if (layer == null) break;
+
+                if (assignedTrays - layer.TrayCountPerLayer >= totalNeededTrays)
+                {
+                    BatchRows.Remove(last);
+                    assignedTrays -= layer.TrayCountPerLayer;
+                }
+                else break;
+            }
+
+            RecalculateLayerNumbers();
+            StateHasChanged();
+        }
+
+        foreach (var kvp in trayCountByType)
+        {
+            lines.Add($"{kvp.Value} Trays added for {kvp.Key} Layer");
+        }
+        InfoLines = lines;
+    }
+}

@@ -1,8 +1,7 @@
-﻿namespace VHS.Services.Common.Enums.Measurements
+﻿namespace VHS.Services.Common.Enums.Measurements;
+
+public enum MeasurementSystemEnum
 {
-    public enum MeasurementSystemEnum
-    {
-        Metric,
-        Imperial
-    }
+    Metric,
+    Imperial
 }

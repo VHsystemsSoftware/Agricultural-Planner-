@@ -1,18 +1,14 @@
-﻿using VHS.Data.Models.Batches;
-using VHS.Data.Infrastructure;
+﻿namespace VHS.Data.Core.Repositories;
 
-namespace VHS.Data.Repositories.Batches
+public interface IBatchRepository : IRepository<Batch>
 {
-    public interface IBatchRepository : IRepository<Batch>
-    {
-    }
-    public class BatchRepository : Repository<Batch>, IBatchRepository
-    {
-        private readonly VHSDBContext _context;
+}
+public class BatchRepository : Repository<Batch>, IBatchRepository
+{
+    private readonly VHSCoreDBContext _context;
 
-        public BatchRepository(VHSDBContext context) : base(context)
-        {
-            _context = context;
-        }
+    public BatchRepository(VHSCoreDBContext context) : base(context)
+    {
+        _context = context;
     }
 }

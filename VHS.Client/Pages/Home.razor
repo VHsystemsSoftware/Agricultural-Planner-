@@ -1,9 +1,33 @@
 ﻿@page "/"
 @inject PageTitleService PageTitleService
 
+<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.subtitle1">Planning</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.subtitle1">Operational</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.subtitle1">Results</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.subtitle1">System messages</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+
 @code {
     protected override void OnInitialized()
     {
-        PageTitleService.Title = "Home";
+        PageTitleService.Title = "";
     }
 }

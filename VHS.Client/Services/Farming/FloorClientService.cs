@@ -1,9 +1,5 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using System.Net.Http.Json;
 using VHS.Services.Farming.DTO;
-using VHS.Services.Farming;
 
 namespace VHS.Client.Services.Farming
 {
@@ -16,9 +12,10 @@ namespace VHS.Client.Services.Farming
             _httpClient = httpClient;
         }
 
-        public async Task<IEnumerable<FloorDTO>?> GetAllFloorsAsync()
+        public async Task<IEnumerable<FloorDTO>?> GetAllFloorsAsync(bool enabledOnly = false)
         {
-            return await _httpClient.GetFromJsonAsync<IEnumerable<FloorDTO>>("api/floor");
+            var url = $"api/floor?enabledOnly={enabledOnly.ToString().ToLower()}";
+            return await _httpClient.GetFromJsonAsync<IEnumerable<FloorDTO>>(url);
         }
 
         public async Task<FloorDTO?> GetFloorByIdAsync(Guid id)
@@ -36,6 +33,12 @@ namespace VHS.Client.Services.Farming
         public async Task UpdateFloorAsync(FloorDTO floorDto)
         {
             await _httpClient.PutAsJsonAsync($"api/floor/{floorDto.Id}", floorDto);
+        }
+
+        public async Task EnableFloorAsync(EnabledDTO dto)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/floor/enable/{dto.Id}", dto);
+            response.EnsureSuccessStatusCode();
         }
 
         public async Task DeleteFloorAsync(Guid id)

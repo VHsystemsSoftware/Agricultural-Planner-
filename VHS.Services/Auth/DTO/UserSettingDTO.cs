@@ -8,6 +8,9 @@ namespace VHS.Services.Auth.DTO
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public string PreferredLanguage { get; set; } = "en-US";
         public string PreferredTheme { get; set; } = "Light";
         public string PreferredMeasurementSystem { get; set; } = "Metric";

@@ -1,0 +1,26 @@
+<MudChip T="string" Variant="Variant.Outlined" Color="@chipColor">@label</MudChip>
+
+@code {
+
+    [Parameter] public Guid statusId { get; set; }
+
+    string label = string.Empty;
+    Color chipColor = Color.Default;
+
+    protected override Task OnParametersSetAsync()
+    {
+        (label, chipColor) = GetStatus(statusId);
+        return base.OnParametersSetAsync();
+    }
+
+    public (string, Color) GetStatus(Guid statusId)
+    {
+        if (statusId == GlobalConstants.JOBSTATUS_COMPLETED)
+            return ("Completed", Color.Default);
+        if (statusId == GlobalConstants.JOBSTATUS_INPROGRESS)
+            return ("In Progress", Color.Success);
+        if (statusId == GlobalConstants.JOBSTATUS_NOTSTARTED)
+            return ("Not Started", Color.Primary);
+        return ("New", Color.Primary);
+    }
+}

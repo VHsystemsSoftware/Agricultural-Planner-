@@ -1,55 +1,157 @@
 ﻿@page "/system-settings/farm/racks"
 @using VHS.Services.Farming
 @using VHS.Services.Farming.DTO
+@using VHS.Services.Batches.DTO
 @using VHS.Client.Services.Farming
 @using VHS.Client.Pages.Settings.Farming
 @inject RackClientService RackClientService
-@inject ISnackbar Snackbar
+@inject FloorClientService FloorClientService
+@inject FarmClientService FarmClientService
+@inject PageTitleService PageTitleService
 
-<FarmSettings>
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+
+<MudPaper Outlined="true" Square="true">
     <MudDataGrid Items="@RackList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info">
         <ToolBarContent>
             <MudText Typo="Typo.h5" Color="Color.Default">Racks</MudText>
             <MudSpacer />
+
+            <MudSelect T="Guid"
+                       Label="Filter by Floor"
+                       Value="_selectedFloorId"
+                       ValueChanged="OnFloorChanged"
+                       Dense
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="Guid.Empty">All floors</MudSelectItem>
+                @foreach (var floor in _floors
+                                .Where(r => r.FarmId == _selectedFarmId && r.Enabled)
+                                .OrderBy(r => r.Number))
+                {
+                    <MudSelectItem Value="@floor.Id">
+                        @floor.Number – @floor.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
         </ToolBarContent>
         <Columns>
             <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
-            <PropertyColumn Property="x => x.TypeName" Title="Type" Sortable="true" />
+            <TemplateColumn>
+                <CellTemplate>
+                    <RacKTypeName TypeId="@context.Item.TypeId" />
+                </CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="x => x.Floor.Name" Title="Floor" Sortable="true" />
             <PropertyColumn Property="x => x.LayerCount" Title="Layers" Sortable="true" />
             <PropertyColumn Property="x => x.TrayCountPerLayer" Title="Depth" Sortable="true" />
-            <PropertyColumn Property="x => x.AmountOfRacks" Title="Amount Of Racks" Sortable="true" />
             <TemplateColumn Title="Enabled" Sortable="true">
                 <CellTemplate Context="context">
-                    <MudChip Color="@(context.Item.Enabled ? Color.Success : Color.Error)" Label="true" Variant="Variant.Outlined" Size="Size.Medium">
-                        @(context.Item.Enabled ? "Yes" : "No")
-                    </MudChip>
+                    <MudSwitch T="bool" Label="@(context.Item.Enabled ? "Yes" : "No")"
+                               Value="context.Item.Enabled"
+                               ValueChanged="@(async (bool newValue) => await OnToggleEnabled(context.Item, newValue))"
+                               Color="Color.Success" />
                 </CellTemplate>
             </TemplateColumn>
         </Columns>
-        <PagerContent>
-            <MudDataGridPager Items="@RackList" />
-        </PagerContent>
     </MudDataGrid>
     @if (RackList == null || !RackList.Any())
     {
         <MudAlert Severity="Severity.Info">No racks found.</MudAlert>
     }
-</FarmSettings>
+</MudPaper>
 
 @code {
+    private IEnumerable<RackDTO>? RackListFull;
     private IEnumerable<RackDTO>? RackList;
+    private IEnumerable<FarmDTO> _farms = Array.Empty<FarmDTO>();
+
     private bool IsLoading = true;
+    private Guid _selectedFloorId;
+    private Guid _selectedFarmId;
+    private List<FloorDTO> _floors = new();
+
+    private async Task OnFloorChanged(Guid floorId)
+    {
+
+
+        _selectedFloorId = floorId;
+        await ApplySelectedAsync();
+        StateHasChanged();
+    }
+
+
+    public async Task ApplySelectedAsync()
+    {
+        RackList = RackListFull.Where(x => x.Floor.Id == _selectedFloorId).ToList();
+    }
 
     protected override async Task OnInitializedAsync()
     {
+                PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackUrl = "/system-settings";
+        PageTitleService.Title = "Racks";
+
+        _farms = await FarmClientService.GetAllFarmsAsync() ?? Array.Empty<FarmDTO>();
+        _floors = (await FloorClientService.GetAllFloorsAsync())
+           ?.OrderBy(r => r.Number)
+           .ToList();
+
+        if (_farms.Any())
+            _selectedFarmId = _farms.First().Id;
+        if (_floors.Any())
+            _selectedFloorId = _floors.First().Id;
+
         await LoadRacks();
     }
 
     private async Task LoadRacks()
     {
         IsLoading = true;
-        RackList = await RackClientService.GetAllRacksAsync();
+        RackListFull = (await RackClientService.GetAllRacksAsync()).OrderBy(x => x.Number);
+        await ApplySelectedAsync();
         IsLoading = false;
+    }
+
+    private async Task OnToggleEnabled(RackDTO rack, bool newValue)
+    {
+        var parameters = new DialogParameters
+            {
+                { "ConfirmTitle", "Confirm Change" },
+                { "ConfirmMessage", $"Are you sure you want to {(newValue ? "enable" : "disable")} this rack?" }
+            };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            MaxWidth = MaxWidth.Small,
+            Position = DialogPosition.TopCenter
+        };
+
+        var dialog = await Dialog.ShowAsync<Confirm>("Confirm", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var dto = new EnabledDTO
+                {
+                    Id = rack.Id,
+                    Enabled = newValue
+                };
+
+                await RackClientService.EnableRackAsync(dto);
+
+                rack.Enabled = newValue;
+                Snackbar.Add("Rack updated successfully", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Failed to update rack: " + ex.Message, Severity.Error);
+            }
+        }
     }
 }

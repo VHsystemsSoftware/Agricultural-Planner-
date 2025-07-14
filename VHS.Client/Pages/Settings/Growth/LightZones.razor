@@ -7,13 +7,13 @@
 @inject IDialogService Dialog
 @inject ISnackbar Snackbar
 
-<GrowthSettings>
-    <MudDataGrid Items="@LightZoneList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info">
+@inject PageTitleService PageTitleService
+
+<MudPaper Outlined="true" Square="true">
+    <MudDataGrid T="LightZoneDTO" Items="@LightZoneList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" RowClick="@(async args => await EditLightZone(args.Item))" RowStyle="cursor: pointer;">
         <ToolBarContent>
-            <MudText Typo="Typo.h5" Color="Color.Default">Light Zones</MudText>
-            <MudSpacer />
             <MudTooltip Text="Add New Light Zone" Arrow="true" Placement="Placement.Top">
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@AddLightZone">Add New</MudButton>
+                <MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Primary" OnClick="@AddLightZone" EndIcon="@Icons.Material.Filled.Add">New</MudButton>
             </MudTooltip>
         </ToolBarContent>
         <Columns>
@@ -47,7 +47,7 @@
     {
         <MudAlert Severity="Severity.Info">No light zones found.</MudAlert>
     }
-</GrowthSettings>
+</MudPaper>
 
 @code {
     private IEnumerable<LightZoneDTO>? LightZoneList;
@@ -55,6 +55,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackUrl = "/system-settings";
+        PageTitleService.Title = "Light Zones";
+
         await LoadLightZones();
     }
 

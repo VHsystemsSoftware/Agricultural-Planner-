@@ -8,11 +8,11 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<GrowthSettings>
+@inject PageTitleService PageTitleService
+
+<MudPaper Outlined="true" Square="true">
     <MudTable Items="@TimeBlocks" Dense="true" Striped="true" Loading="@IsLoading" LoadingProgressColor="Color.Info">
         <ToolBarContent>
-            <MudText Typo="Typo.h5" Color="Color.Default">Lighting Schedules</MudText>
-            <MudSpacer />
             @if (!IsLoading)
             {
                 <MudSelect T="Guid" Label="Light Zone" Variant="Variant.Outlined" Value="selectedLightZoneId" ValueChanged="OnZoneChanged" Required="true">
@@ -91,7 +91,7 @@
             </MudTd>
         </RowTemplate>
     </MudTable>
-</GrowthSettings>
+</MudPaper>
 
 @code {
     private List<TimeOnly> AvailableTimes = Enumerable.Range(0, 24).Select(h => new TimeOnly(h, 0)).ToList();
@@ -110,6 +110,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackUrl = "/system-settings";
+        PageTitleService.Title = "Lighting Plan";
+
         LightZones = (await LightZoneClientService.GetAllLightZonesAsync())?.ToList() ?? new List<LightZoneDTO>();
         if (LightZones.Any())
         {

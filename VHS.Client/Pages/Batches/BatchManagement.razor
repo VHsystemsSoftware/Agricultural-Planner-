@@ -1,0 +1,142 @@
+﻿@page "/batches/management"
+@using VHS.Client.Pages.Batches.Dialogs
+@using VHS.Services.Batches.DTO
+@using VHS.Client.Services.Batches
+@using VHS.Services.Common
+@inject PageTitleService PageTitleService
+@inject BatchClientService BatchClientService
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+
+<MudDataGrid T="BatchDTO" Items="@BatchList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" RowClick="@(async args => await EditBatch(args.Item))" RowStyle="cursor: pointer;">
+    <ToolBarContent>
+        <MudTooltip Text="Add New Batch" Arrow="true" Placement="Placement.Top">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@AddBatch">Add New</MudButton>
+        </MudTooltip>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.BatchName" Title="Batch Name" Sortable="true" />
+        <PropertyColumn Property="x => x.BatchPlan.Name" Title="Plan" Sortable="true" />
+        <PropertyColumn Property="x => x.SeedDate" Title="Seed Date" Format="dd MMM yyyy" Sortable="true" />
+        <PropertyColumn Property="x => x.HarvestDate" Title="Harvest Date" Format="dd MMM yyyy" Sortable="true" />
+        <PropertyColumn Property="x => x.LotReference" Title="Lot Reference" Sortable="true" />
+        <TemplateColumn Title="Status" Sortable="true">
+            <CellTemplate Context="context">
+                @{
+                    string statusText = context.Item.StatusId switch
+                    {
+                        var id when id == GlobalConstants.BATCHSTATUS_CANCELLED => "Cancelled",
+                        var id when id == GlobalConstants.BATCHSTATUS_COMPLETED => "Completed",
+                        var id when id == GlobalConstants.BATCHSTATUS_PLANNED => "Planned"
+                    };
+                }
+                @statusText
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Actions">
+            <CellTemplate Context="context">
+                <MudStack Row Spacing="1">
+                    <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditBatch(context.Item))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteBatch(context.Item.Id))" />
+                    </MudTooltip>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager Items="@BatchList" />
+    </PagerContent>
+</MudDataGrid>
+@if (BatchList == null || !BatchList.Any())
+{
+    <MudAlert Severity="Severity.Info">No batches found.</MudAlert>
+}
+
+@code {
+    private IEnumerable<BatchDTO>? BatchList;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "Batches";
+        await LoadBatches();
+    }
+
+    private async Task LoadBatches()
+    {
+        IsLoading = true;
+        BatchList = await BatchClientService.GetAllBatchesAsync();
+        IsLoading = false;
+    }
+
+    private async Task AddBatch()
+    {
+        var parameters = new DialogParameters
+        {
+            { "Batch", new BatchDTO() }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<BatchDialog>("Add New Batch", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var newBatch = (BatchDTO)result.Data;
+            newBatch.Jobs ??= new List<JobDTO>();
+            if (newBatch.FarmId == Guid.Empty && newBatch.BatchPlan?.FarmId != Guid.Empty)
+            {
+                newBatch.FarmId = newBatch.BatchPlan.FarmId;
+            }
+
+            var createdBatch = await BatchClientService.CreateBatchAsync(newBatch);
+            BatchList = BatchList.Append(createdBatch).ToList();
+            await LoadBatches();
+            Snackbar.Add("Batch added successfully", Severity.Success);
+        }
+    }
+
+    private async Task EditBatch(BatchDTO batch)
+    {
+        batch.Jobs ??= new List<JobDTO>();
+        var parameters = new DialogParameters
+        {
+            { "Batch", batch }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<BatchDialog>("Edit Batch", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var updatedBatch = (BatchDTO)result.Data;
+            updatedBatch.Jobs ??= new List<JobDTO>();
+            if (updatedBatch.FarmId == Guid.Empty && updatedBatch.BatchPlan?.FarmId != Guid.Empty)
+            {
+                updatedBatch.FarmId = updatedBatch.BatchPlan.FarmId;
+            }
+
+            await BatchClientService.UpdateBatchAsync(updatedBatch);
+            await LoadBatches();
+            Snackbar.Add("Batch updated successfully", Severity.Success);
+        }
+    }
+
+    private async Task DeleteBatch(Guid id)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ConfirmTitle", "Confirm Delete" },
+            { "ConfirmMessage", "Are you sure you want to delete this batch?" }
+        };
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<Confirm>("Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await BatchClientService.DeleteBatchAsync(id);
+            BatchList = BatchList.Where(x => x.Id != id).ToList();
+            Snackbar.Add("Batch deleted successfully", Severity.Success);
+        }
+    }
+}

@@ -1,30 +1,37 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-using VHS.Data.Models.Batches;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace VHS.Data.Models.Farming
+namespace VHS.Data.Core.Models;
+
+public class Tray
 {
-    public class Tray
+    [Key]
+    public Guid Id { get; set; }
+
+    [Required]
+    public Guid FarmId { get; set; }
+    public virtual Farm Farm { get; set; }
+
+    [Required]
+    [MaxLength(255)]
+    public string Tag { get; set; } = string.Empty;
+
+    public Guid StatusId { get; set; } //in-use, broken, removed
+
+    public virtual ICollection<TrayState> TrayStates { get; set; }
+
+    public TrayState? CurrentState
     {
-        [Key]
-        public Guid Id { get; set; }
-
-        [Required]
-        public Guid FarmId { get; set; }
-        public virtual Farm Farm { get; set; }
-
-        [Required]
-        [MaxLength(255)]
-        public string RFIDTag { get; set; } = string.Empty;
-
-        public Guid StatusId { get; set; } //in-use, broken, removed
-
-        public DateTime AddedDateTime { get; set; }
-        public DateTime? DeletedDateTime { get; set; }
-
-        public Tray()
+        get
         {
-            AddedDateTime = DateTime.UtcNow;
-        }
+            return TrayStates.Where(x => x.FinishedDateTime == null).SingleOrDefault();
+		}
+	}
+
+	public DateTime AddedDateTime { get; set; }
+    public DateTime? DeletedDateTime { get; set; }
+
+    public Tray()
+    {
+        AddedDateTime = DateTime.UtcNow;
     }
 }

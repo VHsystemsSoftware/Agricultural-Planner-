@@ -1,0 +1,349 @@
+﻿@page "/rackoccupancy"
+@page "/rackoccupancy/{RackIdUrl:guid}"
+@using System.Text.Json
+@using VHS.Client.Services.Farming
+@using VHS.Services.Farming.DTO
+@using VHS.Services.Batches.DTO
+@using VHS.Services.Produce.DTO
+@using MudExtensions
+
+@inject NavigationManager NavigationManager
+@inject RackClientService RackClientService
+@inject FarmClientService FarmClientService
+@inject FloorClientService FloorClientService
+@inject PageTitleService PageTitleService
+@inject HubConnection _hubConnection
+
+
+<MudGrid>
+    @if (_racks != null)
+    {
+        <MudItem xs="3" Class="mb-2">
+            <MudSelect T="RackDTO" Label="Choose rack" Value="_selectedRack" ValueChanged="OnRackChanged" Variant="Variant.Outlined">
+                @foreach (var r in _racks)
+                {
+                    <MudSelectItem T="RackDTO" Value="@r" Variant>
+                        <RacKTypeName TypeId="@r.TypeId" /> @r.Floor.Name - Rack @r.Name (@r.TrayCountPerLayer layers)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        
+        <MudItem xs="9">
+            <MudPaper Class="pa-4">
+                <div class="d-flex flex-row gap-4">
+                    <div class="d-flex align-center">
+                        <div class="farm-rack-legend-box farm-rack-tray-empty"></div>
+                        <span class="ml-2">Empty</span>
+                    </div>
+                    <div class="d-flex align-center">
+                        <div class="farm-rack-legend-box farm-rack-tray-age-1"></div>
+                        <span class="ml-2">1–3 days</span>
+                    </div>
+                    <div class="d-flex align-center">
+                        <div class="farm-rack-legend-box farm-rack-tray-age-2"></div>
+                        <span class="ml-2">4–7 days</span>
+                    </div>
+                    <div class="d-flex align-center">
+                        <div class="farm-rack-legend-box farm-rack-tray-age-3"></div>
+                        <span class="ml-2">8–14 days</span>
+                    </div>
+                    <div class="d-flex align-center">
+                        <div class="farm-rack-legend-box farm-rack-tray-aged"></div>
+                        <span class="ml-2">>14 days</span>
+                    </div>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" Class="d-flex justify-center align-center my-auto" Style="padding-top:0px;">
+            <MudCheckBox @bind-Value="Filter_ShowTarget" Label="Show Tray Target Layer"></MudCheckBox>
+            <MudCheckBox @bind-Value="Filter_ShowTrayId" Label="Show Tray ID"></MudCheckBox>
+            <MudCheckBox @bind-Value="Filter_ShowRecipe" Label="Show Recipe"></MudCheckBox>
+            <MudCheckBox @bind-Value="Filter_EmptyLayers" Label="Show Empty Layers"></MudCheckBox>
+        </MudItem>
+    }
+    @if (_data != null)
+    {
+        <MudItem xs="12">
+            <MudText Typo="Typo.h6" Class="d-flex align-center justify-left">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowLeft" Title="Favorite" />
+                Grow Layers
+            </MudText>
+
+            <MudTable Items="@_data.Where(x => !x.IsTransportLayer).OrderBy(l => l.LayerNumber)" Dense="true" Bordered="true" Hover="true">
+                <HeaderContent>
+                    <MudTh Class="farm-rack-tray-columnnumber">&nbsp;</MudTh>
+                    @foreach (var column in _columns)
+                    {
+                        <MudTh Class="farm-rack-tray-columnnumber">
+                            <MudText Class="farm-rack-layer-label">@($"{column}")</MudText>
+                        </MudTh>
+                    }
+                </HeaderContent>
+                <RowTemplate>
+                    @if (context.Trays.Count == 0 && !Filter_EmptyLayers)
+                    {
+                        return;
+                    }
+                    <MudTd class="farm-rack-tray-layernumber">
+                        <MudText Class="farm-rack-layer-label">@($"{context.LayerNumber}")</MudText>
+                    </MudTd>
+                    @{
+
+                        foreach (var column in _columns.OrderBy(x => x))
+                        {
+                            var tray = context.Trays.FirstOrDefault(x => x.PreGrowOrderOnLayer == column || x.GrowOrderOnLayer == column);
+                            <MudTd Class="@($"farm-rack-tray-square-cell {GetTrayStatusClass(tray)}")">
+                                @if (tray is not null)
+                                {
+                                    <MudTooltip Text="@tray.TrayTag">
+                                        <div class="farm-rack-tray-cell-content" @onclick="() => OpenTrayDialog(tray)">
+                                            <MudStack Spacing="1">
+                                                @if (Filter_ShowTarget)
+                                                {
+                                                    @if (_selectedRack.TypeId == GlobalConstants.RACKTYPE_GERMINATION)
+                                                    {
+                                                        <MudPaper Class="pa-1">
+                                                            @tray.GrowLayerName <MudIcon Icon="@Icons.Material.Filled.ArrowLeft" Size="Size.Small" />
+                                                        </MudPaper>
+                                                    }
+                                                    else
+                                                    {
+                                                        //@tray.GrowLayerName
+                                                    }
+                                                }
+                                                @if (Filter_ShowTrayId)
+                                                {
+                                                    <MudPaper Class="pa-1">
+                                                        @tray.TrayTag
+                                                    </MudPaper>
+                                                }
+                                                @if (Filter_ShowRecipe && tray.RecipeId.HasValue)
+                                                {
+                                                    <MudPaper Class="pa-1">
+                                                        @tray.Recipe?.Name
+                                                    </MudPaper>
+                                                }
+                                            </MudStack>
+                                        </div>
+                                    </MudTooltip>
+                                }
+                            </MudTd>
+                        }
+
+                    }
+                </RowTemplate>
+            </MudTable>
+
+            <MudText Typo="Typo.h6" Class="d-flex align-center justify-left">
+                Transport Layer <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Title="Favorite" />
+            </MudText>
+
+
+            <MudTable Items="@_data.Where(x => x.IsTransportLayer).OrderBy(l => l.LayerNumber)" Dense="true" Bordered="true" Hover="true">
+                <HeaderContent>
+                    <MudTh Class="farm-rack-tray-columnnumber">&nbsp;</MudTh>
+                    @foreach (var column in _columns.OrderByDescending(x => x))
+                    {
+                        <MudTh Class="farm-rack-tray-columnnumber">
+                            <MudText Class="farm-rack-layer-label">@($"{column}")</MudText>
+                        </MudTh>
+                    }
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd class="farm-rack-tray-layernumber">
+                        <MudText Class="farm-rack-layer-label">@($"{context.LayerNumber}")</MudText>
+                    </MudTd>
+                    @{
+                        foreach (var column in _columns.OrderByDescending(x => x))
+                        {
+                            var tray = context.Trays.FirstOrDefault(x => x.PreGrowOrderOnLayer == column || x.GrowOrderOnLayer == column);
+                            <MudTd Class="@($"farm-rack-tray-square-cell {GetTrayStatusClass(tray)}")">
+                                @if (tray is not null)
+                                {
+                                    <MudTooltip Text="@tray.TrayTag">
+                                        <div class="farm-rack-tray-cell-content" @onclick="() => OpenTrayDialog(tray)">
+                                            <MudStack Spacing="1">
+                                                @if (Filter_ShowTrayId)
+                                                {
+                                                    <MudPaper Class="pa-1">
+                                                        @tray.TrayTag
+                                                    </MudPaper>
+                                                }
+
+                                                @if (Filter_ShowTarget)
+                                                {
+                                                    <MudPaper Class="pa-1">
+                                                        <MudIcon Icon="@Icons.Material.Filled.ArrowRight" />
+                                                        @if (_selectedRack.TypeId == GlobalConstants.RACKTYPE_GERMINATION)
+                                                        {
+                                                            @tray.PreGrowLayerName
+                                                        }
+                                                        else
+                                                        {
+                                                            @tray.GrowLayerName
+                                                        }
+                                                    </MudPaper>
+                                                }
+
+                                                @if (Filter_ShowRecipe && tray.RecipeId.HasValue)
+                                                {
+                                                    <MudPaper Class="pa-1">
+                                                        @tray.Recipe?.Name
+                                                    </MudPaper>
+                                                }
+                                            </MudStack>
+                                        </div>
+                                    </MudTooltip>
+                                }
+                            </MudTd>
+                        }
+
+                    }
+                </RowTemplate>
+            </MudTable>
+
+            <MudDialog @bind-Visible="_visible" Options="_dialogOptions">
+                <DialogContent>
+                    <MudText>
+                        <p><b>Tray Tag:</b> @_selectedTrayState?.TrayTag</p>
+                        <p><b>Grow Order:</b> @_selectedTrayState?.GrowOrderOnLayer</p>
+                        <p><b>Pre-grow Order:</b> @_selectedTrayState?.PreGrowOrderOnLayer</p>
+                        <p><b>Seed Date:</b> @_selectedTrayState?.SeedDate?.ToString("d")</p>
+                        <p><b>Finished Growing:</b> @_selectedTrayState?.GrowFinishedDate?.ToString("d")</p>
+                        @if (_selectedTrayState?.Recipe is not null)
+                        {
+                            <p><b>Product:</b> @_selectedTrayState.Recipe.Name</p>
+                        }
+                        @if (_selectedTrayState?.BatchId is not null)
+                        {
+                            <p><b>Batch ID:</b> @_selectedTrayState.BatchId</p>
+                        }
+                        @if (_selectedTrayState?.SeedDate is not null)
+                        {
+                            var days = DateOnly.FromDateTime(DateTime.Today).DayNumber - _selectedTrayState.SeedDate.Value.DayNumber;
+                            <p><b>Grow Day:</b> @days</p>
+                        }
+                    </MudText>
+                </DialogContent>
+                <DialogActions>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CloseTrayDialog">Close</MudButton>
+                </DialogActions>
+            </MudDialog>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter]
+    public Guid? RackIdUrl { get; set; }
+
+    MudAnimate? _animate = new();
+    public bool Filter_ShowTarget { get; set; } = false;
+    public bool Filter_ShowTrayId { get; set; } = true;
+    public bool Filter_ShowRecipe { get; set; } = false;
+    public bool Filter_EmptyLayers { get; set; } = false;
+
+    private bool _visible;
+    private readonly DialogOptions _dialogOptions = new() { FullWidth = true };
+
+    private IEnumerable<FarmDTO> _farms = Array.Empty<FarmDTO>();
+    public IEnumerable<RackDTO> _racks;
+
+    private Guid _selectedFarm;
+    private RackDTO _selectedRack;
+
+    private List<LayerOccupancyDTO> _data = new();
+    private List<int> _columns = new();
+    private TrayStateDTO _selectedTrayState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "";
+
+        _farms = await FarmClientService.GetAllFarmsAsync() ?? Array.Empty<FarmDTO>();
+        _racks = (await RackClientService.GetAllRacksAsync()).OrderBy(x => x.Floor.Number).ThenBy(x => x.Number).ToList();
+
+        if (_farms.Any()) _selectedFarm = _farms.First().Id;
+
+        if (_racks.Any())
+        {
+            if (RackIdUrl.HasValue)
+            {
+                await OnRackChanged(_racks.FirstOrDefault(x => x.Id == RackIdUrl) ?? _racks.First());
+            }
+            else
+            {
+                await OnRackChanged(_racks.First());
+            }
+        }
+
+        if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Connected)
+        {
+            _hubConnection.On<Guid>("UpdateTrayState", (trayId) =>
+            {
+                Task.Run(async () =>
+        {
+            await Load(_selectedRack);
+            //_data = (await FarmClientService.GetRackOccupancyAsync(_selectedFarm, _selectedRack.Id)).ToList();
+            //FilterData(_selectedRack.Id);
+            StateHasChanged();
+        });
+            });
+        }
+    }
+
+    private async Task OnRackChanged(RackDTO selectedRack)
+    {
+        _selectedRack = selectedRack;
+        _columns = _selectedRack.TrayCountPerLayer > 0
+        ? Enumerable.Range(1, _selectedRack.TrayCountPerLayer).ToList()
+        : new List<int>();
+
+        await Load(_selectedRack);
+
+        NavigationManager.NavigateTo($"/rackoccupancy/{_selectedRack.Id}", forceLoad: false);
+        //await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Load(RackDTO selectedRack)
+    {
+        _data = (await FarmClientService.GetRackOccupancyAsync(_selectedFarm, _selectedRack.Id)).ToList();
+    }
+
+
+    private void OpenTrayDialog(TrayStateDTO trayState)
+    {
+        _selectedTrayState = trayState;
+        _visible = true;
+    }
+
+    private void CloseTrayDialog() => _visible = false;
+
+    private string GetTrayStatusClass(TrayStateDTO tray)
+    {
+        if (tray == null)
+        {
+            return "farm-rack-notray";
+        }
+        else if (tray.SeedDate == null)
+        {
+            return "farm-rack-tray-empty";
+        }
+        else
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var days = today.DayNumber - tray.SeedDate.Value.DayNumber;
+
+            if (days <= 3)
+                return "farm-rack-tray-age-1";
+            else if (days <= 7)
+                return "farm-rack-tray-age-2";
+            else if (days <= 14)
+                return "farm-rack-tray-age-3";
+            else
+                return "farm-rack-tray-aged";
+        }
+    }
+}

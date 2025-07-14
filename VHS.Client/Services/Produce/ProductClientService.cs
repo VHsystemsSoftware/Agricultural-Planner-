@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http;
+﻿using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using VHS.Services.Produce.DTO;
 
 namespace VHS.Client.Services.Produce
@@ -40,6 +37,31 @@ namespace VHS.Client.Services.Produce
         public async Task DeleteProductAsync(Guid id)
         {
             await _httpClient.DeleteAsync($"api/product/{id}");
+        }
+
+        public string GetProductImageUrl(Guid productId)
+        {
+            var imageUrl = new Uri(_httpClient.BaseAddress, $"/api/product/image/{productId}").ToString();
+            return imageUrl;
+        }
+
+        public async Task<ProductDTO?> ValidateAndUploadImageAsync(IBrowserFile file)
+        {
+            var content = new MultipartFormDataContent();
+            var streamContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 3 * 2048 * 2048));
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(streamContent, "file", file.Name);
+
+            var response = await _httpClient.PostAsync("api/product/validate-image", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception(error);
+            }
+
+            return await response.Content.ReadFromJsonAsync<ProductDTO>();
         }
     }
 }

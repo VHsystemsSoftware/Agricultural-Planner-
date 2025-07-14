@@ -10,15 +10,9 @@
         <MudForm Model="WaterZone" @ref="form" Immediate="true">
             @if (!IsLoading)
             {
-                <MudSelect T="Guid" Label="Farm" @bind-Value="SelectedFarmId" Variant="Variant.Outlined" Required="true">
-                    @foreach (var farm in Farms)
-                    {
-                        <MudSelectItem Value="@farm.Id">@farm.Name</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudTextField @bind-Value="WaterZone.Name" Label="Name" Variant="Variant.Outlined" Required="true" />
+                <MudNumericField T="double?" @bind-Value="WaterZone.TargetDWR" Label="Target DWR" HelperText="Daily Water Requirement (DWR) in L/m²/d" Variant="Variant.Outlined" />
             }
-            <MudTextField @bind-Value="WaterZone.Name" Label="Name" Variant="Variant.Outlined" Required="true" />
-            <MudNumericField T="double?" @bind-Value="WaterZone.TargetDWR" Label="Target DWR" HelperText="Daily Water Requirement (DWR) in L/m²/d" Variant="Variant.Outlined" />
         </MudForm>
     </ChildContent>
     <ActionsContent>
@@ -41,7 +35,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Farms = (await FarmClientService.GetAllFarmsAsync())?.ToList() ?? new List<FarmDTO>();
+        Farms = (await FarmClientService.GetAllFarmsSimpleAsync())?.ToList() ?? new List<FarmDTO>();
 
         if (WaterZone.FarmId != Guid.Empty)
         {

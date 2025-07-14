@@ -1,8 +1,7 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Imperial
+﻿namespace VHS.Services.Common.Enums.Measurements.Imperial;
+
+public enum TemperatureUnitEnum
 {
-    public enum TemperatureUnitEnum
-    {
-        Fahrenheit,
-        Rankine
-    }
+    Fahrenheit,
+    Rankine
 }

@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using VHS.Services.Farming.DTO;
-using VHS.Services.Produce.DTO;
+﻿using VHS.Services.Produce.DTO;
 
-namespace VHS.WebAPI.Controllers.Farming
+namespace VHS.WebAPI.Controllers.Farming;
+
+public class FarmPlanRequest
 {
-    public class FarmPlanRequest
-    {
-        public List<ProductCategoryBatchSizeDTO> BatchSizes { get; set; } = new();
-        public int TotalDays { get; set; }
-        public int TotalTraysAvailable { get; set; }
-        public DateTime StartDate { get; set; }
-    }
+    public List<ProductCategoryBatchSizeDTO> BatchSizes { get; set; } = new();
+    public int TotalDays { get; set; }
+    public int TotalTraysAvailable { get; set; }
+    public DateTime StartDate { get; set; }
 }

@@ -31,15 +31,11 @@
             var storedUser = System.Text.Json.JsonSerializer.Deserialize<UserDTO>(userJson);
             if (storedUser != null)
             {
-                var user = await UserClientService.GetUserByIdAsync(storedUser.Id);
-                if (user != null)
-                {
-                    userProfile = user;
-                }
-                else
-                {
-                    Snackbar.Add("User profile not found.", Severity.Error);
-                }
+                userProfile = storedUser;
+            }
+            else
+            {
+                Snackbar.Add("User profile not found.", Severity.Error);
             }
         }
         else

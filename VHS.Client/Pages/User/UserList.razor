@@ -1,0 +1,166 @@
+﻿@page "/users"
+@using VHS.Services.Auth.DTO
+@using VHS.Client.Services.Auth
+@inject RoleClientService RoleClientService
+@inject PageTitleService PageTitleService
+@inject UserClientService UserClientService
+@inject NavigationManager NavigationManager
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudDataGrid T="UserDTO" Items="@_users" Hover="true" Loading="@_isLoading" LoadingProgressColor="Color.Info" Filterable="true" QuickFilter="@_quickFilter">
+        <ToolBarContent>
+            <MudText Typo="Typo.h5" Color="Color.Default">Users</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Immediate="true" />
+            <MudTooltip Text="Add New User" Arrow="true" Placement="Placement.Top">
+                <MudButton Class="ml-2" Variant="Variant.Outlined" Color="Color.Primary" OnClick="CreateUser">Add New</MudButton>
+            </MudTooltip>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.FirstName" Title="First Name" Sortable="true" />
+            <PropertyColumn Property="x => x.LastName" Title="Last Name" Sortable="true" />
+            <PropertyColumn Property="x => x.Email" Title="Email" Sortable="true" />
+            <PropertyColumn Property="x => x.Role" Title="Role" />
+            <TemplateColumn Title="Actions" Sortable="false" CellClass="d-flex justify-end">
+                <CellTemplate>
+                    <MudStack Row Spacing="1">
+                        <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditUser(context.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteUser(context.Item))" />
+                        </MudTooltip>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="UserDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private List<UserDTO> _users = new();
+    private List<string> _roles = new();
+    private bool _isLoading = true;
+    private string _searchString = "";
+
+    private Func<UserDTO, bool> _quickFilter => user =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+        if (user.FirstName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            return true;
+        if (user.LastName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            return true;
+        if (user.Email?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            return true;
+        return false;
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "Users";
+        await Task.WhenAll(LoadUsers(), LoadRoles());
+    }
+
+    private async Task LoadUsers()
+    {
+        _isLoading = true;
+        try
+        {
+            var userList = await UserClientService.GetAllUsersAsync();
+            _users = userList?.ToList() ?? new List<UserDTO>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load users: {ex.Message}", Severity.Error);
+        }
+        _isLoading = false;
+    }
+
+    private async Task LoadRoles()
+    {
+        try
+        {
+            _roles = await RoleClientService.GetRolesAsync() ?? new List<string>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load roles: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CreateUser()
+    {
+        var parameters = new DialogParameters { ["User"] = new UserDTO(), ["Roles"] = _roles };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<UserDialog>("Create New User", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is UserDTO newUser)
+        {
+            try
+            {
+                await UserClientService.CreateUserAsync(newUser);
+                Snackbar.Add("User created successfully.", Severity.Success);
+                await LoadUsers();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to create user: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task EditUser(UserDTO user)
+    {
+        var parameters = new DialogParameters { ["User"] = user, ["Roles"] = _roles };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<UserDialog>("Edit User", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is UserDTO updatedUser)
+        {
+            try
+            {
+                await UserClientService.UpdateUserAsync(updatedUser);
+                Snackbar.Add("User updated successfully.", Severity.Success);
+                await LoadUsers();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to update user: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteUser(UserDTO user)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ConfirmTitle", "Confirm User Deletion" },
+            { "ConfirmMessage", $"Are you sure you want to delete the user '{user.FirstName} {user.LastName}'?" }
+        };
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<Confirm>("Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                await UserClientService.DeleteUserAsync(user.Id);
+                Snackbar.Add("User deleted successfully.", Severity.Success);
+                await LoadUsers();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to delete user: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,8 +1,7 @@
-﻿namespace VHS.Services.Common.Enums.Languages
+﻿namespace VHS.Services.Common.Enums.Languages;
+
+public enum LanguageEnum
 {
-    public enum LanguageEnum
-    {
-        English,
-        Dutch
-    }
+    English,
+    Dutch
 }

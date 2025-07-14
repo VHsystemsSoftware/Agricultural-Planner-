@@ -1,4 +1,5 @@
 ﻿<MudDialog>
+    
     <TitleContent>@Title</TitleContent>
     <DialogContent>
         @ChildContent
@@ -17,7 +18,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public RenderFragment? ActionsContent { get; set; }

@@ -1,0 +1,14 @@
+﻿@* @inject IJSRuntime JS
+
+<div id="messages" class="border p-2 bg-light"></div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("startSignalR");
+        }
+    }
+}
+ *@

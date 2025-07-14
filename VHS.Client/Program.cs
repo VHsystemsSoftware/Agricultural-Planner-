@@ -1,9 +1,15 @@
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
-using Blazored.LocalStorage;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor.Services;
-using VHS.Services.Auth;
+using MudExtensions.Services;
+using System.Globalization;
+using VHS.Client.Services.Auth;
 
 namespace VHS.Client;
 
@@ -13,42 +19,51 @@ public class Program
     {
         var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-        builder.Configuration.AddJsonFile($"appsettings.{builder.HostEnvironment.Environment}.json", optional: true, reloadOnChange: true);
-
         builder.RootComponents.Add<App>("#app");
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
         builder.Services.AddLocalization();
         builder.Services.AddBlazoredLocalStorage();
         builder.Services.AddMudServices();
+        builder.Services.AddMudExtensions();
 
-        var baseAddress = builder.HostEnvironment.BaseAddress;
-        var apiUrl = builder.Configuration["ApiURL"] ?? baseAddress;
+		builder.Logging.SetMinimumLevel(LogLevel.Error);
+		//builder.Logging.AddFilter((category, level) =>
+		//{
+		//	return level >= LogLevel.Warning || !(category?.Contains("System.Net.Http.HttpClient") == true);
+		//});
+		//builder.Logging.AddFilter("Microsoft.AspNetCore.Components.RenderTree.*", LogLevel.None);
 
-        builder.Services.AddHttpClient("AuthenticatedClient.ServerAPI", client =>
+		var apiBaseAddress = new Uri(builder.Configuration["ApiURL"]);
+
+		builder.Services.AddTransient<AuthClientMessageService>();
+        builder.Services.AddScoped<AuthClientStateService>();
+        builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<AuthClientStateService>());
+        builder.Services.AddAuthorizationCore();
+
+        builder.Services.AddHttpClient<AuthClientService>(client =>
         {
-            client.BaseAddress = new Uri(apiUrl);
-            client.Timeout = TimeSpan.FromMinutes(30); // Set the timeout to 30 minutes
+            client.BaseAddress = apiBaseAddress;
+            client.Timeout = TimeSpan.FromMinutes(30);
         })
-        .AddHttpMessageHandler<BaseAddressAuthorizationMessageHandler>();
+        .AddHttpMessageHandler<AuthClientMessageService>();
 
-        builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>()
-            .CreateClient("AuthenticatedClient.ServerAPI"));
+		builder.Services.AddSingleton(sp =>
+		{
+			var navigationManager = sp.GetRequiredService<NavigationManager>();
+			return new HubConnectionBuilder()
+				.WithUrl(navigationManager.ToAbsoluteUri($"{apiBaseAddress}hubs/notifications"))
+				.WithAutomaticReconnect()
+				.Build();
+		});
 
-        builder.Services.AddCascadingAuthenticationState();
-        builder.Services.AddOidcAuthentication(options =>
-        {
-            builder.Configuration.Bind("Auth0", options.ProviderOptions);
-            options.ProviderOptions.ResponseType = "code";
-            options.ProviderOptions.PostLogoutRedirectUri = baseAddress;
-            options.ProviderOptions.AdditionalProviderParameters.Add("audience", builder.Configuration["Auth0:Audience"]!);
-        }).AddAccountClaimsPrincipalFactory<ArrayClaimsPrincipalFactory<RemoteUserAccount>>();
 
-        // Initialize all client service registrations
-        ClientServiceInitialization.Initialize(builder.Services);
+		ClientServiceInitialization.Initialize(builder.Services, apiBaseAddress);
 
-        var host = builder.Build();
+		CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-US");
+		CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en-US");
 
+		var host = builder.Build();
         await host.RunAsync();
     }
 }

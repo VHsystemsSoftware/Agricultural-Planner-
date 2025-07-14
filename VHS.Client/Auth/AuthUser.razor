@@ -1,46 +1,72 @@
-﻿@using Microsoft.AspNetCore.Authorization
+﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @inject NavigationManager Navigation
 @inject LocalStorage LocalStorage
+@inject AuthenticationStateProvider AuthProvider
 
 <AuthorizeView>
-    <Authorized>
-        <MudAvatar Class="mx-1">
-            <MudImage Src="@context.User.FindFirst("picture")?.Value"></MudImage>
-        </MudAvatar>
-        <MudText Align="Align.End" Class="mx-1" Color="Color.Inherit">@context.User.Identity?.Name</MudText>
-        <MudMenu Icon="@Icons.Material.Outlined.KeyboardArrowDown" Size="Size.Medium" Color="Color.Default" Edge="Edge.End">
-            <MudMenuItem ForceLoad IconColor="Color.Default" Label="Profile" OnClick="@((e) => UserProfile())" />
-            <MudMenuItem ForceLoad IconColor="Color.Default" Label="Settings" OnClick="@((e) => UserSettings())" />
-            <MudMenuItem ForceLoad IconColor="Color.Default" Label="Security" OnClick="@((e) => UserSecurity())" />
-            <MudMenuItem ForceLoad IconColor="Color.Default" Label="Logout" OnClick="@((e) => LogoutAsync())" />
-        </MudMenu>
+    <Authorized Context="authState">
+        @if (authState?.User?.Identity?.IsAuthenticated == true)
+        {
+            var user = authState.User;
+            var picture = user.FindFirst("picture")?.Value;
+            var name = user.Identity?.Name ?? user.FindFirst("name")?.Value;
+            var email = user.FindFirst("email")?.Value;
+
+            <MudAvatar Class="mx-1" Size="Size.Medium">
+                @if (!string.IsNullOrWhiteSpace(picture))
+                {
+                    <MudImage Src="@picture" Alt="@name" />
+                }
+                else
+                {
+                    @GetInitials(name)
+                }
+            </MudAvatar>
+
+            <MudText Align="Align.End" Class="mx-1" Color="Color.Inherit">@name</MudText>
+
+            <MudMenu Icon="@Icons.Material.Outlined.KeyboardArrowDown" Size="Size.Medium" Color="Color.Default" Edge="Edge.End">
+                <MudMenuItem Icon="@Icons.Material.Filled.SupervisedUserCircle" Label="Users" OnClick="@Users" />
+                <MudMenuItem Icon="@Icons.Material.Filled.Settings" Label="Settings" OnClick="@UserSettings" />
+                <MudMenuItem Icon="@Icons.Material.Filled.Logout" Label="Logout" OnClick="@LogoutAsync" />
+            </MudMenu>
+        }
     </Authorized>
     <NotAuthorized>
-        <MudLink Href="authentication/login" Color="Color.Default" Class="mx-1">Login</MudLink>
+        <MudLink Href="/login" Color="Color.Default" Class="mx-1">Login</MudLink>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
-    void UserProfile()
-    {
-        Navigation.NavigateTo("user/profile");
-    }
+    void Users() => Navigation.NavigateTo("/users");
+    void UserSettings() => Navigation.NavigateTo("/user/settings");
 
-    void UserSettings()
+    private string? GetInitials(string? name)
     {
-        Navigation.NavigateTo("user/settings");
-    }
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
 
-    void UserSecurity()
-    {
-        Navigation.NavigateTo("user/security");
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return null;
+        if (parts.Length == 1)
+            return parts[0].Substring(0, 1).ToUpper();
+
+        return (parts[0][0].ToString() + parts[1][0]).ToUpper();
     }
 
     async Task LogoutAsync()
     {
+        await LocalStorage.RemoveStateAsync("VHS_AUTH_TOKEN");
         await LocalStorage.RemoveStateAsync("VHS_USER");
         await LocalStorage.RemoveStateAsync("VHS_USER_SETTINGS");
-        Navigation.NavigateToLogout("authentication/logout");
+
+        if (AuthProvider is IHostEnvironmentAuthenticationStateProvider envProvider)
+        {
+            envProvider.SetAuthenticationState(Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        }
+
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

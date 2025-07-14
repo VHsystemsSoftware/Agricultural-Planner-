@@ -1,0 +1,16 @@
+﻿@name
+
+@code {
+    [Parameter] public Guid TypeId { get; set; }
+
+    private string name { get; set; } = string.Empty;
+
+    protected override Task OnParametersSetAsync()
+    {
+        if (TypeId == GlobalConstants.RACKTYPE_GROWING) name = "Growing";
+        if (TypeId == GlobalConstants.RACKTYPE_GERMINATION) name = "Germination";
+        if (TypeId == GlobalConstants.RACKTYPE_PROPAGATION) name = "Propagation";
+        return base.OnParametersSetAsync();
+    }
+
+}

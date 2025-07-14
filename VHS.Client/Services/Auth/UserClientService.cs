@@ -1,7 +1,5 @@
-﻿using System;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using VHS.Services.Auth.DTO;
 
 namespace VHS.Client.Services.Auth
@@ -13,6 +11,22 @@ namespace VHS.Client.Services.Auth
         public UserClientService(HttpClient httpClient)
         {
             _httpClient = httpClient;
+        }
+
+        public async Task<IEnumerable<UserDTO>?> GetAllUsersAsync()
+        {
+            return await _httpClient.GetFromJsonAsync<IEnumerable<UserDTO>>("api/user");
+        }
+
+        public async Task<UserDTO?> GetUserByIdAsync(Guid id)
+        {
+            var response = await _httpClient.GetAsync($"api/user/{id}");
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<UserDTO>();
         }
 
         public async Task<UserDTO?> CreateUserAsync(UserDTO userDto)
@@ -29,9 +43,10 @@ namespace VHS.Client.Services.Auth
             return await response.Content.ReadFromJsonAsync<UserDTO>();
         }
 
-        public async Task<UserDTO?> GetUserByIdAsync(Guid id)
+        public async Task DeleteUserAsync(Guid id)
         {
-            return await _httpClient.GetFromJsonAsync<UserDTO>($"api/user/{id}");
+            var response = await _httpClient.DeleteAsync($"api/user/{id}");
+            response.EnsureSuccessStatusCode();
         }
     }
 }

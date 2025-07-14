@@ -1,10 +1,6 @@
-﻿using System;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using VHS.Services.Growth.Helpers;
+﻿using System.Net.Http.Json;
 using VHS.Services.Growth.DTO;
+using VHS.Services.Growth.Helpers;
 
 namespace VHS.Client.Services.Growth
 {

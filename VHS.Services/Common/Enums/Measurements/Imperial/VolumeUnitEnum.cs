@@ -1,10 +1,9 @@
-﻿namespace VHS.Services.Common.Enums.Measurements.Imperial
+﻿namespace VHS.Services.Common.Enums.Measurements.Imperial;
+
+public enum VolumeUnitEnum
 {
-    public enum VolumeUnitEnum
-    {
-        Gallon,
-        Quart,
-        Pint,
-        FluidOunce
-    }
+    Gallon,
+    Quart,
+    Pint,
+    FluidOunce
 }

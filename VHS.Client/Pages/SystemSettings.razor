@@ -40,6 +40,8 @@
 @code {
     protected override void OnInitialized()
     {
+        PageTitleService.BackText = "";
+        PageTitleService.BackUrl = "";
         PageTitleService.Title = "System Settings";
     }
 
@@ -51,7 +53,7 @@
             new("Floors", "/system-settings/farm/floors"),
             new("Racks", "/system-settings/farm/racks"),
             new("Layers", "/system-settings/farm/layers"),
-            new("Trays", "/system-settings/farm/trays")
+            // new("Trays", "/system-settings/farm/trays")
         }),
 
         new SettingGroup("Growth", "/images/farm/settings/growth.svg", new List<Setting>
@@ -62,21 +64,23 @@
             new("Watering Schedules", "/system-settings/growth/watering-plan")
         }),
 
-        new SettingGroup("Produce", "/images/farm/settings/produce.svg", new List<Setting>
+        new SettingGroup("Product", "/images/farm/settings/produce.svg", new List<Setting>
         {
-            new("Produce Types", "/system-settings/produce/types"),
-            new("Produce Variants", "/system-settings/produce/variants"),
-            new("Recipes", "/system-settings/produce/recipes"),
-            new("Recipe Lighting Schedules", "/system-settings/produce/recipe-lighting-schedules"),
-            new("Recipe Watering Schedules", "/system-settings/produce/recipe-watering-schedules")
+            new("Product Types", "/system-settings/product/types"),
+            new("Product Variants", "/system-settings/product/variants"),
+            new("Recipes", "/system-settings/product/recipes"),
+            new("Recipe Lighting Schedules", "/system-settings/product/recipe-lighting-schedules"),
+            new("Recipe Watering Schedules", "/system-settings/product/recipe-watering-schedules")
         }),
 
-        new SettingGroup("Batches", "/images/farm/settings/batches.svg", new List<Setting>
-        {
-            new("Batch Management", "/system-settings/batches/management"),
-            new("Batch Configurations", "/system-settings/batches/configurations"),
-            new("Batch Journal", "/system-settings/batches/journal")
-        })
+        // new SettingGroup("Batches", "/images/farm/settings/batches.svg", new List<Setting>
+        // {
+        //     // new("Batch Management", "/system-settings/batches/management"),
+        //     new("Batch Plans", "/system-settings/batches/plans"),
+        //     // new("Batch Journal", "/system-settings/batches/journal"),
+        //     new("Jobs", "/system-settings/batches/jobs"),
+        //     // new("Job Trays", "/system-settings/batches/job-trays")
+        // })
     };
 
     private class SettingGroup
