@@ -12,6 +12,7 @@
 
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <MudThemeProvider Theme="AppCustomTheme" />
 <MudPopoverProvider />
@@ -31,8 +32,7 @@
             <MudText Typo="Typo.h4" Color="Color.Error">FIRE ALARM ACTIVE!</MudText>
             <MudSpacer />
         }
-        <MudIconButton Icon="@Icons.Material.Outlined.Search" Size="Size.Medium" Color="Color.Default" Class="mx-1" Edge="Edge.End" />
-        <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Size="Size.Medium" Color="Color.Default" Class="mx-1" Edge="Edge.End" />
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="@Reload" />
         <AuthUser />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
@@ -42,7 +42,7 @@
     </MudDrawer>
     <MudMainContent>
         <MudContainer Class="mt-8 mb-8 px-8" MaxWidth="MaxWidth.False">
-            @if (!String.IsNullOrEmpty(PageTitleService.BackText))
+            @if (!String.IsNullOrEmpty(PageTitleService.BackText) && !String.IsNullOrEmpty(PageTitleService.BackUrl))
             {
                 <MudLink Href="@PageTitleService.BackUrl">@PageTitleService.BackText</MudLink>
             }
@@ -56,6 +56,9 @@
 </MudLayout>
 
 @code {
+
+    void Reload() => NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+
     bool _drawerOpen = true;
     public string Version = string.Empty;
 
@@ -75,7 +78,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await SetCultureFromLocalStorageAsync();
         PageTitleService.OnChange += StateHasChanged;
 
         _loadedVersion = await SystemService.Version();
@@ -89,10 +91,14 @@
 
             if (!string.IsNullOrEmpty(storedVersion))
             {
-                await InvokeAsync(() => Snackbar.Add("New version available. Refreshing pages...", Severity.Info));
-                await Task.Delay(5000);
-                NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
-                return;
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    await InvokeAsync(() => Snackbar.Add("New version available. Refreshing pages...", Severity.Info));
+                    await Task.Delay(5000);
+                    NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+                    return;
+                }
             }
         }
     }
@@ -100,25 +106,6 @@
     public void Dispose()
     {
         PageTitleService.OnChange -= StateHasChanged;
-    }
-
-    private async Task SetCultureFromLocalStorageAsync()
-    {
-        var settingsJson = await LocalStorage.GetStateAsync("VHS_USER_SETTINGS");
-        string language = "en-US";
-
-        if (!string.IsNullOrWhiteSpace(settingsJson))
-        {
-            var settings = System.Text.Json.JsonSerializer.Deserialize<UserSettingDTO>(settingsJson);
-            if (settings != null && !string.IsNullOrWhiteSpace(settings.PreferredLanguage))
-            {
-                language = settings.PreferredLanguage;
-            }
-        }
-
-        var culture = new CultureInfo(language);
-        CultureInfo.DefaultThreadCurrentCulture = culture;
-        CultureInfo.DefaultThreadCurrentUICulture = culture;
     }
 
     MudTheme AppCustomTheme = new MudTheme()
@@ -152,4 +139,7 @@
             }
         }
     };
+
+
 }
+

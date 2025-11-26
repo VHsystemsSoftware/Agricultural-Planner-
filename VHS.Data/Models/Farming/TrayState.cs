@@ -27,8 +27,9 @@ public class TrayState
 	public virtual Layer PreGrowLayer { get; set; }
 	public virtual Layer GrowLayer { get; set; }
 	public virtual Recipe Recipe { get; set; }
+	public virtual Layer GrowTransportLayer { get; set; }
+	public virtual Layer PreGrowTransportLayer { get; set; }
 
-	public virtual ICollection<TrayStateAudit> TrayStateAudits { get; set; } = new List<TrayStateAudit>();
 
 	[Column(TypeName = "date")]
 	public DateOnly? SeedDate { get; set; }
@@ -96,6 +97,9 @@ public class TrayState
 	public DateTime? FinishedDateTime { get; set; }
 
 	[NotMapped]
+	public bool IsEstimated { get; set; } = false;
+
+	[NotMapped]
 	public Guid? LayerId
 	{
 		get
@@ -103,7 +107,7 @@ public class TrayState
 
 			if (GrowTransportLayerId.HasValue && GrowOrderOnLayer.HasValue)
 				return GrowTransportLayerId;
-			else if(PreGrowTransportLayerId.HasValue && PreGrowOrderOnLayer.HasValue)
+			else if (PreGrowTransportLayerId.HasValue && PreGrowOrderOnLayer.HasValue)
 				return PreGrowTransportLayerId;
 			else if (GrowLayerId.HasValue && GrowOrderOnLayer.HasValue)
 				return GrowLayerId;
@@ -141,4 +145,13 @@ public class TrayState
 		}
 	}
 
+	public bool IsFinishedGrowing
+	{
+		get
+		{
+			return GrowLayerId.HasValue 
+					?  GrowFinishedDate.HasValue && GrowFinishedDate.Value >= DateOnly.FromDateTime(DateTime.UtcNow)
+					: PreGrowFinishedDate.HasValue && PreGrowFinishedDate.Value >= DateOnly.FromDateTime(DateTime.UtcNow); ;
+		}
+	}
 }

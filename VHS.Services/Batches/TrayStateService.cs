@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-
-
+using System.Text.Json;
 using VHS.Data.Core.Models;
+using VHS.Services.Audit;
+using VHS.Services.Audit.DTO;
 using VHS.Services.Farming.DTO;
 using VHS.Services.Produce.DTO;
 
@@ -9,11 +10,12 @@ namespace VHS.Services;
 
 public interface ITrayStateService
 {
-	Task AddTrayStateAudit(Guid trayStateId, Guid auditId);
 	Task<TrayState> GetCurrentState(Guid trayId);
-
-	Task<TrayState> ArrivedAtSeederEmpty(TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId, Guid? rackTypeId, int? trayCountPerLayer);
-	Task<TrayState> ArrivedForSeeding(TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId, Guid? rackTypeId, int? trayCountPerLayer, Recipe recipe, Guid? growingDestinationLayerId, Guid? growingTransportLayerId);
+	Task<TrayState> ArrivedAtSeeder(DateTime date, Guid auditId, JobTray trayJobInfo);
+	Task<TrayState> ArrivedAtSeederEmpty(DateTime date, TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId, Guid? rackTypeId, int? trayCountPerLayer);
+	Task<TrayState> ArrivedForSeeding(DateTime date, TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId, Guid? rackTypeId, int? trayCountPerLayer, Recipe recipe, Guid? growingDestinationLayerId, Guid? growingTransportLayerId);
+	Task<TrayState> ArrivedForTransplant(DateTime date, TrayState trayCurrentState, Recipe recipe, Guid? growingDestinationLayerId, Guid? growingTransportLayerId);
+	
 	Task ArrivedPaternosterUp(Guid trayId, Guid opcAuditId);
 	Task ArrivedHarvesting(Guid trayId, Guid opcAuditId);
 	Task ArrivedHarvester(Guid trayId, Guid opcAuditId);
@@ -35,13 +37,19 @@ public interface ITrayStateService
 	Task RemoveTransportLayerIdGrow(TrayState trayState);
 
 	Task<IEnumerable<TrayStateDTO>> GetCurrentStates();
-	Task<TrayStateDTO?> GetTrayStateByIdAsync(Guid id);
-	Task<TrayStateDTO> UpdateTrayStateAsync(TrayStateDTO dto);
+    Task<IEnumerable<TrayStateDTO>> GetCurrentStates(Guid batchId);
 
-	Task MoveTraysOnLayerPreGrowTransport(Guid layerId);
-	Task MoveTraysOnLayerPreGrow(Guid layerId);
-	Task MoveTraysOnLayerGrowTransport(Guid layerI);
-	Task MoveTraysOnLayerGrow(Guid layerId);
+    Task<TrayStateDTO?> GetTrayStateByIdAsync(Guid id);
+	Task<TrayStateDTO> UpdateTrayStateAsync(TrayStateDTO dto, string userId);
+
+	Task MoveTraysOnLayerPreGrowTransport(Guid layerId, Guid? batchId);
+	Task MoveTraysOnLayerPreGrow(Guid layerId, Guid? batchId);
+	Task MoveTraysOnLayerGrowTransport(Guid layerId, Guid? batchId);
+	Task MoveTraysOnLayerGrow(Guid layerId, Guid? batchId);
+
+	Task<bool> CheckDoubleSeedTray(string trayTag, Guid batchId);
+
+	Task<IEnumerable<TrayStateDTO>> GetCurrentStatesForJob(Guid jobId);
 }
 
 public static class TrayStateDTOSelect
@@ -59,8 +67,12 @@ public static class TrayStateDTOSelect
 			GrowLayerId = x.GrowLayerId,
 			RecipeId = x.RecipeId,
 			TrayTag = x.Tray.Tag,
-			GrowLayerName = x.GrowLayer != null ? $"{x.GrowLayer.Rack.Floor.Name}-{x.GrowLayer.Rack.Name}-{x.GrowLayer.Number}" : string.Empty,
-			PreGrowLayerName = x.PreGrowLayer != null ? $"{x.PreGrowLayer.Rack.Floor.Name}-{x.PreGrowLayer.Rack.Name}-{x.PreGrowLayer.Number}" : string.Empty,
+			PreGrowLayerNumber = x.PreGrowLayerId.HasValue ? x.PreGrowLayer.Number : null,
+			GrowLayerNumber = x.GrowLayerId.HasValue ? x.GrowLayer.Number : null,
+			GrowLayerName = x.GrowLayerId.HasValue ? $"{x.GrowLayer.Rack.Floor.Name}-{x.GrowLayer.Rack.Name}-{x.GrowLayer.Number}" : string.Empty,
+			PreGrowLayerName = x.PreGrowLayerId.HasValue ? $"{x.PreGrowLayer.Rack.Floor.Name}-{x.PreGrowLayer.Rack.Name}-{x.PreGrowLayer.Number}" : string.Empty,
+			GrowTransportLayerName = x.GrowTransportLayer != null ? $"{x.GrowTransportLayer.Rack.Floor.Name}-{x.GrowTransportLayer.Rack.Name}-{x.GrowTransportLayer.Number}" : string.Empty,
+			PreGrowTransportLayerName = x.PreGrowTransportLayer != null ? $"{x.PreGrowTransportLayer.Rack.Floor.Name}-{x.PreGrowTransportLayer.Rack.Name}-{x.PreGrowTransportLayer.Number}" : string.Empty,
 			PreGrowFinishedDate = x.PreGrowFinishedDate,
 			GrowFinishedDate = x.GrowFinishedDate,
 			ArrivedAtSeeder = x.ArrivedAtSeeder,
@@ -82,6 +94,7 @@ public static class TrayStateDTOSelect
 			PreGrowOrderOnLayer = x.PreGrowOrderOnLayer,
 			WillBePushedOutGrow = x.WillBePushedOutGrow,
 			WillBePushedOutPreGrow = x.WillBePushedOutPreGrow,
+			AddedDateTime = x.AddedDateTime,
 			Recipe = x.RecipeId.HasValue ? new RecipeDTO
 			{
 				Id = x.Recipe.Id,
@@ -94,50 +107,92 @@ public static class TrayStateDTOSelect
 public class TrayStateService : ITrayStateService
 {
 	private readonly IUnitOfWorkCore _unitOfWork;
+	private readonly IAuditLogService _auditLogService;
 
-	public TrayStateService(IUnitOfWorkCore unitOfWork)
+    public TrayStateService(IUnitOfWorkCore unitOfWork, IAuditLogService auditLogService)
 	{
 		_unitOfWork = unitOfWork;
-	}
+		_auditLogService = auditLogService;
+    }
 
 	public async Task<TrayState> GetCurrentState(Guid trayId)
 	{
 		return await _unitOfWork.TrayState
 				.Query(x => x.TrayId == trayId && x.FinishedDateTime == null)
+				.Include(x=>x.Recipe.Product)
 				.SingleAsync();
 	}
 
-	public Task AddTrayStateAudit(Guid trayStateId, Guid auditId)
+	public async Task<TrayState> ArrivedAtSeeder(DateTime date, Guid auditId, JobTray trayJobInfo)
 	{
-		var audit = new TrayStateAudit
+		var trayCurrentState = await GetCurrentState(trayJobInfo.TrayId.Value);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+		if (!trayJobInfo.RecipeId.HasValue)
 		{
-			Id = Guid.NewGuid(),
-			TrayStateId = trayStateId,
-			OPCAuditId = auditId,
-			AddedDateTime = DateTime.UtcNow
-		};
-		return _unitOfWork.TrayStateAudit.AddAsync(audit);
+			trayCurrentState = await ArrivedAtSeederEmpty(
+				date,
+				trayCurrentState,
+				trayJobInfo.Job.JobTypeId,
+				trayJobInfo.DestinationLayerId,
+				trayJobInfo.TransportLayerId,
+				trayJobInfo.DestinationLayer?.Rack?.TypeId,
+				trayJobInfo.DestinationLayer?.Rack?.TrayCountPerLayer);
+		}
+		else
+		{	
+			if (trayJobInfo.Job.JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TOTRANSPLANT)
+			{
+				var growingJobTray = await _unitOfWork.JobTray.Query(x => x.TrayId == trayJobInfo.TrayId
+					&& !x.ParentJobTrayId.HasValue
+					&& x.DestinationLayer.Rack.TypeId == GlobalConstants.RACKTYPE_GROWING).SingleOrDefaultAsync();
+
+				trayCurrentState = await ArrivedForTransplant(
+					date,
+					trayCurrentState,
+					trayJobInfo.Recipe,
+					growingJobTray?.DestinationLayerId,
+					growingJobTray?.TransportLayerId);
+			}
+			else
+			{
+				var growingJobTray = await _unitOfWork.JobTray.Query(x =>
+					x.ParentJobTrayId == trayJobInfo.Id
+					&& x.DestinationLayer.Rack.TypeId == GlobalConstants.RACKTYPE_GROWING)
+					.SingleOrDefaultAsync();
+
+				trayCurrentState = await ArrivedForSeeding(
+					date,
+					trayCurrentState,
+					trayJobInfo.Job.JobTypeId,
+					trayJobInfo.DestinationLayerId,
+					trayJobInfo.TransportLayerId,
+					trayJobInfo.DestinationLayer?.Rack?.TypeId,
+					trayJobInfo.DestinationLayer?.Rack?.TrayCountPerLayer,
+					trayJobInfo.Recipe,
+					growingJobTray?.DestinationLayerId,
+					growingJobTray?.TransportLayerId);
+			}
+		}
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
+		return trayCurrentState;
 	}
 
-	public async Task<TrayState> ArrivedAtSeederEmpty(TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId, Guid? rackTypeId, int? trayCountPerLayer)
-	{	
-		var now = DateTime.UtcNow;
-		var today = DateOnly.FromDateTime(now.Date);
-
-		trayCurrentState.ArrivedAtSeeder = now;
+	public async Task<TrayState> ArrivedAtSeederEmpty(DateTime date, TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId, Guid? rackTypeId, int? trayCountPerLayer)
+	{
+		trayCurrentState.ArrivedAtSeeder = date;
 
 		trayCurrentState.RecipeId = null;
 		trayCurrentState.SeedDate = null;
 
 		if (JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TOWASHER)
 		{
-			trayCurrentState.TransportToWashing = now; // the tray is transported to the washing machine
+			trayCurrentState.TransportToWashing = date; // the tray is transported to the washing machine
 			trayCurrentState.EmptyReason = GlobalConstants.TRAYSTATE_EMPTYREASON_TOWASHING;
-		}
-		else if (JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TOTRANSPLANT)
-		{
-			trayCurrentState.EmptyToTransplant = now; // the tray is transported to the transplanting machine
-			trayCurrentState.EmptyReason = GlobalConstants.TRAYSTATE_EMPTYREASON_TOTRANSPLANT;
 		}
 		else if (JobTypeId == GlobalConstants.JOBTYPE_EMPTY_TORACK || destinationLayerId != null)
 		{
@@ -160,92 +215,154 @@ public class TrayStateService : ITrayStateService
 
 	}
 
-	public async Task<TrayState> ArrivedForSeeding(TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId, 
-		Guid? rackTypeId, int? trayCountPerLayer, 
-		Recipe recipe, Guid? growingDestinationLayerId, Guid? growingTransportLayerId)
+	public async Task<TrayState> ArrivedForTransplant(DateTime date, TrayState trayCurrentState, Recipe recipe, Guid? growingDestinationLayerId, Guid? growingTransportLayerId)
 	{
-		var now = DateTime.UtcNow;
-		var today = DateOnly.FromDateTime(now.Date);
+		var today = DateOnly.FromDateTime(date.Date);
 
-		trayCurrentState.ArrivedAtSeeder = now;
+		trayCurrentState.ArrivedAtSeeder = date;
 
 		trayCurrentState.RecipeId = recipe.Id;
 		trayCurrentState.SeedDate = today;
 
-		trayCurrentState.PreGrowLayerId = destinationLayerId; //the layer where the tray will be placed after seeding
-		trayCurrentState.PreGrowFinishedDate = today.AddDays(recipe.PreGrowDays);
-		trayCurrentState.PreGrowOrderOnLayer = trayCountPerLayer;
-		trayCurrentState.PreGrowTransportLayerId = transportLayerId;
+		trayCurrentState.PreGrowLayerId = null;
+		trayCurrentState.PreGrowFinishedDate = null;
+		trayCurrentState.PreGrowOrderOnLayer = null;
+		trayCurrentState.PreGrowTransportLayerId = null;
 
-		if (growingDestinationLayerId.HasValue)
-		{
-			trayCurrentState.GrowLayerId = growingDestinationLayerId;
-			trayCurrentState.GrowFinishedDate = today.AddDays(recipe.PreGrowDays + recipe.GrowDays);
-			trayCurrentState.GrowTransportLayerId = growingTransportLayerId;
-		}
+		trayCurrentState.GrowLayerId = growingDestinationLayerId;
+		trayCurrentState.GrowFinishedDate = today.AddDays(recipe.PreGrowDays + recipe.GrowDays);
+		trayCurrentState.GrowTransportLayerId = growingTransportLayerId;
 
 		return trayCurrentState;
 	}
 
-	public async Task ArrivedWashingAndFinish(Guid trayId, Guid opcAuditId)
+	public async Task<TrayState> ArrivedForSeeding(DateTime date, TrayState trayCurrentState, Guid JobTypeId, Guid? destinationLayerId, Guid? transportLayerId,
+		Guid? rackTypeId, int? trayCountPerLayer,
+		Recipe recipe, Guid? growingDestinationLayerId, Guid? growingTransportLayerId)
+    {
+        var today = DateOnly.FromDateTime(date.Date);
+
+        trayCurrentState.ArrivedAtSeeder = date;
+
+        trayCurrentState.RecipeId = recipe.Id;
+        trayCurrentState.SeedDate = today;
+
+        trayCurrentState.PreGrowLayerId = destinationLayerId; //the layer where the tray will be placed after seeding
+        trayCurrentState.PreGrowFinishedDate = today.AddDays(recipe.PreGrowDays);
+        trayCurrentState.PreGrowOrderOnLayer = trayCountPerLayer;
+        trayCurrentState.PreGrowTransportLayerId = transportLayerId;
+
+        if (growingDestinationLayerId.HasValue)
+        {
+            trayCurrentState.GrowLayerId = growingDestinationLayerId;
+            trayCurrentState.GrowFinishedDate = today.AddDays(recipe.PreGrowDays + recipe.GrowDays);
+            trayCurrentState.GrowTransportLayerId = growingTransportLayerId;
+        }
+
+        return trayCurrentState;
+    }
+
+    public async Task ArrivedWashingAndFinish(Guid trayId, Guid opcAuditId)
 	{
 		var trayCurrentState = await GetCurrentState(trayId);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
 		trayCurrentState.ArrivedWashing = DateTime.UtcNow;
 		trayCurrentState.FinishedDateTime = DateTime.UtcNow;
-		await AddTrayStateAudit(trayCurrentState.Id, opcAuditId);
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
 	}
-
 	public async Task ArrivedPaternosterUp(Guid trayId, Guid opcAuditId)
 	{
 		var trayCurrentState = await GetCurrentState(trayId);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
 		trayCurrentState.ArrivedPaternosterUp = DateTime.UtcNow;
-		await AddTrayStateAudit(trayCurrentState.Id, opcAuditId);
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
 	}
-
 	public async Task ArrivedHarvesting(Guid trayId, Guid opcAuditId)
 	{
 		var trayCurrentState = await GetCurrentState(trayId);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
 		trayCurrentState.TransportToHarvest = DateTime.UtcNow;// next stop is harvest machine
-		await AddTrayStateAudit(trayCurrentState.Id, opcAuditId);
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
 	}
 	public async Task ArrivedHarvester(Guid trayId, Guid opcAuditId)
 	{
 		var trayCurrentState = await GetCurrentState(trayId);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
 		trayCurrentState.ArrivedHarvest = DateTime.UtcNow;
-		await AddTrayStateAudit(trayCurrentState.Id, opcAuditId);
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
 	}
 	public async Task ArrivedGrow(Guid trayId, Guid opcAuditId)
 	{
 		var trayCurrentState = await GetCurrentState(trayId);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
 		trayCurrentState.ArrivedGrow = DateTime.UtcNow;
-		await AddTrayStateAudit(trayCurrentState.Id, opcAuditId);
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
 	}
-
 	public async Task PropagationToTransplant(Guid trayId, Guid opcAuditId)
 	{
 		var trayCurrentState = await GetCurrentState(trayId);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
 		trayCurrentState.PropagationToTransplant = DateTime.UtcNow;
-		await AddTrayStateAudit(trayCurrentState.Id, opcAuditId);
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
 	}
-
 	public async Task RegisterWeight(Guid trayId, Guid opcAuditId, float weight)
 	{
 		var trayCurrentState = await GetCurrentState(trayId);
-		trayCurrentState.WeightRegistered = DateTime.UtcNow;
-		trayCurrentState.HarvestedWeightKG = weight;
-		await AddTrayStateAudit(trayCurrentState.Id, opcAuditId);
+		var oldDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+		if (trayCurrentState.RecipeId.HasValue)
+		{
+			trayCurrentState.WeightRegistered = DateTime.UtcNow;
+			trayCurrentState.HarvestedWeightKG = weight;
+		}
+		var result = await _unitOfWork.SaveChangesAsync();
+		if (result > 0)
+		{
+			var newDto = await GetTrayStateByIdAsync(trayCurrentState.Id);
+			await CreateAuditLogAsync("Modified", "SYSTEM", trayCurrentState.Id, oldDto, newDto);
+		}
 	}
 	public async Task RegisterWillBePushedOutPreGrow(Guid byTrayId, TrayState trayState)
 	{
 		trayState.PreGrowPushedOutByTrayId = byTrayId;
+		//trayState.PreGrowOrderOnLayer = null;
 		trayState.WillBePushedOutPreGrow = DateTime.UtcNow;
 	}
 	public async Task RegisterWillBePushedOutGrow(Guid byTrayId, TrayState trayState)
 	{
 		trayState.GrowPushedOutByTrayId = byTrayId;
+		//trayState.GrowOrderOnLayer = null;
 		trayState.WillBePushedOutGrow = DateTime.UtcNow;
 	}
-
 	public async Task<TrayState?> GetOutputTrayPreGrow(Guid excludeTrayId, Guid rackId, Guid layerId)
 	{
 		var tray = await _unitOfWork.TrayState
@@ -260,7 +377,6 @@ public class TrayStateService : ITrayStateService
 
 		return tray;
 	}
-
 	public async Task<TrayState?> GetOutputTrayGrow(Guid excludeTrayId, Guid rackId, Guid layerId)
 	{
 		var tray = await _unitOfWork.TrayState
@@ -275,7 +391,6 @@ public class TrayStateService : ITrayStateService
 
 		return tray;
 	}
-
 	public async Task<IEnumerable<TrayStateDTO>> GetCurrentStates()
 	{
 		return await _unitOfWork.TrayState
@@ -286,7 +401,17 @@ public class TrayStateService : ITrayStateService
 			.ToListAsync();
 	}
 
-	public async Task<TrayState?> GetTransportOutputTrayPreGrow(Guid excludeTrayId, Guid rackId)
+    public async Task<IEnumerable<TrayStateDTO>> GetCurrentStates(Guid batchId)
+    {
+        return await _unitOfWork.TrayState
+            .Query(x => x.BatchId == batchId)
+            .MapTrayStateToDTO()
+            .AsNoTracking()
+            .OrderBy(p => p.TrayTag)
+            .ToListAsync();
+    }
+
+    public async Task<TrayState?> GetTransportOutputTrayPreGrow(Guid excludeTrayId, Guid rackId)
 	{
 		var tray = await _unitOfWork.TrayState
 			.Query(x =>
@@ -299,7 +424,6 @@ public class TrayStateService : ITrayStateService
 
 		return tray;
 	}
-
 	public async Task<TrayState?> GetTransportOutputTrayGrow(Guid excludeTrayId, Guid rackId)
 	{
 		var tray = await _unitOfWork.TrayState
@@ -313,17 +437,14 @@ public class TrayStateService : ITrayStateService
 
 		return tray;
 	}
-
 	public async Task RemoveTransportLayerIdPreGrow(TrayState trayState)
 	{
 		trayState.PreGrowTransportLayerId = null;
 	}
-
 	public async Task RemoveTransportLayerIdGrow(TrayState trayState)
 	{
 		trayState.GrowTransportLayerId = null;
 	}
-
 	public async Task<TrayStateDTO?> GetTrayStateByIdAsync(Guid id)
 	{
 		return await _unitOfWork.TrayState
@@ -332,12 +453,13 @@ public class TrayStateService : ITrayStateService
 			.AsNoTracking()
 			.FirstOrDefaultAsync();
 	}
-
-	public async Task<TrayStateDTO> UpdateTrayStateAsync(TrayStateDTO dto)
+	public async Task<TrayStateDTO> UpdateTrayStateAsync(TrayStateDTO dto, string userId)
 	{
 		var tray = await _unitOfWork.TrayState.GetByIdAsync(dto.Id);
 		if (tray == null)
 			throw new Exception("TrayState not found");
+
+		var oldDto = await GetTrayStateByIdAsync(dto.Id);
 
 		tray.TrayId = dto.TrayId;
 		tray.BatchId = dto.BatchId;
@@ -372,71 +494,133 @@ public class TrayStateService : ITrayStateService
 
 		tray.FinishedDateTime = dto.FinishedDateTime;
 
+		tray.GrowOrderOnLayer = dto.GrowOrderOnLayer;
+		tray.PreGrowOrderOnLayer = dto.PreGrowOrderOnLayer;
+
 		_unitOfWork.TrayState.Update(tray);
-		await _unitOfWork.SaveChangesAsync();
+		var result = await _unitOfWork.SaveChangesAsync();
 
-		return await _unitOfWork.TrayState
-			.Query(x => x.Id == tray.Id)
-			.MapTrayStateToDTO()
-			.AsNoTracking()
-			.FirstAsync();
+		TrayStateDTO newDto = oldDto;
+		if (result > 0)
+		{
+			newDto = await GetTrayStateByIdAsync(dto.Id);
+			await CreateAuditLogAsync("Modified", userId, tray.Id, oldDto, newDto);
+		}
+
+		return newDto;
 	}
-
-	public async Task MoveTraysOnLayerPreGrowTransport(Guid layerId)
+	public async Task MoveTraysOnLayerPreGrowTransport(Guid layerId, Guid? batchId)
 	{
 		var traysOnLayer = await _unitOfWork.TrayState
 			.Query(x => x.PreGrowTransportLayerId == layerId
-				&& x.PreGrowTransportLayerId != null
-				&& x.PreGrowOrderOnLayer > 0)
+						&& x.PreGrowTransportLayerId != null
+						&& x.PreGrowOrderOnLayer > 0
+						&& x.FinishedDateTime == null)
 			.ToListAsync();
+
+		//var layer = await _unitOfWork.Layer.GetFirstOrDefaultAsync(x=>x.Id == layerId);
+		//layer.BatchId = batchId;
 
 		foreach (var tray in traysOnLayer.OrderByDescending(x => x.PreGrowOrderOnLayer))
 		{
 			tray.PreGrowOrderOnLayer -= 1; //move one place up
 		}
 	}
-
-	public async Task MoveTraysOnLayerPreGrow(Guid layerId)
+	public async Task MoveTraysOnLayerPreGrow(Guid layerId, Guid? batchId)
 	{
 		var traysOnLayer = await _unitOfWork.TrayState
 			.Query(x => x.PreGrowLayerId == layerId
-				&& x.PreGrowTransportLayerId == null
-				&& x.PreGrowOrderOnLayer > 0)
+						&& x.PreGrowTransportLayerId == null
+						&& x.PreGrowOrderOnLayer > 0
+						&& x.FinishedDateTime == null)
 			.ToListAsync();
+
+		//var layer = await _unitOfWork.Layer.GetFirstOrDefaultAsync(x => x.Id == layerId);
+		//layer.BatchId = batchId;
 
 		foreach (var tray in traysOnLayer.OrderByDescending(x => x.PreGrowOrderOnLayer))
 		{
-			tray.PreGrowOrderOnLayer -= 1; //move one place up
+			tray.PreGrowOrderOnLayer -= 1; //move one place down
 		}
 	}
-
-	public async Task MoveTraysOnLayerGrowTransport(Guid layerId)
+	public async Task MoveTraysOnLayerGrowTransport(Guid layerId, Guid? batchId)
 	{
 		var traysOnLayer = await _unitOfWork.TrayState
 			.Query(x => x.GrowTransportLayerId == layerId
-			&& x.GrowTransportLayerId != null
-			&& x.GrowOrderOnLayer > 0)
+					&& x.GrowTransportLayerId != null
+					&& x.GrowOrderOnLayer > 0
+					&& x.FinishedDateTime == null)
 			.ToListAsync();
+
+		//var layer = await _unitOfWork.Layer.GetFirstOrDefaultAsync(x => x.Id == layerId);
+		//layer.BatchId = batchId;
 
 		foreach (var tray in traysOnLayer.OrderByDescending(x => x.GrowOrderOnLayer))
 		{
-			tray.GrowOrderOnLayer -= 1; //move one place up
+			tray.GrowOrderOnLayer -= 1; //move one place down
 		}
 	}
-
-	public async Task MoveTraysOnLayerGrow(Guid layerId)
+	public async Task MoveTraysOnLayerGrow(Guid layerId, Guid? batchId)
 	{
 		var traysOnLayer = await _unitOfWork.TrayState
 			.Query(x => x.GrowLayerId == layerId
-			&& x.GrowTransportLayerId == null
-			&& x.GrowOrderOnLayer > 0)
+					&& x.GrowTransportLayerId == null
+					&& x.GrowOrderOnLayer > 0
+					&& x.FinishedDateTime == null)
 			.ToListAsync();
+
+		//var layer = await _unitOfWork.Layer.GetFirstOrDefaultAsync(x => x.Id == layerId);
+		//layer.BatchId = batchId;
 
 		foreach (var tray in traysOnLayer.OrderByDescending(x => x.GrowOrderOnLayer))
 		{
-			tray.GrowOrderOnLayer -= 1; //move one place up
+			tray.GrowOrderOnLayer -= 1; //move one place down
 		}
 	}
+	public async Task<bool> CheckDoubleSeedTray(string trayTag, Guid batchId)
+	{
+		var trayState = await _unitOfWork.TrayState
+			.Query(x => x.Tray.Tag == trayTag
+				&& x.BatchId== batchId
+				&& x.FinishedDateTime == null
+				&& x.ArrivedHarvest == null
+				&& x.ArrivedPaternosterUp == null
+				&& x.ArrivedAtSeeder != null)
+			.OrderByDescending(x => x.AddedDateTime)
+			.FirstOrDefaultAsync();
 
+		return trayState != null;
+	}
+
+	private async Task CreateAuditLogAsync(string action, string userId, Guid entityId, TrayStateDTO? oldDto, TrayStateDTO? newDto)
+	{
+		var auditLog = new AuditLogDTO
+		{
+			UserId = string.IsNullOrEmpty(userId) ? "SYSTEM" : userId,
+			EntityName = nameof(TrayState),
+			Action = action,
+			Timestamp = DateTime.UtcNow,
+			KeyValues = JsonSerializer.Serialize(new { Id = entityId }),
+			OldValues = oldDto == null ? null : JsonSerializer.Serialize(oldDto),
+			NewValues = newDto == null ? null : JsonSerializer.Serialize(newDto)
+		};
+
+		await _auditLogService.CreateAuditLogAsync(auditLog);
+	}
+
+	public async Task<IEnumerable<TrayStateDTO>> GetCurrentStatesForJob(Guid jobId)
+	{
+		var jobTrays = await _unitOfWork.JobTray
+			.Query(j => j.JobId == jobId)
+			.Select(t => t.TrayId)
+			.ToListAsync();
+
+		return await _unitOfWork.TrayState
+			.Query(x => x.FinishedDateTime == null && jobTrays.Contains(x.TrayId))
+			.MapTrayStateToDTO()
+			.AsNoTracking()
+			.OrderBy(p => p.TrayTag)
+			.ToListAsync();
+	}
 
 }

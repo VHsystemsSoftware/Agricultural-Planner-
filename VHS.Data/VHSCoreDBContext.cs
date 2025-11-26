@@ -20,7 +20,6 @@ namespace VHS.Data.Core
         public DbSet<Layer> Layers { get; set; }
         public DbSet<Tray> Trays { get; set; }
 		public DbSet<TrayState> TrayStates { get; set; }
-        public DbSet<TrayStateAudit> TrayStateAudits { get; set; }
 
 		// Produce
 		public DbSet<Product> Products { get; set; }
@@ -36,12 +35,17 @@ namespace VHS.Data.Core
 
         // Batches
         public DbSet<Batch> Batches { get; set; }
-        public DbSet<BatchPlan> BatchPlans { get; set; }
+        public DbSet<GrowPlan> BatchPlans { get; set; }
         public DbSet<BatchRow> BatchRows { get; set; }
         public DbSet<Job> Jobs { get; set; }
 		public DbSet<JobTray> JobTrays { get; set; }
 
-		protected override void OnModelCreating(ModelBuilder modelBuilder)
+
+
+        // Notes
+        public DbSet<Note> Notes { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
@@ -53,7 +57,6 @@ namespace VHS.Data.Core
             modelBuilder.ApplyConfiguration(new LayerMap());
             modelBuilder.ApplyConfiguration(new TrayMap());
 			modelBuilder.ApplyConfiguration(new TrayStateMap());
-			modelBuilder.ApplyConfiguration(new TrayStateAuditMap());
 
 			// Produce
 			modelBuilder.ApplyConfiguration(new ProductMap());
@@ -76,7 +79,12 @@ namespace VHS.Data.Core
             modelBuilder.ApplyConfiguration(new JobTrayMap());
 
 
-			modelBuilder.Entity<Farm>().HasQueryFilter(x => x.DeletedDateTime == null);
+
+            // Notes
+            modelBuilder.ApplyConfiguration(new NoteMap());
+
+
+            modelBuilder.Entity<Farm>().HasQueryFilter(x => x.DeletedDateTime == null);
             modelBuilder.Entity<FarmType>().HasQueryFilter(x => x.DeletedDateTime == null);
             modelBuilder.Entity<Floor>().HasQueryFilter(x => x.DeletedDateTime == null);
             modelBuilder.Entity<Rack>().HasQueryFilter(x => x.DeletedDateTime == null);
@@ -95,7 +103,7 @@ namespace VHS.Data.Core
 
             modelBuilder.Entity<Batch>().HasQueryFilter(x => x.DeletedDateTime == null);
             modelBuilder.Entity<BatchRow>().HasQueryFilter(x => x.DeletedDateTime == null);
-            modelBuilder.Entity<BatchPlan>().HasQueryFilter(x => x.DeletedDateTime == null);
+            modelBuilder.Entity<GrowPlan>().HasQueryFilter(x => x.DeletedDateTime == null);
             modelBuilder.Entity<Job>().HasQueryFilter(x => x.DeletedDateTime == null);
 		}
     }

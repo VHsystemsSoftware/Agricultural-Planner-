@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VHS.Services.Produce.DTO;
+﻿using VHS.Services.Produce.DTO;
 
 namespace VHS.Services.Farming.DTO
 {
@@ -15,6 +9,10 @@ namespace VHS.Services.Farming.DTO
 		public Guid? BatchId { get; set; }
 		public Guid? PreGrowLayerId { get; set; }
 		public Guid? GrowLayerId { get; set; }
+
+		public Guid? PreGrowTransportLayerId { get; set; }
+		public Guid? GrowTransportLayerId { get; set; }
+
 		public Guid? RecipeId { get; set; }
         public RecipeDTO? Recipe { get; set; }
         public Guid? EmptyReason { get; set; }
@@ -25,12 +23,12 @@ namespace VHS.Services.Farming.DTO
 		public string TrayTag { get; set; }
 		public string GrowLayerName { get; set; }
 		public string PreGrowLayerName { get; set; }
+		public string GrowTransportLayerName { get; set; }
 
-		//public virtual TrayDTO Tray { get; set; }
-		//public virtual BatchDTO? Batch { get; set; }
-		//public virtual LayerDTO? PreGrowLayer { get; set; }
-		//public virtual LayerDTO? GrowLayer { get; set; }
+		public int? PreGrowLayerNumber { get; set; }
+		public int? GrowLayerNumber { get; set; }
 
+		public string PreGrowTransportLayerName { get; set; }
 		public DateOnly? SeedDate { get; set; }
 
 		public DateOnly? PreGrowFinishedDate { get; set; }
@@ -63,6 +61,8 @@ namespace VHS.Services.Farming.DTO
 
 		public int OrderOnLayer { get; set; }
 
+		public bool IsEstimated { get; set; } = false;
+
 		public bool IsFinishedGrowing
 		{
 			get
@@ -70,5 +70,7 @@ namespace VHS.Services.Farming.DTO
 				return GrowFinishedDate.HasValue && GrowFinishedDate.Value >= DateOnly.FromDateTime(DateTime.UtcNow);
 			}
 		}
+
+		public string BatchName { get; set; }
 	}
 }

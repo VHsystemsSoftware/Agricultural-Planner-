@@ -1,4 +1,6 @@
-﻿namespace VHS.Services.Produce.DTO;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace VHS.Services.Produce.DTO;
 
 public class RecipeDTO
 {
@@ -14,4 +16,11 @@ public class RecipeDTO
     
     public DateTime AddedDateTime { get; set; }
     public DateTime ModifiedDateTime { get; set; }
+
+	[NotMapped]
+	public int TotalDays
+	{
+		get { return GerminationDays + PropagationDays + GrowDays; }
+	}
+
 }

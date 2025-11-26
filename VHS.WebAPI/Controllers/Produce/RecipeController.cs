@@ -7,7 +7,6 @@ namespace VHS.WebAPI.Controllers.Produce;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temp allowed
 public class RecipeController : ControllerBase
 {
     private readonly IRecipeService _recipeService;
@@ -25,6 +24,7 @@ public class RecipeController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllRecipes(Guid? farmId = null)
     {
         var recipes = await _recipeService.GetAllRecipesAsync(farmId);
@@ -32,6 +32,7 @@ public class RecipeController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetRecipeById(Guid id)
     {
         var recipe = await _recipeService.GetRecipeByIdAsync(id);
@@ -43,6 +44,7 @@ public class RecipeController : ControllerBase
     }
 
     [HttpGet("byfarm/{farmId}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetRecipesByFarm(Guid farmId)
     {
         var recipes = await _recipeService.GetAllRecipesAsync(farmId);
@@ -50,6 +52,7 @@ public class RecipeController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> CreateRecipe([FromBody] RecipeDTO recipeDto)
     {
         var createdRecipe = await _recipeService.CreateRecipeAsync(recipeDto, GetCurrentUserId());
@@ -57,6 +60,7 @@ public class RecipeController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> UpdateRecipe(Guid id, [FromBody] RecipeDTO recipeDto)
     {
         if (id != recipeDto.Id)
@@ -69,6 +73,7 @@ public class RecipeController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> DeleteRecipe(Guid id)
     {
         await _recipeService.DeleteRecipeAsync(id, GetCurrentUserId());

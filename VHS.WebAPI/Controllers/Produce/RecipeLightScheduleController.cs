@@ -6,7 +6,6 @@ namespace VHS.WebAPI.Controllers.Produce;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporarily allowed
 public class RecipeLightScheduleController : ControllerBase
 {
     private readonly IRecipeLightScheduleService _scheduleService;
@@ -17,6 +16,7 @@ public class RecipeLightScheduleController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllRecipeLightSchedules(Guid? farmId = null)
     {
         var schedules = await _scheduleService.GetAllRecipeLightSchedulesAsync(farmId);
@@ -24,6 +24,7 @@ public class RecipeLightScheduleController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetRecipeLightScheduleById(Guid id)
     {
         var schedule = await _scheduleService.GetRecipeLightScheduleByIdAsync(id);
@@ -33,6 +34,7 @@ public class RecipeLightScheduleController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> CreateRecipeLightSchedule([FromBody] RecipeLightScheduleDTO scheduleDto)
     {
         var createdSchedule = await _scheduleService.CreateRecipeLightScheduleAsync(scheduleDto);
@@ -40,6 +42,7 @@ public class RecipeLightScheduleController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> UpdateRecipeLightSchedule(Guid id, [FromBody] RecipeLightScheduleDTO scheduleDto)
     {
         if (id != scheduleDto.Id)
@@ -50,6 +53,7 @@ public class RecipeLightScheduleController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> DeleteRecipeLightSchedule(Guid id)
     {
         await _scheduleService.DeleteRecipeLightScheduleAsync(id);

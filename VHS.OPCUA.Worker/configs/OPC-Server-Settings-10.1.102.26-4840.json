@@ -6,7 +6,7 @@
   "NamespaceUrn": "urn:B&R/pv/",
   "LastBrowseDate": "2025-05-06T22:55:04.9564216+02:00",
   "Components": [
-	{
+    {
       "Name": "General",
       "Node": "ns=6;s=::ExtComm:CS.General",
       "Id": 1,
@@ -34,6 +34,70 @@
           "MustSubscribe": true,
           "Id": 3,
           "HandleId": 2000103
+        },
+        {
+          "Name": "AlarmActiveFloor",
+          "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveFloor",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 4,
+          "HandleId": 2000104
+        },
+        {
+          "Name": "AlarmActiveGrowLineInput",
+          "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveGrowLineInput",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 5,
+          "HandleId": 2000105
+        },
+        {
+          "Name": "AlarmActiveGrowLineOutput",
+          "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveGrowLineOutput",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 6,
+          "HandleId": 2000106
+        },
+        {
+          "Name": "AlarmActiveRackArea1",
+          "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveRackArea1",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 7,
+          "HandleId": 2000107
+        },
+        {
+          "Name": "AlarmActiveRackArea2",
+          "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveRackArea2",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 8,
+          "HandleId": 2000108
+        },
+        {
+          "Name": "ControlledStop",
+          "Node": "ns=6;s=::ExtComm:STS.General.ControlledStop",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 9,
+          "HandleId": 2000109
+        },
+        {
+          "Name": "EmergencyStop",
+          "Node": "ns=6;s=::ExtComm:STS.General.EmergencyStop",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 10,
+          "HandleId": 2000110
+        },
+        {
+          "Name": "ForcedStop",
+          "Node": "ns=6;s=::ExtComm:STS.General.ForcedStop",
+          "Type": 2,
+          "MustSubscribe": true,
+          "Id": 11,
+          "HandleId": 2000111
         }
       ]
     },

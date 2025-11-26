@@ -6,7 +6,6 @@ namespace VHS.WebAPI.Controllers.Growth;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporarily allowed
 public class WaterZoneScheduleController : ControllerBase
 {
     private readonly IWaterZoneScheduleService _scheduleService;
@@ -17,6 +16,7 @@ public class WaterZoneScheduleController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllWaterZoneSchedules(Guid? farmId = null)
     {
         var schedules = await _scheduleService.GetAllWaterZoneSchedulesAsync(farmId);
@@ -24,6 +24,7 @@ public class WaterZoneScheduleController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetWaterZoneScheduleById(Guid id)
     {
         var schedule = await _scheduleService.GetWaterZoneScheduleByIdAsync(id);
@@ -33,6 +34,7 @@ public class WaterZoneScheduleController : ControllerBase
     }
 
     [HttpGet("zone/{zoneId}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetByZone(Guid zoneId)
     {
         var list = await _scheduleService.GetWaterZoneSchedulesByZoneAsync(zoneId);
@@ -40,6 +42,7 @@ public class WaterZoneScheduleController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> CreateWaterZoneSchedule([FromBody] WaterZoneScheduleDTO scheduleDto)
     {
         var createdSchedule = await _scheduleService.CreateWaterZoneScheduleAsync(scheduleDto);
@@ -47,6 +50,7 @@ public class WaterZoneScheduleController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> UpdateWaterZoneSchedule(Guid id, [FromBody] WaterZoneScheduleDTO scheduleDto)
     {
         if (id != scheduleDto.Id)
@@ -57,6 +61,7 @@ public class WaterZoneScheduleController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> DeleteWaterZoneSchedule(Guid id)
     {
         await _scheduleService.DeleteWaterZoneScheduleAsync(id);

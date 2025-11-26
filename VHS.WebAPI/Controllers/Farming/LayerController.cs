@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VHS.Services.Common.DataGrid.Enums;
 using VHS.Services.Farming.DTO;
+using VHS.WebAPI.Authorization;
 
 namespace VHS.WebAPI.Controllers.Farming;
 
 [ApiController]
 [Route("api/layer")]
-[AllowAnonymous] // Temp allow
+[Authorize]
 public class LayerController : ControllerBase
 {
     private readonly ILayerService _layerService;
@@ -18,6 +19,7 @@ public class LayerController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
     public async Task<IActionResult> GetAllLayers(Guid? farmId = null)
     {
         var layers = await _layerService.GetAllLayersAsync(farmId);
@@ -25,6 +27,7 @@ public class LayerController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
     public async Task<IActionResult> GetLayerById(Guid id)
     {
         var layer = await _layerService.GetLayerByIdAsync(id);
@@ -34,6 +37,7 @@ public class LayerController : ControllerBase
     }
 
     [HttpGet("rack")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
     public async Task<IActionResult> GetLayersByRack(
         [FromQuery] Guid rackId,
         [FromQuery] int pageIndex,
@@ -55,6 +59,7 @@ public class LayerController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
     public async Task<IActionResult> CreateLayer([FromBody] LayerDTO layerDto)
     {
         var createdLayer = await _layerService.CreateLayerAsync(layerDto);
@@ -62,6 +67,7 @@ public class LayerController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
     public async Task<IActionResult> UpdateLayer(Guid id, [FromBody] LayerDTO layerDto)
     {
         if (id != layerDto.Id)
@@ -71,6 +77,7 @@ public class LayerController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
     public async Task<IActionResult> DeleteLayer(Guid id)
     {
         await _layerService.DeleteLayerAsync(id);
@@ -78,11 +85,22 @@ public class LayerController : ControllerBase
     }
 
     [HttpPut("enable/{id}")]
-    public async Task<IActionResult> EnableRack(Guid id, [FromBody] EnabledDTO enabledDto)
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
+    public async Task<IActionResult> EnableLayer(Guid id, [FromBody] EnabledDTO enabledDto)
     {
         if (id != enabledDto.Id)
             return BadRequest("ID mismatch");
         await _layerService.UpdateLayerEnabledAsync(enabledDto);
         return NoContent();
     }
+
+	[HttpPut("isbuffer/{id}")]
+	[Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
+	public async Task<IActionResult> EnableIsBuffer(Guid id, [FromBody] EnabledDTO enabledDto)
+	{
+		if (id != enabledDto.Id)
+			return BadRequest("ID mismatch");
+		await _layerService.UpdateLayerIsBufferAsync(enabledDto);
+		return NoContent();
+	}
 }

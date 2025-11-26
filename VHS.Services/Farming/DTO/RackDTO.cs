@@ -1,4 +1,7 @@
-﻿namespace VHS.Services.Farming.DTO;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using VHS.Services.Batches.DTO;
+
+namespace VHS.Services.Farming.DTO;
 
 public class RackDTO
 {
@@ -8,14 +11,27 @@ public class RackDTO
 	public Guid TypeId { get; set; }
 	public int LayerCount { get; set; }
 	public int TrayCountPerLayer { get; set; }
+
+	public Guid FarmId { get; set; }
+	public Guid FloorId { get; set; }
 	public FloorDTO Floor { get; set; }
 	public List<LayerDTO> Layers { get; set; } = new List<LayerDTO>();
 
-	public bool Enabled { get; set; }
+	public List<BatchRowDTO> BatchRows { get; set; } = new List<BatchRowDTO>();
+
+    public bool Enabled { get; set; }
 
 	public string ProductType { get; set; }
 	//public int OccupiedLayers => Layers.Count(layer => layer.HasRoom == false);
 	public int TrayDepth { get; set; }
+
+	public LayerDTO TransportLayer
+	{
+		get
+		{
+			return this.Layers.OrderBy(x => x.Number).Last();
+		}
+	}
 
 	public RackDTO(Guid id, int layerCount)
 	{
@@ -33,22 +49,5 @@ public class RackDTO
 	
 	}
 
-	//public bool HasRoom
-	//{
-	//    get
-	//    {
-	//        return Layers.Any(x => x.HasRoom);
-	//    }
-	//}
 
-	//public void AddOccupiedDays(DateTime currentDateTime)
-	//{
-	//    foreach (var layer in Layers)
-	//    {
-	//        foreach (var tray in layer.Trays)
-	//        {
-	//            tray.AddOccupiedDay(currentDateTime);
-	//        }
-	//    }
-	//}
 }

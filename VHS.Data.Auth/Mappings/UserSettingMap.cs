@@ -39,6 +39,11 @@ namespace VHS.Data.Auth.Mappings
             builder.Property(us => us.PreferredVolumeUnit)
                    .HasMaxLength(20);
 
+            builder.Property(us => us.PreferredDateTimeFormat)
+                   .HasMaxLength(50)
+                   .IsRequired()
+                   .HasDefaultValue("dd-MM-yyyy HH:mm");
+
             builder.Property(us => us.AddedDateTime)
                    .IsRequired();
 

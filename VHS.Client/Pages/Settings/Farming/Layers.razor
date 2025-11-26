@@ -3,24 +3,27 @@
 @using VHS.Client.Services.Farming
 @using VHS.Services.Common.DataGrid
 @using VHS.Services.Common.DataGrid.Enums
+
+@inject IStringLocalizer<Shared> Localizer
 @inject LayerClientService LayerClientService
 @inject RackClientService RackClientService
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
 @inject PageTitleService PageTitleService
+@inject FarmClientService FarmClientService
 
 <MudPaper Outlined="true" Square="true">
     <MudDataGrid @ref="dataGrid" T="LayerDTO" ServerData="LoadLayerData" CurrentPage="0" RowsPerPage="100">
         <ToolBarContent>
-            <MudText Typo="Typo.h5" Color="Color.Default">Layers</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Default">@Localizer["Layers"]</MudText>
             <MudSpacer />
             @if (!IsLoading && RackList.Any())
             {
-                <MudSelect T="Guid" Label="Select Rack" Variant="Variant.Outlined" Value="@SelectedRackId" ValueChanged="OnRackChanged">
-                    @foreach (var rack in RackList.OrderBy(x=>x.Floor.Number).ThenBy(x=>x.Number))
+                <MudSelect T="Guid" Label="@Localizer["SelectRack"]" Variant="Variant.Outlined" Value="@SelectedRackId" ValueChanged="OnRackChanged">
+                    @foreach (var rack in RackList.OrderBy(x => x.Floor.Number).ThenBy(x => x.Number))
                     {
                         <MudSelectItem Value="@rack.Id">
-                            <strong>Floor:</strong> @rack.Floor.Name <strong>Rack: </strong> @rack.Name (@rack.LayerCount)
+                            <strong>@Localizer["Floor"]:</strong> @rack.Floor.Name <strong>@Localizer["Rack"]: </strong> @rack.Name (@rack.LayerCount)
                         </MudSelectItem>
                     }
                 </MudSelect>
@@ -29,23 +32,31 @@
         <Columns>
             @if (!IsLoading && RackList.Any())
             {
-                <PropertyColumn Property="x => x.Number" Title="Layer Number" Sortable="true" />
-                @* <PropertyColumn Property="x => x.HasRoom" Title="Has Room" Sortable="true" /> *@
-                <TemplateColumn Title="Enabled" Sortable="true">
+                <PropertyColumn Property="x => x.Number" Title="@Localizer["LayerNumber"]" Sortable="true" />
+                <TemplateColumn Title="@Localizer["Enabled"]" Sortable="true">
                     <CellTemplate Context="context">
-                        <MudSwitch T="bool" Label="@(context.Item.Enabled ? "Yes" : "No")"
-                            Value="context.Item.Enabled"
-                            ValueChanged="@(async (bool newValue) => await OnToggleEnabled(context.Item, newValue))"
-                            Color="Color.Success" />
+                        <MudSwitch T="bool" Label="@(context.Item.Enabled? Localizer["Yes"] : Localizer["No"])"
+                                   Value="context.Item.Enabled"
+                                   ValueChanged="@(async (bool newValue) => await OnToggleEnabled(context.Item, newValue))"
+                                   Color="Color.Success" />
                     </CellTemplate>
                 </TemplateColumn>
+                <TemplateColumn Title="@Localizer["IsBufferLayer"]" Sortable="true">
+                    <CellTemplate Context="context">
+                        <MudSwitch T="bool" Label="@(context.Item.IsBufferLayer? Localizer["Yes"] : Localizer["No"])"
+                                   Value="context.Item.IsBufferLayer"
+                                   ValueChanged="@(async (bool newValue) => await OnToggleBufferLayer(context.Item, newValue))"
+                                   Color="Color.Success" />
+                    </CellTemplate>
+                </TemplateColumn>
+
             }
         </Columns>
     </MudDataGrid>
 
     @if (!LayerList.Any())
     {
-        <MudAlert Severity="Severity.Info">No layers found.</MudAlert>
+        <MudAlert Severity="Severity.Info">@Localizer["NoLayersFound"]</MudAlert>
     }
 </MudPaper>
 
@@ -61,11 +72,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-                PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackText = $"<- {Localizer["SystemSettings"]}";
         PageTitleService.BackUrl = "/system-settings";
-        PageTitleService.Title = "Layers";
+        PageTitleService.Title = Localizer["Layers"];
 
-        await LoadRacks();
+        var _selectedFarm = await FarmClientService.GetFirstFarmsSimpleAsync();
+
+        await LoadRacks(_selectedFarm.Id);
         if (RackList.Any())
         {
             SelectedRackId = RackList.First().Id;
@@ -73,9 +86,9 @@
         }
     }
 
-    private async Task LoadRacks()
+    private async Task LoadRacks(Guid farmId)
     {
-        var racks = await RackClientService.GetAllRacksAsync();
+        var racks = await RackClientService.GetAllRacksAsync(farmId);
         if (racks != null)
         {
             RackList = racks.ToList();
@@ -110,10 +123,10 @@
         TotalLayerCount = response?.TotalCount ?? 0;
 
         return new GridData<LayerDTO>
-            {
-                Items = LayerList,
-                TotalItems = TotalLayerCount
-            };
+        {
+            Items = LayerList,
+            TotalItems = TotalLayerCount
+        };
     }
 
     private async Task OnRackChanged(Guid newRackId)
@@ -124,43 +137,33 @@
 
     private async Task OnToggleEnabled(LayerDTO layer, bool newValue)
     {
-        var parameters = new DialogParameters
-            {
-                { "ConfirmTitle", "Confirm Change" },
-                { "ConfirmMessage", $"Are you sure you want to {(newValue ? "enable" : "disable")} this layer?" }
-            };
-
-        var options = new DialogOptions
-            {
-                CloseButton = true,
-                CloseOnEscapeKey = false,
-                MaxWidth = MaxWidth.Small,
-                Position = DialogPosition.TopCenter
-            };
-
-        var dialog = await Dialog.ShowAsync<Confirm>("Confirm", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
+        var dto = new EnabledDTO
         {
-            try
-            {
-                var dto = new EnabledDTO
-                    {
-                        Id = layer.Id,
-                        Enabled = newValue
-                    };
+            Id = layer.Id,
+            Enabled = newValue
+        };
 
-                await LayerClientService.EnableLayerAsync(dto);
+        await LayerClientService.EnableLayerAsync(dto);
 
-                layer.Enabled = newValue;
-                Snackbar.Add("Layer updated successfully", Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add("Failed to update layer: " + ex.Message, Severity.Error);
-            }
-        }
+        layer.Enabled = newValue;
+        Snackbar.Add(Localizer["LayerUpdatedSuccess"], Severity.Success);
+        StateHasChanged();
+    }
+
+    private async Task OnToggleBufferLayer(LayerDTO layer, bool newValue)
+    {
+        var dto = new EnabledDTO
+        {
+            Id = layer.Id,
+            Enabled = newValue
+        };
+
+        await LayerClientService.BufferLayerLayerAsync(dto);
+
+        await dataGrid.ReloadServerData();
+
+        Snackbar.Add(Localizer["LayerUpdatedSuccess"], Severity.Success);
+        StateHasChanged();
+
     }
 }

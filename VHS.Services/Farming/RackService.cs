@@ -8,7 +8,7 @@ public interface IRackService
 	Task<IEnumerable<RackDTO>> GetAllRacksByTypeAsync(Guid farmId, Guid typeId);
 	Task<RackDTO?> GetRackByIdAsync(Guid id);
 	Task<List<RackDTO>> GetRacksByTypeIdAsync(Guid typeId);
-	Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid? farmId = null);
+	Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid farmId);
 	Task<RackDTO> CreateRackAsync(RackDTO rackDto);
 	Task UpdateRackAsync(RackDTO rackDto);
 	Task UpdateRackEnabledAsync(EnabledDTO enabledDto);
@@ -49,15 +49,20 @@ public class RackService : IRackService
 			Id = x.Id,
 			RackId = x.RackId,
 			Number = x.Number,
-			Enabled = x.Enabled
+			Enabled = x.Enabled,
+			//Batch = x.BatchId.HasValue ? new Batches.DTO.BatchDTO()
+			//{
+			//	Id=x.BatchId.Value,
+			//	Name=x.Batch.Name,
+			//	HarvestDate=x.Batch.HarvestDate,
+			//	SeedDate=x.Batch.SeedDate,
+			//}:null,
 		}).ToList()
 	};
 
-	public async Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid? farmId = null)
+	public async Task<IEnumerable<RackDTO>> GetAllRacksAsync(Guid farmId)
 	{
-		var racks = farmId.HasValue && farmId.Value != Guid.Empty
-			? await _unitOfWork.Rack.GetAllAsync(x => x.Floor.FarmId == farmId.Value && x.Floor.Enabled)
-			: await _unitOfWork.Rack.GetAllAsync(x => x.Floor.Farm.DeletedDateTime == null && x.Floor.Enabled);
+		var racks = await _unitOfWork.Rack.GetAllAsync(x => x.Floor.FarmId == farmId && x.Floor.Enabled);			
 
 		return racks
 			.OrderBy(r => r.Name)
@@ -135,6 +140,12 @@ public class RackService : IRackService
 			throw new KeyNotFoundException("Rack not found");
 
 		rack.Enabled = enabledDto.Enabled;
+
+		foreach (var layer in rack.Layers)
+		{
+			layer.Enabled= enabledDto.Enabled;
+			_unitOfWork.Layer.Update(layer);
+		}
 
 		_unitOfWork.Rack.Update(rack);
 		await _unitOfWork.SaveChangesAsync();
@@ -474,8 +485,15 @@ public class RackService : IRackService
 	public async Task<Layer> GetBufferLayer(Guid rackId)
 	{
 		//get second last layer for buffer
-		return await _unitOfWork.Layer
+		var buffer = await _unitOfWork.Layer
+			.Query(x => x.RackId == rackId && x.IsBufferLayer).FirstOrDefaultAsync();
+
+		if (buffer == null)
+		{
+			buffer = await _unitOfWork.Layer
 			.Query(x => x.RackId == rackId)
 			.OrderByDescending(x => x.Number).Skip(1).FirstAsync();
+		}
+		return buffer;
 	}
 }

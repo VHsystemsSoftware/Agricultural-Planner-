@@ -3,45 +3,60 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using VHS.Data.Auth.Models.Auth;
+using VHS.Services.Auth;
 using VHS.Services.Auth.DTO;
 
 namespace VHS.Services;
 
 public interface IUserService
 {
-    Task<IEnumerable<UserDTO>> GetAllUsersAsync();
-    Task<UserDTO> CreateUserAsync(UserDTO userDto);
-    Task<UserDTO> UpdateUserAsync(UserDTO userDto);
+    Task<IEnumerable<UserDTO>> GetAllUsersAsync(ClaimsPrincipal currentUser);
+    Task<UserDTO> CreateUserAsync(UserDTO userDto, ClaimsPrincipal currentUser);
+    Task<UserDTO> UpdateUserAsync(UserDTO userDto, ClaimsPrincipal currentUser);
     Task<UserDTO?> GetUserByIdAsync(Guid id);
-    Task DeleteUserAsync(Guid id);
+    Task DeleteUserAsync(Guid id, ClaimsPrincipal currentUser);
 }
 
 public class UserService : IUserService
 {
     private readonly UserManager<User> _userManager;
+    private readonly IUserAuthorizationService _authorizationService;
 
-    public UserService(UserManager<User> userManager)
+    public UserService(UserManager<User> userManager, IUserAuthorizationService authorizationService)
     {
         _userManager = userManager;
+        _authorizationService = authorizationService;
     }
 
-    public async Task<IEnumerable<UserDTO>> GetAllUsersAsync()
+    public async Task<IEnumerable<UserDTO>> GetAllUsersAsync(ClaimsPrincipal currentUser)
     {
+        if (!_authorizationService.CanViewUsers(currentUser))
+        {
+            throw new UnauthorizedAccessException("You don't have permission to view users.");
+        }
+
         var users = await _userManager.Users.Where(u => u.DeletedDateTime == null).ToListAsync();
         var userDtos = new List<UserDTO>();
+        var isGlobalAdmin = _authorizationService.IsGlobalAdmin(currentUser);
 
         foreach (var user in users)
         {
             var roles = await _userManager.GetRolesAsync(user);
+            var userRole = roles.FirstOrDefault();
+
+            if (!isGlobalAdmin && userRole == "global_admin")
+                continue;
+
             userDtos.Add(new UserDTO
             {
                 Id = user.Id,
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                Role = roles.FirstOrDefault()
+                Role = userRole
             });
         }
         return userDtos;
@@ -68,8 +83,13 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<UserDTO> CreateUserAsync(UserDTO userDto)
+    public async Task<UserDTO> CreateUserAsync(UserDTO userDto, ClaimsPrincipal currentUser)
     {
+        if (!_authorizationService.CanCreateUsers(currentUser))
+        {
+            throw new UnauthorizedAccessException("You don't have permission to create users.");
+        }
+
         if (userDto == null || string.IsNullOrWhiteSpace(userDto.Email) || string.IsNullOrWhiteSpace(userDto.Password))
         {
             throw new ArgumentException("User data, email, and password are required for creation.");
@@ -89,7 +109,7 @@ public class UserService : IUserService
             throw new InvalidOperationException($"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
 
-        var roleToAssign = !string.IsNullOrWhiteSpace(userDto.Role) ? userDto.Role : "user";
+        var roleToAssign = !string.IsNullOrWhiteSpace(userDto.Role) ? userDto.Role : "operator";
         await _userManager.AddToRoleAsync(newUser, roleToAssign);
 
         userDto.Id = newUser.Id;
@@ -97,8 +117,13 @@ public class UserService : IUserService
         return userDto;
     }
 
-    public async Task<UserDTO> UpdateUserAsync(UserDTO userDto)
+    public async Task<UserDTO> UpdateUserAsync(UserDTO userDto, ClaimsPrincipal currentUser)
     {
+        if (!_authorizationService.CanEditUser(currentUser, userDto.Id))
+        {
+            throw new UnauthorizedAccessException("You don't have permission to edit this user.");
+        }
+
         var existingUser = await _userManager.FindByIdAsync(userDto.Id.ToString());
         if (existingUser == null)
         {
@@ -107,8 +132,13 @@ public class UserService : IUserService
 
         existingUser.FirstName = userDto.FirstName;
         existingUser.LastName = userDto.LastName;
-        existingUser.Email = userDto.Email;
-        existingUser.UserName = userDto.Email;
+
+        if (_authorizationService.IsGlobalAdmin(currentUser))
+        {
+            existingUser.Email = userDto.Email;
+            existingUser.UserName = userDto.Email;
+        }
+        
         existingUser.ModifiedDateTime = DateTime.UtcNow;
 
         var updateResult = await _userManager.UpdateAsync(existingUser);
@@ -117,29 +147,48 @@ public class UserService : IUserService
             throw new InvalidOperationException("Failed to update user details.");
         }
 
-        var currentRoles = await _userManager.GetRolesAsync(existingUser);
-        var roleToAssign = !string.IsNullOrWhiteSpace(userDto.Role) ? userDto.Role : "user";
-
-        if (!currentRoles.Contains(roleToAssign))
+        if (_authorizationService.CanChangeUserRole(currentUser) && !string.IsNullOrWhiteSpace(userDto.Role))
         {
-            var removeResult = await _userManager.RemoveFromRolesAsync(existingUser, currentRoles);
-            if (!removeResult.Succeeded)
+            var roleToAssign = userDto.Role;
+            
+            if (!_authorizationService.CanAssignRole(currentUser, roleToAssign))
             {
-                throw new InvalidOperationException("Failed to remove existing user roles.");
+                throw new UnauthorizedAccessException($"You don't have permission to assign the '{roleToAssign}' role.");
+            }
+            
+            var currentRoles = await _userManager.GetRolesAsync(existingUser);
+
+            if (currentRoles.Contains("global_admin") && !_authorizationService.IsGlobalAdmin(currentUser))
+            {
+                throw new UnauthorizedAccessException("You don't have permission to modify global admin users.");
             }
 
-            var addResult = await _userManager.AddToRoleAsync(existingUser, roleToAssign);
-            if (!addResult.Succeeded)
+            if (!currentRoles.Contains(roleToAssign))
             {
-                throw new InvalidOperationException("Failed to add new user role.");
+                var removeResult = await _userManager.RemoveFromRolesAsync(existingUser, currentRoles);
+                if (!removeResult.Succeeded)
+                {
+                    throw new InvalidOperationException("Failed to remove existing user roles.");
+                }
+
+                var addResult = await _userManager.AddToRoleAsync(existingUser, roleToAssign);
+                if (!addResult.Succeeded)
+                {
+                    throw new InvalidOperationException("Failed to add new user role.");
+                }
             }
         }
 
         return userDto;
     }
 
-    public async Task DeleteUserAsync(Guid id)
+    public async Task DeleteUserAsync(Guid id, ClaimsPrincipal currentUser)
     {
+        if (!_authorizationService.CanDeleteUser(currentUser, id))
+        {
+            throw new UnauthorizedAccessException("You don't have permission to delete this user.");
+        }
+
         var user = await _userManager.FindByIdAsync(id.ToString());
         if (user != null)
         {

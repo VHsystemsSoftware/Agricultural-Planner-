@@ -12,7 +12,6 @@ namespace VHS.Data.Core.Infrastructure
         ITrayRepository Tray { get; }
         //ITrayCurrentStateRepository TrayCurrentState { get; }
         ITrayStateRepository TrayState { get; }
-		ITrayStateAuditRepository TrayStateAudit { get; }
 
 		IProductRepository Product { get; }
         IRecipeRepository Recipe { get; }
@@ -24,12 +23,14 @@ namespace VHS.Data.Core.Infrastructure
         IRecipeWaterScheduleRepository RecipeWaterSchedule { get; }
 
         IBatchRepository Batch { get; }
-        IBatchPlanRepository BatchPlan { get; }
+        IGrowPlanRepository GrowPlan { get; }
         IBatchRowRepository BatchRow { get; }
         IJobRepository Job { get; }
         IJobTrayRepository JobTray { get; }
 
-		Task<int> SaveChangesAsync();
+        INoteRepository Note { get; }
+
+        Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         Task<IDbContextTransaction> EnsureTransactionAsync();
         Task CommitTransactionAsync();

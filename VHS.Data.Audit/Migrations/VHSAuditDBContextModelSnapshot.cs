@@ -17,7 +17,7 @@ namespace VHS.Data.Audit.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Proxies:ChangeTracking", false)
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
@@ -90,15 +90,36 @@ namespace VHS.Data.Audit.Migrations
                     b.Property<DateTime>("ReceiveDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("SendDateTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("TrayTag")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.ToTable("OPCAudits", (string)null);
+                });
+
+            modelBuilder.Entity("VHS.Data.Models.Audit.SystemMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AddedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("Category")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("Severity")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SystemMessages", (string)null);
                 });
 #pragma warning restore 612, 618
         }

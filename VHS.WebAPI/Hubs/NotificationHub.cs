@@ -2,36 +2,28 @@
 
 public interface IHubCommunicator
 {
-	Task SendMessage(string user, string message);
-	Task NewTrayAtSeeder(Guid jobId, Guid trayId);
-	Task RefreshDashboardSeeder();
-	Task HeartBeat(int serverId);
-	Task HeartBeatWorker();
-	Task GeneralOPCNotification(string message);
-	Task UpdateTrayState(Guid trayId);
+    Task RefreshDashboardSeeder();
+    Task RefreshDashboardHarvester();
+    Task RefreshHome();
+    Task HeartBeat(int serverId);
+    Task HeartBeatWorker();
+    Task GeneralOPCNotification(string message);
+    Task UpdateTrayState(Guid trayId);
     Task FireAlarmStateChanged(bool isAlarmActive);
+    Task AlarmStatusChanged(string alarmName);
+    Task RefreshDashboardTransplanter();
 }
 
 namespace VHS.WebAPI.Hubs
 {
-    public class VHSNotificationHub : Hub<IHubCommunicator> 
-	{
-        public async Task SendMessage(string user, string message)
+    public class VHSNotificationHub : Hub<IHubCommunicator>
+    {
+        public async Task UpdateTrayState(Guid trayId)
         {
-            await Clients.All.SendMessage(user, message);
+            await Clients.All.UpdateTrayState(trayId);
+            await Clients.All.GeneralOPCNotification("UpdateTrayState");
         }
-
-		public async Task NewTrayAtSeeder(Guid jobId, Guid trayId)
-		{
-			await Clients.All.NewTrayAtSeeder(jobId, trayId);
-			await Clients.All.GeneralOPCNotification("NewTrayAtSeeder");
-		}
-		public async Task UpdateTrayState(Guid trayId)
-		{
-			await Clients.All.UpdateTrayState(trayId);
-			await Clients.All.GeneralOPCNotification("UpdateTrayState");
-		}
-		public async Task HeartBeat(int serverId)
+        public async Task HeartBeat(int serverId)
         {
             await Clients.All.HeartBeat(serverId);
         }
@@ -41,14 +33,29 @@ namespace VHS.WebAPI.Hubs
             await Clients.All.HeartBeatWorker();
         }
 
-		public async Task RefreshDashboardSeeder()
+        public async Task RefreshDashboardSeeder()
+        {
+            await Clients.All.RefreshDashboardSeeder();
+        }
+        public async Task RefreshDashboardHarvester()
+        {
+            await Clients.All.RefreshDashboardHarvester();
+        }
+		public async Task RefreshDashboardTransplanter()
 		{
-			await Clients.All.HeartBeatWorker();
+			await Clients.All.RefreshDashboardTransplanter();
 		}
-
-		private async Task GeneralOPCNotification(string message)
+		public async Task RefreshHome()
+        {
+            await Clients.All.RefreshHome();
+        }
+        private async Task GeneralOPCNotification(string message)
+        {
+            await Clients.All.GeneralOPCNotification(message);
+		}
+		public async Task AlarmStatusChanged(string alarmName)
 		{
-			await Clients.All.GeneralOPCNotification(message);
+			await Clients.All.AlarmStatusChanged(alarmName);
 		}
 	}
 }

@@ -1,0 +1,79 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@using VHS.Client.Services
+@inject IStringLocalizer<Shared> Localizer
+@inject PageTitleService PageTitleService
+@inject FireAlarmStateService FireAlarmState
+
+<MudThemeProvider Theme="AppCustomTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudLink Href="/">
+            <MudImage Src="/VHSystems_logo.png" Alt="VHS Logo" Class="app-logo" />
+        </MudLink>
+        <MudSpacer />
+        @if (FireAlarmState.IsAlarmActive)
+        {
+            <MudIcon Size="Size.Large" Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Class="mr-2" />
+            <MudText Typo="Typo.h4" Color="Color.Error">FIRE ALARM ACTIVE!</MudText>
+            <MudSpacer />
+        }
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer Class="mt-8 mb-8 px-8" MaxWidth="MaxWidth.False">
+            @if (!string.IsNullOrEmpty(PageTitleService.Title))
+            {
+                <MudText Typo="Typo.h4" Class="page-title pb-8" Color="Color.Primary">@PageTitleService.Title</MudText>
+            }
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    protected override void OnInitialized()
+    {
+        PageTitleService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        PageTitleService.OnChange -= StateHasChanged;
+    }
+
+    MudTheme AppCustomTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Background = "#f6f7fb",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#FFFFFF",
+            AppbarText = "#171717",
+            DrawerBackground = "#FFFFFF",
+            DrawerText = "#525b75",
+
+            Primary = "#f37123",
+            Secondary = "#31374a",
+            Success = "#25b003",
+            Info = "#0097eb",
+            Warning = "#e5780b",
+            Error = "#fa3b1d",
+            Dark = "#141824"
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DrawerWidthLeft = "254px"
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Montserrat", "Helvetica", "Arial", "sans-serif" }
+            }
+        }
+    };
+}

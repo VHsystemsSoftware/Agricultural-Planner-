@@ -7,7 +7,6 @@ namespace VHS.WebAPI.Controllers.Farming;
 
 [ApiController]
 [Route("api/tray")]
-[AllowAnonymous] // Temp allow
 public class TrayController : ControllerBase
 {
     private readonly ITrayService _trayService;
@@ -18,6 +17,7 @@ public class TrayController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "CanAccessOverviewOperations")]
     public async Task<IActionResult> GetAllTrays(Guid farmId)
     {
         var trays = await _trayService.GetAllTraysAsync(farmId);
@@ -25,6 +25,7 @@ public class TrayController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "CanAccessOverviewOperations")]
     public async Task<IActionResult> GetTrayById(Guid id)
     {
         var tray = await _trayService.GetTrayByIdAsync(id);
@@ -49,6 +50,7 @@ public class TrayController : ControllerBase
     //}
 
     [HttpPost]
+    [Authorize(Policy = "CanAccessOverviewOperations")]
     public async Task<IActionResult> CreateTray([FromBody] TrayDTO trayDto)
     {
         var createdTray = await _trayService.CreateTrayAsync(trayDto);
@@ -56,6 +58,7 @@ public class TrayController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanAccessOverviewOperations")]
     public async Task<IActionResult> UpdateTray(Guid id, [FromBody] TrayDTO trayDto)
     {
         if (id != trayDto.Id)
@@ -66,6 +69,7 @@ public class TrayController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanAccessOverviewOperations")]
     public async Task<IActionResult> DeleteTray(Guid id)
     {
         await _trayService.DeleteTrayAsync(id);

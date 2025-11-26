@@ -1,8 +1,12 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using VHS.Client.Services
+@using VHS.Client.Services.Auth
 @inject NavigationManager Navigation
 @inject LocalStorage LocalStorage
+@inject IStringLocalizer<Shared> Localizer
 @inject AuthenticationStateProvider AuthProvider
+@inject PermissionService PermissionService
 
 <AuthorizeView>
     <Authorized Context="authState">
@@ -24,21 +28,40 @@
                 }
             </MudAvatar>
 
-            <MudText Align="Align.End" Class="mx-1" Color="Color.Inherit">@name</MudText>
+            @* <MudText Align="Align.End" Class="mx-1" Color="Color.Inherit">@name</MudText> *@
 
-            <MudMenu Icon="@Icons.Material.Outlined.KeyboardArrowDown" Size="Size.Medium" Color="Color.Default" Edge="Edge.End">
-                <MudMenuItem Icon="@Icons.Material.Filled.SupervisedUserCircle" Label="Users" OnClick="@Users" />
-                <MudMenuItem Icon="@Icons.Material.Filled.Settings" Label="Settings" OnClick="@UserSettings" />
-                <MudMenuItem Icon="@Icons.Material.Filled.Logout" Label="Logout" OnClick="@LogoutAsync" />
+            <MudMenu Label="@name" EndIcon="@Icons.Material.Outlined.KeyboardArrowDown" Size="Size.Medium" Color="Color.Default" Edge="Edge.End">
+                @if (PermissionService.CanViewUsers)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.SupervisedUserCircle" OnClick="@Users">@Localizer["Users"]</MudMenuItem>
+                }
+                <MudMenuItem Icon="@Icons.Material.Filled.Settings" OnClick="@UserSettings">@Localizer["Settings"]</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="@LogoutAsync">@Localizer["Logout"]</MudMenuItem>
             </MudMenu>
         }
     </Authorized>
     <NotAuthorized>
-        <MudLink Href="/login" Color="Color.Default" Class="mx-1">Login</MudLink>
+      <MudLink Href="/login" Color="Color.Default" Class="mx-1">@Localizer["Login"]</MudLink>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        if (authState?.User?.Identity?.IsAuthenticated == true)
+        {
+            try
+            {
+                await PermissionService.CheckPermissions();
+            }
+            catch
+            {
+                // Permissions will be false by default
+            }
+        }
+    }
+
     void Users() => Navigation.NavigateTo("/users");
     void UserSettings() => Navigation.NavigateTo("/user/settings");
 
@@ -60,7 +83,6 @@
     {
         await LocalStorage.RemoveStateAsync("VHS_AUTH_TOKEN");
         await LocalStorage.RemoveStateAsync("VHS_USER");
-        await LocalStorage.RemoveStateAsync("VHS_USER_SETTINGS");
 
         if (AuthProvider is IHostEnvironmentAuthenticationStateProvider envProvider)
         {

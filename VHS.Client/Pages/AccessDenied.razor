@@ -1,0 +1,48 @@
+@page "/access-denied"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IStringLocalizer<Shared> Localizer
+@inject PageTitleService PageTitleService
+
+<PageTitle>@Localizer["AccessDenied"] - VHS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudPaper Class="pa-6" Elevation="4">
+        <div class="text-center">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Class="mb-4" Color="Color.Secondary" />
+            
+            <MudText Typo="Typo.h4" Class="mb-4" Color="Color.Error">
+                @Localizer["AccessDenied"]
+            </MudText>
+            
+            <MudText Typo="Typo.body1" Class="mb-6">
+                @Localizer["AccessDeniedMessage"]
+            </MudText>
+            
+            <MudDivider Class="mb-6" />
+            
+            <div class="d-flex justify-center gap-4">
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          StartIcon="@Icons.Material.Filled.Home"
+                          OnClick="GoHome">
+                    @Localizer["GoToHome"]
+                </MudButton>
+            </div>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = Localizer["Unauthorized"];
+    }
+
+    private void GoHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

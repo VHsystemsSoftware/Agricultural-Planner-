@@ -29,7 +29,6 @@ public class JobTray
 	public virtual Layer? DestinationLayer { get; set; }
 	public virtual Recipe? Recipe { get; set; }
 
-	public int? OrderOnLayer { get; set; }
 	public Guid? RecipeId { get; set; }
 
 	public DateTime AddedDateTime { get; set; }

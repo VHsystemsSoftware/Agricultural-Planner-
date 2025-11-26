@@ -12,7 +12,7 @@ public class VarTrayId : VarBase<uint> {}
 public class VarRequestTrayInfo : VarBase<bool>{ }
 public class VarHeartBeat : VarBase<bool> { }
 public class VarFireAlarmIsActive : VarBase<bool> { }
-
+public class VarAlarmIsActive : VarBase<string> { }
 public class VarTrayInfoAccepted : VarBase<bool>{}
 public class VarTrayWeight : VarBase<float>{}
 public class VarPLannerInControl : VarBase<bool> { }

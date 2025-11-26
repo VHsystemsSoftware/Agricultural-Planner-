@@ -6,7 +6,6 @@ namespace VHS.WebAPI.Controllers.Auth;
 
 [ApiController]
 [Route("api/user/settings")]
-[AllowAnonymous] // Temp allow
 public class UserSettingController : ControllerBase
 {
     private readonly IUserSettingService _userSettingService;
@@ -17,6 +16,7 @@ public class UserSettingController : ControllerBase
     }
 
     [HttpGet("{userId}")]
+    [Authorize]
     public async Task<IActionResult> GetUserSettings(Guid userId)
     {
         var settings = await _userSettingService.GetUserSettingsByUserIdAsync(userId);
@@ -28,6 +28,7 @@ public class UserSettingController : ControllerBase
     }
 
     [HttpPut("update")]
+    [Authorize]
     public async Task<IActionResult> UpdateUserSettings([FromBody] UserSettingDTO settingsDto)
     {
         try

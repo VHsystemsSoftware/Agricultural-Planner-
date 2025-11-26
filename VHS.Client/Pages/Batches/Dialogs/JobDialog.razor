@@ -2,14 +2,15 @@
 @using VHS.Services.Common
 @using VHS.Client.Services.Batches
 @inject ISnackbar Snackbar
+@inject IStringLocalizer<Shared> Localizer
 @inject BatchClientService BatchClientService
 @inject JobClientService JobClientService
 
 <Dialog Title="@DialogTitle" ShowDefaultActions="false">
     <ChildContent>
         <MudForm Model="Job" @ref="form">
-            <MudTextField @bind-Value="Job.Name" Label="Job Name" Variant="Variant.Outlined" Required="true" />
-            @if (Batches?.Any() == true)
+            <MudTextField @bind-Value="Job.Name" Label="@Localizer["JobName"]" Variant="Variant.Outlined" Required="true" />
+          @*   @if (Batches?.Any() == true)
             {
                 <MudSelect T="Guid?" Label="Batch" @bind-Value="Job.BatchId" Variant="Variant.Outlined">
                     <MudSelectItem T="Guid?" Value="@( (Guid?) null )">-- No Batch --</MudSelectItem>
@@ -20,30 +21,30 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
-            }
-            <MudNumericField T="int" @bind-Value="Job.OrderOnDay" Label="Run Order" Variant="Variant.Outlined" Min="1" Required="true" />
+            } *@
+@*             <MudNumericField T="int" @bind-Value="Job.OrderOnDay" Label="Run Order" Variant="Variant.Outlined" Min="1" Required="true" />
 
             <MudNumericField T="int" @bind-Value="Job.TrayCount" Label="Tray Count" Variant="Variant.Outlined" Required="true" />
+ *@
+            <MudDatePicker @bind-Date="ScheduledDate" Label="@Localizer["ScheduledDate"]" Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" />
 
-            <MudDatePicker @bind-Date="ScheduledDate" Label="Scheduled Date" Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" />
-
-            <MudSelect T="Guid" Label="Location" @bind-Value="Job.JobLocationTypeId" Variant="Variant.Outlined" Required="true">
+@*             <MudSelect T="Guid" Label="Location" @bind-Value="Job.JobLocationTypeId" Variant="Variant.Outlined" Required="true">
                 <MudSelectItem Value="@GlobalConstants.JOBLOCATION_SEEDER">Seeding</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.JOBLOCATION_HARVESTER">Harvesting</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.JOBLOCATION_TRANSPLANTER">Transplanting</MudSelectItem>
-            </MudSelect>
+            </MudSelect> *@
 
-            <MudSelect T="Guid" Label="Status" @bind-Value="Job.StatusId" Variant="Variant.Outlined" Required="true">
+  @*           <MudSelect T="Guid" Label="Status" @bind-Value="Job.StatusId" Variant="Variant.Outlined" Required="true">
                 <MudSelectItem Value="@GlobalConstants.JOBSTATUS_NOTSTARTED">Not Started</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.JOBSTATUS_INPROGRESS">In Progress</MudSelectItem>
                 <MudSelectItem Value="@GlobalConstants.JOBSTATUS_COMPLETED">Completed</MudSelectItem>
-            </MudSelect>
+            </MudSelect> *@
         </MudForm>
     </ChildContent>
 
     <ActionsContent>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
-        <MudButton OnClick="Save" Disabled="@(form == null)" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">@Localizer["Cancel"]</MudButton>
+        <MudButton OnClick="Save" Disabled="@(form == null)" Variant="Variant.Filled" Color="Color.Primary">@Localizer["Save"]</MudButton>
     </ActionsContent>
 </Dialog>
 
@@ -51,14 +52,11 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; }
     [Parameter] public JobDTO Job { get; set; } = new();
     private MudForm form;
-    private string DialogTitle => Job.Id == Guid.Empty ? "Add New Job" : "Edit Job";
-    private List<BatchDTO> Batches = new();
+    private string DialogTitle => Job.Id == Guid.Empty ? Localizer["AddNewJob"] : Localizer["EditJob"];
     private DateTime? ScheduledDate { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        Batches = (await BatchClientService.GetAllBatchesAsync())?.ToList() ?? new List<BatchDTO>();
-
         if (Job.StatusId == Guid.Empty)
         {
             Job.StatusId = GlobalConstants.JOBSTATUS_NOTSTARTED;
@@ -71,7 +69,7 @@
             Job.OrderOnDay = existing.Any() ? existing.Max(j => j.OrderOnDay) + 1 : 1;
         }
 
-        ScheduledDate = Job.ScheduledDate;
+        ScheduledDate = Job.ScheduledDate.ToDateTime(new TimeOnly(0,0));
     }
 
     private void Save()
@@ -79,7 +77,7 @@
         if (form == null)
             return;
 
-        Job.ScheduledDate = ScheduledDate ?? DateTime.Now.Date;
+        Job.ScheduledDate = DateOnly.FromDateTime(ScheduledDate ?? DateTime.UtcNow.Date);
         MudDialog.Close(DialogResult.Ok(Job));
     }
 

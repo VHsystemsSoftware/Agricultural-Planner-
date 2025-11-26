@@ -39,12 +39,13 @@ public class TrayRepository : Repository<Tray>, ITrayRepository
 				_context.TrayStates.Update(state);
 
 				await _trayStateRepository.CreateNewTrayState(batchId, tray.Id);
+				await _context.SaveChangesAsync();
 			}
 			else if (tray.CurrentState == null)
 			{
 				await _trayStateRepository.CreateNewTrayState(batchId, tray.Id);
-			}
-			await _context.SaveChangesAsync();
+				await _context.SaveChangesAsync();
+			}			
 		}
 		else
 		{

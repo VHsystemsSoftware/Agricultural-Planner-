@@ -17,7 +17,12 @@
             </CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.PreGrowLayerName" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Germ/Prop Layer" />
+        <PropertyColumn Property="x => x.PreGrowTransportLayerName" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Transport Layer" />
+        <PropertyColumn Property="x => x.PreGrowOrderOnLayer" Class="tray-rotated-header" CellClass="tray-square-cell" Title=Pregrow Order" />
         <PropertyColumn Property="x => x.GrowLayerName" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Grow Layer" />
+        <PropertyColumn Property="x => x.GrowTransportLayerName" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Transport Layer" />
+        <PropertyColumn Property="x => x.GrowOrderOnLayer" Class="tray-rotated-header" CellClass="tray-square-cell" Title="Grow Order" />
+
 
         <!-- Seeding & Pre-Grow -->
         <PropertyColumn Property="x => x.SeedDate" Title="Seed Date" Class="tray-rotated-header" CellClass="tray-square-cell" CellStyle="background-color:#D3D3D3" />
@@ -86,6 +91,7 @@
     protected override async Task OnInitializedAsync()
     {
         PageTitleService.Title = "Trays";
+        PageTitleService.BackUrl = "";
         await LoadTrayStates();
     }
 
@@ -94,6 +100,8 @@
         IsLoading = true;
         StateHasChanged();
         TrayStateList = await TrayStateClientService.GetCurrentStates();
+
+        TrayStateList = TrayStateList.OrderByDescending(x => x.ArrivedAtSeeder).ToList();
         IsLoading = false;
         StateHasChanged();
     }

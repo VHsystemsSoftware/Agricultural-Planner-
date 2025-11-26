@@ -9,7 +9,7 @@ namespace VHS.Data.Auth.Seeders
     {
         public static async Task SeedRolesAsync(RoleManager<IdentityRole<Guid>> roleManager)
         {
-            var roles = new[] { "global_admin", "admin", "user" };
+            var roles = new[] { "global_admin", "admin", "farm_manager", "operator" };
 
             foreach (var role in roles)
             {

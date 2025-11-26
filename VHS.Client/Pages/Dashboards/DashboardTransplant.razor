@@ -1,6 +1,8 @@
 ﻿@page "/dashboard-transplant"
 @inject HubConnection _hubConnection
 @inject PageTitleService PageTitleService
+@implements IDisposable
+
 <DashboardComponent JobLocationId="@GlobalConstants.JOBLOCATION_TRANSPLANTER" @ref="dc" />
 
 @code {
@@ -9,15 +11,24 @@
     protected override async Task OnInitializedAsync()
     {
         PageTitleService.Title = "";
+        PageTitleService.BackUrl = "";
 
         await ConnectNotification();
     }
 
     private async Task ConnectNotification()
     {
-        _hubConnection.On<Guid, Guid>("Transport", (jobId, trayId) =>
+        _hubConnection.On("RefreshDashboardTransplanter", () =>
+           {
+               dc.LoadJobs();
+           });
+    }
+
+    public void Dispose()
+    {
+        if (_hubConnection != null)
         {
-            dc.LoadJobs();
-        });
+            _hubConnection.Remove("RefreshDashboardTransplanter");
+        }
     }
 }

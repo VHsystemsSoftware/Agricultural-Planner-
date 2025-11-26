@@ -12,7 +12,6 @@ public class OPCAudit
 	public string MessageOutput { get; set; } = string.Empty;
 
 	public DateTime ReceiveDateTime { get; set; }
-	public DateTime SendDateTime { get; set; }
 	public DateTime MessageInputDateTime { get; set; }
 	public DateTime MessageOutputDateTime { get; set; }
 }

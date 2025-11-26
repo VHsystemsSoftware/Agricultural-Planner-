@@ -6,7 +6,6 @@ namespace VHS.WebAPI.Controllers.Growth;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporary allowed.
 public class WaterZoneController : ControllerBase
 {
     private readonly IWaterZoneService _waterZoneService;
@@ -17,6 +16,7 @@ public class WaterZoneController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllWaterZones(Guid? farmId = null)
     {
         var zones = await _waterZoneService.GetAllWaterZonesAsync(farmId);
@@ -24,6 +24,7 @@ public class WaterZoneController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetWaterZoneById(Guid id)
     {
         var zone = await _waterZoneService.GetWaterZoneByIdAsync(id);
@@ -33,6 +34,7 @@ public class WaterZoneController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> CreateWaterZone([FromBody] WaterZoneDTO waterZoneDto)
     {
         var createdZone = await _waterZoneService.CreateWaterZoneAsync(waterZoneDto);
@@ -40,6 +42,7 @@ public class WaterZoneController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> UpdateWaterZone(Guid id, [FromBody] WaterZoneDTO waterZoneDto)
     {
         if (id != waterZoneDto.Id)
@@ -50,6 +53,7 @@ public class WaterZoneController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> DeleteWaterZone(Guid id)
     {
         await _waterZoneService.DeleteWaterZoneAsync(id);

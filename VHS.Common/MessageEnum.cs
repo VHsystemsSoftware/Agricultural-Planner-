@@ -55,6 +55,24 @@ public enum MessageType
     GenericRequest = 301,
     GenericResponse = 302,
 
+    // General Alarms and Stops (400s)
+    AlarmActiveFloor = 400,
+    AlarmActiveGerminationArea = 401,
+    AlarmActiveHarvestingStation = 402,
+    AlarmActivePaternoster = 403,
+    AlarmActiveSeedingStation = 404,
+    AlarmActiveTransplantStation = 405,
+    AlarmActiveTransportFromPater = 406,
+    AlarmActiveTransportToPater = 407,
+    AlarmActiveWashingStation = 408,
+    AlarmActiveGrowLineInput = 409,
+    AlarmActiveGrowLineOutput = 410,
+    AlarmActiveRackArea1 = 411,
+    AlarmActiveRackArea2 = 412,
+    EmergencyStop = 413,
+    ControlledStop = 414,
+    ForcedStop = 415,
+
     //Specfic messages Worker to API
     WorkerHeartBeatRequest = 810,
     WorkerHeartBeatResponse = 811,
@@ -62,18 +80,6 @@ public enum MessageType
     FarmStateDateTimeSync = 821,
 
     ConnectionFailed = 999
-}
-
-public enum ComponentType
-{
-    None = 0,
-    Paternoster = -1,
-    Transplanter = -2,
-    Washer = -3,
-    Harvester = -4,
-    GerminationRack1 = 1,
-    GerminationRack2 = 2,
-    GerminationRack3 = 3,
 }
 
 public enum Component
@@ -85,7 +91,8 @@ public enum Component
     Harvesting = 4,
     Harvester = 5,
     Washing = 6,
-    Transplant = 7
+    TransplantInput = 7,
+	TransplantOutput = 8
 }
 
 public enum TimeSyncStatus

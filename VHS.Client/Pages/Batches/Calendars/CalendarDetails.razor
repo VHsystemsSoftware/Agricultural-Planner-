@@ -1,0 +1,76 @@
+﻿@using VHS.Services.Batches.DTO
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@DialogTitle</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm ReadOnly="true">
+            @if (plan != null)
+            {
+                <MudGrid Spacing="2" Class="mt-2">
+                    <MudItem xs="12">
+                        <MudTextField Value="@plan.Name" Label="Plan Name" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Value="@(plan.Recipe?.Name)" Label="Recipe" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Date="@plan.StartDate.Value.ToDateTime(new TimeOnly(0, 0))" Label="Start Date" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField Value="@plan.DaysForPlan" Label="Total Days" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField Value="@plan.TraysPerDay" Label="Trays per Day" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField Value="@(plan.DaysForPlan * plan.TraysPerDay)" Label="Total Trays" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                </MudGrid>
+            }
+            else if (job != null)
+            {
+                <MudGrid Spacing="2" Class="mt-2">
+                    <MudItem xs="12">
+                        <MudTextField Value="@job.Name" Label="Job Name" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Value="@job.BatchName" Label="Batch Name" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Date="@job.ScheduledDate.ToDateTime(new TimeOnly(0, 0))" Label="Scheduled Date" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField Value="@job.TrayCount" Label="Tray Count" Variant="Variant.Outlined" ReadOnly="true" />
+                    </MudItem>
+                </MudGrid>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" OnClick="() => MudDialog.Cancel()">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public object? Item { get; set; }
+
+    private GrowPlanDTO? plan;
+    private JobDTO? job;
+    private string DialogTitle => plan != null ? "Plan Details" : job != null ? "Job Details" : "Details";
+
+    protected override void OnInitialized()
+    {
+        if (Item is GrowPlanDTO batchPlan)
+        {
+            plan = batchPlan;
+        }
+        else if (Item is JobDTO jobItem)
+        {
+            job = jobItem;
+        }
+    }
+}

@@ -1,0 +1,226 @@
+﻿@page "/opcstats"
+
+@inject IStringLocalizer<Shared> Localizer
+@inject HubConnection _hubConnection
+@inject OPCAuditClientService OPCAuditClientService
+@inject UserPreferencesService UserPreferences
+@inject PageTitleService PageTitleService
+@implements IDisposable
+
+<MudGrid Class="mb-8">
+    <MudItem xs="12" md="3">
+        <MudPaper Class="pa-4" Style="height: 100%;" Elevation="2">
+            <MudText Typo="Typo.h6" GutterBottom="true">@Localizer["WorkerStatus"]</MudText>
+            <MudGrid>
+                @foreach (var hb in heartBeats)
+                {
+                    <MudItem>
+                        <MudPaper Class="pa-1 d-flex flex-column justify-space-between align-center rounded-lg opc-worker-hearbeats" Elevation="4">
+                            <MudText Typo="Typo.body2">@hb.Owner</MudText>
+                            <div class="opc-worker-indicator @(hb.Beat ? "green-light" : "red-light")"></div>
+                            <MudText Typo="Typo.body2">@hb.HeartBeatDateTime.ToString("HH:mm:ss")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudStack Class="mt-4">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="RefreshOPCAudit">
+                    @Localizer["RefreshLog"]
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="9">
+        <Alarms />
+    </MudItem>
+</MudGrid>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudStack Spacing="3">
+            @foreach (var message in messages)
+            {
+                <MudCard Class="opc-stats-cards" Elevation="2">
+                    <MudCardContent Class="pa-4">
+                        <MudText Typo="Typo.body2">@message</MudText>
+                    </MudCardContent>
+                </MudCard>
+            }
+        </MudStack>
+    </MudItem>
+    <MudItem xs="12" md="8">
+        <MudDataGrid @ref="_dataGrid" Items="@opcAudits" ReadOnly="true" EditMode="@DataGridEditMode.Cell" ExpandSingleRow="false" Dense="false" Hover="true" Class="pa-6 opc-stats-cards">
+            <Columns>
+                <HierarchyColumn T="OPCAudit" />
+                <PropertyColumn Property="x => x.ReceiveDateTime" Title="@Localizer["ReceiveDateTime"]" CellClass="opc-stats-header" Format="@_userDateTimeFormat" />
+                <PropertyColumn Property="@(x => $"{Enum.GetName(typeof(MessageType), x.EventId)} ({x.EventId})")" Title="@Localizer["EventId"]" CellClass="opc-stats-header" />
+            </Columns>
+            <ChildRowContent>
+                <MudGrid Class="pt-4 mb-6">
+                    <MudItem xs="12" md="6">
+                        <MudCard Class="opc-stats-cards" Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.body1" GutterBottom="true" Color="Color.Primary">@Localizer["FromOPC"]</MudText>
+                                <MudJsonTreeView Json="@context.Item.MessageInput" Class="opc-stats-tree" Dense="true" Hover="true" Sorted="false" />
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudCard Class="opc-stats-cards" Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.body1" GutterBottom="true" Color="Color.Primary">@Localizer["ReturnToOPC"]</MudText>
+                                <MudJsonTreeView Json="@context.Item.MessageOutput" Class="opc-stats-tree" Dense="true" Hover="true" Sorted="false" />
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+            </ChildRowContent>
+        </MudDataGrid>
+    </MudItem>
+</MudGrid>
+
+@code {
+    public class HeartBeat
+    {
+        public bool Beat { get; set; } = false;
+        public string Owner { get; set; } = string.Empty;
+        public DateTime HeartBeatDateTime { get; set; } = DateTime.Now;
+    }
+
+    private MudDataGrid<OPCAudit> _dataGrid = null!;
+
+    private List<string> messages = [];
+    private System.Threading.Timer? timer;
+
+    List<HeartBeat> heartBeats = new List<HeartBeat>();
+    List<OPCAudit> opcAudits = new List<OPCAudit>();
+
+    private string _userDateTimeFormat = "dd-MM-yyyy hh:mm tt";
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = Localizer["OPCStats"];
+        PageTitleService.BackUrl = "";
+
+        _userDateTimeFormat = await UserPreferences.GetDateTimeFormatAsync();
+
+        heartBeats.Add(new HeartBeat
+        {
+            Beat = false,
+            Owner = "VHSWorker",
+            HeartBeatDateTime = DateTime.Now
+        });
+
+        await ConnectHeartBeat();
+        await ConnectGeneralOPCNotification();
+        await ConnectHeartBeatWorker();
+
+        timer = new System.Threading.Timer(async (object? stateInfo) =>
+        {
+            foreach (var hb in heartBeats)
+            {
+                if (hb.HeartBeatDateTime.AddSeconds(15) < DateTime.Now)
+                {
+                    hb.Beat = false;
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }, new System.Threading.AutoResetEvent(false), 5000, 5000);
+
+        await LoadOPCAuditLinesAsync();
+    }   
+
+    private async Task LoadOPCAuditLinesAsync()
+    {
+        var from = DateTimeOffset.UtcNow.AddMinutes(-10).ToUnixTimeMilliseconds();
+        var to = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        opcAudits = (await OPCAuditClientService.GetRangeAsync(from, to))
+            .Where(x => x.EventId != (int)MessageType.GeneralHeartBeatRequest).OrderByDescending(x => x.ReceiveDateTime).ToList();
+    }
+
+    private async Task RefreshOPCAudit()
+    {
+        await LoadOPCAuditLinesAsync();
+        StateHasChanged();
+    }
+
+    private async Task ConnectHeartBeat()
+    {
+        _hubConnection.On<int>("HeartBeat", (serverId) =>
+        {
+            var existingHB = heartBeats.FirstOrDefault(x => x.Owner == serverId.ToString());
+            if (existingHB != null)
+            {
+                existingHB.Beat = true;
+                existingHB.HeartBeatDateTime = DateTime.Now;
+            }
+            else
+            {
+                heartBeats.Add(new HeartBeat
+                {
+                    Beat = true,
+                    Owner = serverId.ToString(),
+                    HeartBeatDateTime = DateTime.Now
+                });
+            }
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task ConnectHeartBeatWorker()
+    {
+        _hubConnection.On("HeartBeatWorker", async () =>
+        {
+            var existingHB = heartBeats.FirstOrDefault(x => x.Owner == "VHSWorker");
+            if (existingHB != null)
+            {
+                existingHB.Beat = true;
+                existingHB.HeartBeatDateTime = DateTime.Now;
+            }
+            else
+            {
+                heartBeats.Add(new HeartBeat
+                {
+                    Beat = true,
+                    Owner = "VHSWorker",
+                    HeartBeatDateTime = DateTime.Now
+                });
+            }
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task ConnectGeneralOPCNotification()
+    {
+        _hubConnection.On<string>("GeneralOPCNotification", (message) =>
+        {
+            messages.Insert(0, $"{DateTime.Now} - {message}");
+            InvokeAsync(StateHasChanged);
+        });
+    } 
+
+    private async Task ConnectSeeder()
+    {
+        _hubConnection.On<Guid, Guid>("NewTraySeeding", (jobId, trayId) =>
+        {
+            messages.Insert(0, $"NewTraySeeding {jobId} - {trayId}");
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_hubConnection != null)
+        {
+            _hubConnection.Remove("GeneralOPCNotification");
+            _hubConnection.Remove("NewTraySeeding");
+            _hubConnection.Remove("HeartBeatWorker");
+            _hubConnection.Remove("HeartBeat");
+        }
+    }
+}

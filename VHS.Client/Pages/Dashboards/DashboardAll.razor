@@ -9,15 +9,6 @@
     protected override async Task OnInitializedAsync()
     {
         PageTitleService.Title = "";
-
-        await ConnectNotification();
-    }
-
-    private async Task ConnectNotification()
-    {
-        _hubConnection.On<Guid, Guid>("Job", (jobId, trayId) =>
-        {
-            dc.LoadJobs();
-        });
+        PageTitleService.BackUrl = "";      
     }
 }

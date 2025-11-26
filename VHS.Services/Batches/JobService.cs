@@ -19,8 +19,8 @@ public interface IJobService
 		string? name = null,
 		string? batchName = null,
 		Guid? jobLocationTypeId = null,
-		DateTime? scheduledDateFrom = null,
-		DateTime? scheduledDateTo = null,
+        DateOnly? scheduledDateFrom = null,
+        DateOnly? scheduledDateTo = null,
 		IEnumerable<Guid>? statusIds = null);
 	Task<JobDTO?> GetJobByIdAsync(Guid id);
 	Task<JobDTO> CreateJobAsync(JobDTO dto, string userId);
@@ -37,7 +37,7 @@ public static class JobDTOSelect
 	{
 		var method = System.Reflection.MethodBase.GetCurrentMethod();
 		return data.TagWith(method.Name)
-			.Include(x => x.Batch.BatchPlan.Recipe.Product)
+			.Include(x => x.Batch.GrowPlan.Recipe.Product)
 			.Select(x => new JobDTO
 			{
 				Id = x.Id,
@@ -49,14 +49,15 @@ public static class JobDTOSelect
 				StatusId = x.StatusId,
 				BatchId = x.BatchId,
 				ScheduledDate = x.ScheduledDate,
-				BatchName = x.Batch != null ? x.Batch.BatchName : string.Empty,
+				BatchName = x.Batch != null ? x.Batch.Name : string.Empty,
 				LotReference = x.Batch != null ? x.Batch.LotReference : string.Empty,
 				AddedDateTime = x.AddedDateTime,
 				JobTypeId = x.JobTypeId,
 				JobTrays = x.JobTrays.Select(jt => new JobTrayDTO
 				{
 					Id = jt.Id,
-					TrayId = jt.TrayId,
+                    ParentJobTrayId = jt.ParentJobTrayId,
+                    TrayId = jt.TrayId,
 					DestinationLayerId = jt.DestinationLayerId,
 					DestinationLocation = jt.DestinationLocation,
 					OrderInJob = jt.OrderInJob,
@@ -77,20 +78,23 @@ public static class JobDTOSelect
 				Batch = x.Batch != null ? new BatchDTO
 				{
 					Id = x.Batch.Id,
-					BatchName = x.Batch.BatchName,
+					Name = x.Batch.Name,
 					LotReference = x.Batch.LotReference,
 					HarvestDate = x.Batch.HarvestDate,
 					SeedDate = x.Batch.SeedDate,
 					FarmId = x.Batch.FarmId,
-					Recipe = x.Batch.BatchPlan != null && x.Batch.BatchPlan.Recipe != null ? new RecipeDTO
+					Recipe = x.Batch.GrowPlan != null && x.Batch.GrowPlan.Recipe != null ? new RecipeDTO
 					{
-						Id = x.Batch.BatchPlan.Recipe.Id,
-						Name = x.Batch.BatchPlan.Recipe.Name,
+						Id = x.Batch.GrowPlan.Recipe.Id,
+						Name = x.Batch.GrowPlan.Recipe.Name,
+						GerminationDays = x.Batch.GrowPlan.Recipe.GerminationDays,
+						GrowDays = x.Batch.GrowPlan.Recipe.GrowDays,	
+						PropagationDays = x.Batch.GrowPlan.Recipe.PropagationDays,
 						Product = new ProductDTO
 						{
-							Id = x.Batch.BatchPlan.Recipe.Product.Id,
-							Name = x.Batch.BatchPlan.Recipe.Product.Name,
-							ProductCategoryId = x.Batch.BatchPlan.Recipe.Product.ProductCategoryId
+							Id = x.Batch.GrowPlan.Recipe.Product.Id,
+							Name = x.Batch.GrowPlan.Recipe.Product.Name,
+							ProductCategoryId = x.Batch.GrowPlan.Recipe.Product.ProductCategoryId
 						}
 					} : null
 				} : null
@@ -114,8 +118,8 @@ public class JobService : IJobService
 		string? name = null,
 		string? batchName = null,
 		Guid? jobLocationTypeId = null,
-		DateTime? scheduledDateFrom = null,
-		DateTime? scheduledDateTo = null,
+		DateOnly? scheduledDateFrom = null,
+        DateOnly? scheduledDateTo = null,
 		IEnumerable<Guid>? statusIds = null)
 	{
 		IQueryable<Job> query = _unitOfWork.Job.Query();
@@ -127,7 +131,7 @@ public class JobService : IJobService
 
 		if (!string.IsNullOrWhiteSpace(batchName))
 		{
-			query = query.Where(x => x.Batch != null && x.Batch.BatchName.Contains(batchName));
+			query = query.Where(x => x.Batch != null && x.Batch.Name.Contains(batchName));
 		}
 
 		if (jobLocationTypeId.HasValue && jobLocationTypeId.Value != Guid.Empty)
@@ -142,7 +146,7 @@ public class JobService : IJobService
 
 		if (scheduledDateTo.HasValue)
 		{
-			query = query.Where(x => x.ScheduledDate <= scheduledDateTo.Value.Date.AddDays(1).AddTicks(-1));
+			query = query.Where(x => x.ScheduledDate <= scheduledDateTo.Value.AddDays(1));
 		}
 
 		if (statusIds != null && statusIds.Any())
@@ -167,7 +171,7 @@ public class JobService : IJobService
 			.Query(x => x.JobLocationTypeId == GlobalConstants.JOBLOCATION_SEEDER)
 			.MapJobToDTO()
 			.AsNoTracking()
-			.OrderBy(x => x.ScheduledDate)
+			.OrderBy(x => x.ScheduledDate).ThenBy(x=>x.OrderOnDay)
 			.ToListAsync();
 
 		return jobs;
@@ -175,21 +179,22 @@ public class JobService : IJobService
 	public async Task<IEnumerable<JobDTO>> GetAllTransplantJobsAsync()
 	{
 		var jobs = await _unitOfWork.Job
-			.Query(x => x.JobLocationTypeId == GlobalConstants.JOBLOCATION_TRANSPLANTER)
+			.Query(x => x.JobLocationTypeId == GlobalConstants.JOBLOCATION_SEEDER && x.JobTypeId==GlobalConstants.JOBTYPE_EMPTY_TOTRANSPLANT)
 			.MapJobToDTO()
 			.AsNoTracking()
-			.OrderBy(x => x.ScheduledDate)
+			.OrderBy(x => x.ScheduledDate).ThenBy(x => x.OrderOnDay)
 			.ToListAsync();
 
 		return jobs;
 	}
+
 	public async Task<IEnumerable<JobDTO>> GetAllHarvestingJobsAsync()
 	{
 		var jobs = await _unitOfWork.Job
 			.Query(x => x.JobLocationTypeId == GlobalConstants.JOBLOCATION_HARVESTER)
 			.MapJobToDTO()
 			.AsNoTracking()
-			.OrderBy(x => x.ScheduledDate)
+			.OrderBy(x => x.ScheduledDate).ThenBy(x => x.OrderOnDay)
 			.ToListAsync();
 		return jobs;
 	}
@@ -206,10 +211,12 @@ public class JobService : IJobService
 
 	public async Task<JobDTO> CreateJobAsync(JobDTO dto, string userId)
 	{
-		var job = new Job
+        var newOrderOnDay = await _unitOfWork.Job.GetNextJobOrderOnDay(dto.JobLocationTypeId, dto.ScheduledDate);
+
+        var job = new Job
 		{
 			Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
-			OrderOnDay = dto.OrderOnDay,
+			OrderOnDay = newOrderOnDay,
 			Name = dto.Name,
 			TrayCount = dto.TrayCount,
 			ScheduledDate = dto.ScheduledDate,
@@ -238,9 +245,22 @@ public class JobService : IJobService
 				  ?? throw new Exception("Job not found");
 
 		var oldJobDto = await GetJobByIdAsync(job.Id);
+        var newOrderOnDay = await _unitOfWork.Job.GetNextJobOrderOnDay(dto.JobLocationTypeId, dto.ScheduledDate);
+		
+		var jobBatch = await _unitOfWork.Batch.GetByIdAsync(dto.BatchId ?? Guid.Empty);
+		var jobGrowPlan = jobBatch != null ? await _unitOfWork.GrowPlan.GetByIdAsync(jobBatch.GrowPlanId) : null;
+		var firstBatch = jobGrowPlan.Batches.OrderBy(b => b.SeedDate).First();
+		if (firstBatch.Id == jobBatch.Id)
+		{
+			jobBatch.SeedDate = dto.ScheduledDate;
+			jobBatch.ScheduledDateTime = dto.ScheduledDate.ToDateTime(new TimeOnly(0, 0));
+			jobGrowPlan.StartDate = dto.ScheduledDate;
+			_unitOfWork.Batch.Update(jobBatch);
+			_unitOfWork.GrowPlan.Update(jobGrowPlan);
+		}
 
-		job.OrderOnDay = dto.OrderOnDay;
-		job.Name = dto.Name;
+		job.OrderOnDay = newOrderOnDay;
+        job.Name = dto.Name;
 		job.TrayCount = dto.TrayCount;
 		job.ScheduledDate = dto.ScheduledDate;
 		job.ModifiedDateTime = DateTime.UtcNow;

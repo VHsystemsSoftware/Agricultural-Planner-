@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VHS.Data.Core.Models;  
 
@@ -26,4 +27,22 @@ public partial class Farm
     {
         AddedDateTime = DateTime.UtcNow;
     }
+
+	[NotMapped]
+	public virtual ICollection<Rack> Racks
+    {
+        get
+        {
+            return this.Floors.SelectMany(x=>x.Racks).ToList();
+        }
+    }
+
+	[NotMapped]
+	public virtual ICollection<TrayState> TrayStates
+	{
+		get
+		{
+			return this.Floors.SelectMany(x => x.TrayStates).ToList();
+		}
+	}
 }

@@ -25,7 +25,6 @@ public static class WaterZoneScheduleDWRHelper
         decimal hours = Convert.ToDecimal(duration.TotalHours);
         if (hours <= 0)
         {
-            Console.WriteLine("WaterZoneScheduleDWRHelper: Invalid watering duration. The start and end times are identical or too close.");
             return 0;
         }
 

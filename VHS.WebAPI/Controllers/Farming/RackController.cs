@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VHS.Services.Farming.DTO;
+using VHS.WebAPI.Authorization;
 
 namespace VHS.WebAPI.Controllers.Farming;
 
 [ApiController]
 [Route("api/rack")]
-[AllowAnonymous] // Temp allow
+[Authorize]
 public class RackController : ControllerBase
 {
     private readonly IRackService _rackService;
@@ -16,16 +17,16 @@ public class RackController : ControllerBase
         _rackService = rackService;
     }
 
-    [HttpGet]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
-    public async Task<IActionResult> GetAllRacks(Guid? farmId = null)
+    [HttpGet("list/{farmId}")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
+    public async Task<IActionResult> GetAllRacks(Guid farmId)
     {
         var racks = await _rackService.GetAllRacksAsync(farmId);
         return Ok(racks);
     }
 
     [HttpGet("type/{farmId}/{typeId}")]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
     public async Task<IActionResult> GetAllRacksByType(Guid farmId, Guid typeId)
     {
         var racks = await _rackService.GetAllRacksByTypeAsync(farmId, typeId);
@@ -33,7 +34,7 @@ public class RackController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
     public async Task<IActionResult> GetRackById(Guid id)
     {
         var rack = await _rackService.GetRackByIdAsync(id);
@@ -43,7 +44,7 @@ public class RackController : ControllerBase
     }
 
     [HttpPost]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
     public async Task<IActionResult> CreateRack([FromBody] RackDTO rackDto)
     {
         var createdRack = await _rackService.CreateRackAsync(rackDto);
@@ -51,7 +52,7 @@ public class RackController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
     public async Task<IActionResult> UpdateRack(Guid id, [FromBody] RackDTO rackDto)
     {
         if (id != rackDto.Id)
@@ -61,7 +62,7 @@ public class RackController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
     public async Task<IActionResult> DeleteRack(Guid id)
     {
         await _rackService.DeleteRackAsync(id);
@@ -69,6 +70,7 @@ public class RackController : ControllerBase
     }
 
     [HttpPut("enable/{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CanDefineRacksAndLayers)]
     public async Task<IActionResult> EnableRack(Guid id, [FromBody] EnabledDTO enabledDto)
     {
         if (id != enabledDto.Id)

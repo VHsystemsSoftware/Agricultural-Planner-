@@ -6,7 +6,6 @@ namespace VHS.WebAPI.Controllers.Produce;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporarily allowed
 public class RecipeWaterScheduleController : ControllerBase
 {
     private readonly IRecipeWaterScheduleService _scheduleService;
@@ -17,6 +16,7 @@ public class RecipeWaterScheduleController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllRecipeWaterSchedules(Guid? farmId = null)
     {
         var schedules = await _scheduleService.GetAllRecipeWaterSchedulesAsync(farmId);
@@ -24,6 +24,7 @@ public class RecipeWaterScheduleController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetRecipeWaterScheduleById(Guid id)
     {
         var schedule = await _scheduleService.GetRecipeWaterScheduleByIdAsync(id);
@@ -33,6 +34,7 @@ public class RecipeWaterScheduleController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> CreateRecipeWaterSchedule([FromBody] RecipeWaterScheduleDTO scheduleDto)
     {
         var createdSchedule = await _scheduleService.CreateRecipeWaterScheduleAsync(scheduleDto);
@@ -40,6 +42,7 @@ public class RecipeWaterScheduleController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> UpdateRecipeWaterSchedule(Guid id, [FromBody] RecipeWaterScheduleDTO scheduleDto)
     {
         if (id != scheduleDto.Id)
@@ -50,6 +53,7 @@ public class RecipeWaterScheduleController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> DeleteRecipeWaterSchedule(Guid id)
     {
         await _scheduleService.DeleteRecipeWaterScheduleAsync(id);

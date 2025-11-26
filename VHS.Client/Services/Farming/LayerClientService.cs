@@ -49,5 +49,10 @@ namespace VHS.Client.Services.Farming
             var response = await _httpClient.PutAsJsonAsync($"api/layer/enable/{dto.Id}", dto);
             response.EnsureSuccessStatusCode();
         }
-    }
+		public async Task BufferLayerLayerAsync(EnabledDTO dto)
+		{
+			var response = await _httpClient.PutAsJsonAsync($"api/layer/isbuffer/{dto.Id}", dto);
+			response.EnsureSuccessStatusCode();
+		}
+	}
 }

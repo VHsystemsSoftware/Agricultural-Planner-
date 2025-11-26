@@ -1,0 +1,106 @@
+﻿@page "/intransit"
+@inject IStringLocalizer<Shared> Localizer
+@inject PageTitleService PageTitleService
+@inject HubConnection _hubConnection
+@implements IDisposable
+
+<MudTable Items="@InTransiteTrayStateList.OrderByDescending(x => x.AddedDateTime)" Dense="true" Bordered="true" Hover="true">
+    <RowTemplate>
+        <MudTd>
+            <MudText>@($"{context.Tag}")</MudText>
+        </MudTd>
+        <MudTd>
+            @Localizer[context.From.ToString()]
+        </MudTd>
+        <MudTd>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" />
+        </MudTd>
+        <MudTd>
+            @Localizer[context.To.ToString()]
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<TrayStateIntransit> InTransiteTrayStateList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = Localizer["InTransitTrays"];
+        PageTitleService.BackUrl = "";
+
+        await LoadData();
+
+        await ConnectOPC();
+    }
+
+    private async Task LoadData()
+    {
+        List<TrayStateDTO> TrayStateList = await TrayStateClientService.GetCurrentStates();
+        InTransiteTrayStateList.Clear();
+
+        foreach (var ts in TrayStateList.Where(x=>x.FinishedDateTime == null))
+        {
+            if (ts.ArrivedPaternosterUp != null && ts.ArrivedGrow == null)
+            {
+                InTransiteTrayStateList.Add(new TrayStateIntransit() { AddedDateTime=ts.AddedDateTime, Tag = ts.TrayTag, From = Location.PATERNOSTER, To = Location.GROWRACK });
+            }
+            if (ts.WillBePushedOutPreGrow != null && ts.ArrivedPaternosterUp == null && ts.RecipeId.HasValue && ts.Recipe.Product.ProductCategoryId != GlobalConstants.PRODUCTCATEGORY_LETTUCE)
+            {
+                InTransiteTrayStateList.Add(new TrayStateIntransit() { AddedDateTime=ts.AddedDateTime, Tag = ts.TrayTag, From = Location.GERMINATIONRACK, To = Location.PATERNOSTER });
+            }
+            if (ts.WillBePushedOutPreGrow != null && ts.RecipeId.HasValue && ts.Recipe.Product.ProductCategoryId == GlobalConstants.PRODUCTCATEGORY_LETTUCE)
+            {
+                InTransiteTrayStateList.Add(new TrayStateIntransit() { AddedDateTime=ts.AddedDateTime, Tag = ts.TrayTag, From = Location.GROWRACK, To = Location.TRANSPLANTER });
+            }
+            if (ts.ArrivedAtSeeder != null && ts.ArrivedPaternosterUp == null && !ts.RecipeId.HasValue && ts.PreGrowLayerId == null && ts.GrowLayerId==null)
+            {
+                InTransiteTrayStateList.Add(new TrayStateIntransit() { AddedDateTime = ts.AddedDateTime, Tag = ts.TrayTag, From = Location.SEEDER, To = Location.WASHER });
+            }
+            if (ts.ArrivedAtSeeder != null && ts.ArrivedPaternosterUp == null && !ts.RecipeId.HasValue && ts.GrowLayerId == null && ts.WillBePushedOutPreGrow!=null)
+            {
+                InTransiteTrayStateList.Add(new TrayStateIntransit() { AddedDateTime = ts.AddedDateTime, Tag = ts.TrayTag, From = Location.GERMINATIONRACK, To = Location.WASHER });
+            }
+        }
+    }
+
+    private async Task ConnectOPC()
+    {
+        _hubConnection.On<Guid>("UpdateTrayState", (trayId) =>
+        {
+            Task.Run(async () =>
+         {
+             await LoadData();
+             StateHasChanged();
+         });
+        });
+    }
+
+
+    public class TrayStateIntransit
+    {
+        public string Tag { get; set; }
+        public Location From { get; set; }
+        public Location To { get; set; }
+        public DateTime AddedDateTime { get; set; }
+    }
+
+    public enum Location
+    {
+        SEEDER,
+        PATERNOSTER,
+        GROWRACK,
+        HARVESTER,
+        GERMINATIONRACK,
+        TRANSPLANTER,
+        WASHER
+    }
+
+    public void Dispose()
+    {
+        if (_hubConnection != null)
+        {
+            _hubConnection.Remove("UpdateTrayState");
+        }
+    }
+}

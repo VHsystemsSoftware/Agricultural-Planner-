@@ -1,40 +1,62 @@
-﻿@page "/users"
+@page "/users"
 @using VHS.Services.Auth.DTO
+@using VHS.Client.Services
 @using VHS.Client.Services.Auth
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IStringLocalizer<Shared> Localizer
 @inject RoleClientService RoleClientService
 @inject PageTitleService PageTitleService
 @inject UserClientService UserClientService
 @inject NavigationManager NavigationManager
 @inject IDialogService Dialog
 @inject ISnackbar Snackbar
+@inject PermissionService PermissionService
+@attribute [Authorize]
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudDataGrid T="UserDTO" Items="@_users" Hover="true" Loading="@_isLoading" LoadingProgressColor="Color.Info" Filterable="true" QuickFilter="@_quickFilter">
         <ToolBarContent>
-            <MudText Typo="Typo.h5" Color="Color.Default">Users</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Default">@Localizer["Users"]</MudText>
             <MudSpacer />
-            <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Immediate="true" />
-            <MudTooltip Text="Add New User" Arrow="true" Placement="Placement.Top">
-                <MudButton Class="ml-2" Variant="Variant.Outlined" Color="Color.Primary" OnClick="CreateUser">Add New</MudButton>
-            </MudTooltip>
+            <MudTextField @bind-Value="_searchString" Placeholder="@Localizer["Search"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Immediate="true" />
+            @if (PermissionService.CanCreateUsers)
+            {
+                <MudTooltip Text="@Localizer["AddNewUser"]" Arrow="true" Placement="Placement.Top">
+                    <MudButton Class="ml-2" Variant="Variant.Outlined" Color="Color.Primary" OnClick="CreateUser">@Localizer["AddNew"]</MudButton>
+                </MudTooltip>
+            }
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.FirstName" Title="First Name" Sortable="true" />
-            <PropertyColumn Property="x => x.LastName" Title="Last Name" Sortable="true" />
-            <PropertyColumn Property="x => x.Email" Title="Email" Sortable="true" />
-            <PropertyColumn Property="x => x.Role" Title="Role" />
-            <TemplateColumn Title="Actions" Sortable="false" CellClass="d-flex justify-end">
+            <PropertyColumn Property="x => x.FirstName" Title="@Localizer["FirstName"]" Sortable="true" />
+            <PropertyColumn Property="x => x.LastName" Title="@Localizer["LastName"]" Sortable="true" />
+            <PropertyColumn Property="x => x.Email" Title="@Localizer["Email"]" Sortable="true" />
+            <TemplateColumn Title="@Localizer["Role"]" SortBy="@(x => GetRoleSortOrder(x.Role))" Sortable="true">
                 <CellTemplate>
-                    <MudStack Row Spacing="1">
-                        <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditUser(context.Item))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteUser(context.Item))" />
-                        </MudTooltip>
-                    </MudStack>
+                    @GetRoleDisplayName(context.Item.Role)
                 </CellTemplate>
             </TemplateColumn>
+            @if (PermissionService.CanEditUsers || PermissionService.CanDeleteUsers)
+            {
+                <TemplateColumn Title="@Localizer["Actions"]" Sortable="false" CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudStack Row Spacing="1">
+                            @if (PermissionService.CanEditUsers)
+                            {
+                                <MudTooltip Text="@Localizer["Edit"]" Arrow="true" Placement="Placement.Top">
+                                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditUser(context.Item))" />
+                                </MudTooltip>
+                            }
+                            @if (PermissionService.CanDeleteUsers)
+                            {
+                                <MudTooltip Text="@Localizer["Delete"]" Arrow="true" Placement="Placement.Top">
+                                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" Disabled="IsGlobalAdminUser(context.Item)" OnClick="@(() => DeleteUser(context.Item))" />
+                                </MudTooltip>
+                            }
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            }
         </Columns>
         <PagerContent>
             <MudDataGridPager T="UserDTO" />
@@ -47,6 +69,22 @@
     private List<string> _roles = new();
     private bool _isLoading = true;
     private string _searchString = "";
+
+    private readonly Dictionary<string, string> _roleDisplayNames = new()
+    {
+        { "global_admin", "Global Administrator" },
+        { "admin", "Administrator" },
+        { "farm_manager", "Farm Manager" },
+        { "operator", "Operator" }
+    };
+
+    private readonly Dictionary<string, int> _roleSortOrder = new()
+    {
+        { "global_admin", 1 },
+        { "admin", 2 },
+        { "farm_manager", 3 },
+        { "operator", 4 }
+    };
 
     private Func<UserDTO, bool> _quickFilter => user =>
     {
@@ -63,7 +101,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PageTitleService.Title = "Users";
+        PageTitleService.Title = Localizer["Users"];
+        await PermissionService.CheckPermissions();
+        
+        if (!PermissionService.CanViewUsers)
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
         await Task.WhenAll(LoadUsers(), LoadRoles());
     }
 
@@ -73,11 +119,14 @@
         try
         {
             var userList = await UserClientService.GetAllUsersAsync();
-            _users = userList?.ToList() ?? new List<UserDTO>();
+            _users = (userList?.OrderBy(u => GetRoleSortOrder(u.Role))
+                                .ThenBy(u => u.LastName)
+                                .ThenBy(u => u.FirstName)
+                                .ToList()) ?? new List<UserDTO>();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed to load users: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Localizer["FailedToLoadUsers"]}: {ex.Message}", Severity.Error);
         }
         _isLoading = false;
     }
@@ -90,37 +139,49 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed to load roles: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Localizer["FailedToLoadRoles"]}: {ex.Message}", Severity.Error);
         }
     }
 
     private async Task CreateUser()
     {
+        if (!PermissionService.CanCreateUsers)
+        {
+            Snackbar.Add(Localizer["AccessDenied"], Severity.Error);
+            return;
+        }
+        
         var parameters = new DialogParameters { ["User"] = new UserDTO(), ["Roles"] = _roles };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
-        var dialog = await Dialog.ShowAsync<UserDialog>("Create New User", parameters, options);
-        var result = await dialog.Result;
+          var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
+          var dialog = await Dialog.ShowAsync<UserDialog>(Localizer["CreateNewUser"], parameters, options);
+          var result = await dialog.Result;
 
         if (!result.Canceled && result.Data is UserDTO newUser)
         {
             try
             {
                 await UserClientService.CreateUserAsync(newUser);
-                Snackbar.Add("User created successfully.", Severity.Success);
+                Snackbar.Add(Localizer["UserCreatedSuccess"], Severity.Success);
                 await LoadUsers();
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Failed to create user: {ex.Message}", Severity.Error);
+                Snackbar.Add($"{Localizer["FailedToCreateUser"]}: {ex.Message}", Severity.Error);
             }
         }
     }
 
     private async Task EditUser(UserDTO user)
     {
+        if (!PermissionService.CanEditUsers)
+        {
+            Snackbar.Add(Localizer["AccessDenied"], Severity.Error);
+            return;
+        }
+        
         var parameters = new DialogParameters { ["User"] = user, ["Roles"] = _roles };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
-        var dialog = await Dialog.ShowAsync<UserDialog>("Edit User", parameters, options);
+        var dialog = await Dialog.ShowAsync<UserDialog>(Localizer["EditUser"], parameters, options);
         var result = await dialog.Result;
 
         if (!result.Canceled && result.Data is UserDTO updatedUser)
@@ -128,22 +189,35 @@
             try
             {
                 await UserClientService.UpdateUserAsync(updatedUser);
-                Snackbar.Add("User updated successfully.", Severity.Success);
+                Snackbar.Add(Localizer["UserUpdatedSuccess"], Severity.Success);
                 await LoadUsers();
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Failed to update user: {ex.Message}", Severity.Error);
+                Snackbar.Add($"{Localizer["FailedToUpdateUser"]}: {ex.Message}", Severity.Error);
             }
         }
     }
 
     private async Task DeleteUser(UserDTO user)
     {
+        if (!PermissionService.CanDeleteUsers)
+        {
+            Snackbar.Add(Localizer["AccessDenied"], Severity.Error);
+            return;
+        }
+
+        var canDeleteThisUser = await PermissionService.CanDeleteSpecificUser(user.Id);
+        if (!canDeleteThisUser)
+        {
+            Snackbar.Add(Localizer["CannotDeleteYourself"], Severity.Error);
+            return;
+        }
+        
         var parameters = new DialogParameters
         {
-            { "ConfirmTitle", "Confirm User Deletion" },
-            { "ConfirmMessage", $"Are you sure you want to delete the user '{user.FirstName} {user.LastName}'?" }
+            { "ConfirmTitle", Localizer["ConfirmUserDeletion"].ToString() },
+            { "ConfirmMessage", Localizer.GetString("ConfirmDeleteUserMessage", $"{user.FirstName} {user.LastName}").ToString() }
         };
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.TopCenter };
         var dialog = await Dialog.ShowAsync<Confirm>("Confirm Delete", parameters, options);
@@ -154,13 +228,28 @@
             try
             {
                 await UserClientService.DeleteUserAsync(user.Id);
-                Snackbar.Add("User deleted successfully.", Severity.Success);
+                Snackbar.Add(Localizer["UserDeletedSuccess"], Severity.Success);
                 await LoadUsers();
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Failed to delete user: {ex.Message}", Severity.Error);
+                Snackbar.Add($"{Localizer["FailedToDeleteUser"]}: {ex.Message}", Severity.Error);
             }
         }
+    }
+    
+    private bool IsGlobalAdminUser(UserDTO user)
+    {
+        return user.Role == "global_admin";
+    }
+
+    private string GetRoleDisplayName(string roleKey)
+    {
+        return _roleDisplayNames.TryGetValue(roleKey, out var displayName) ? displayName : roleKey;
+    }
+
+    private int GetRoleSortOrder(string roleKey)
+    {
+        return _roleSortOrder.TryGetValue(roleKey, out var order) ? order : 999;
     }
 }

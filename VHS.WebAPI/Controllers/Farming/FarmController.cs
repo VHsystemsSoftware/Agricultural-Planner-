@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VHS.Services.Farming.DTO;
+using VHS.WebAPI.Authorization;
 
 namespace VHS.WebAPI.Controllers.Farming;
 
 [ApiController]
 [Route("api/farm")]
-[AllowAnonymous] // Temp allow
+[Authorize]
 public class FarmController : ControllerBase
 {
     private readonly IFarmService _farmService;
@@ -21,7 +22,7 @@ public class FarmController : ControllerBase
     }
 
     [HttpGet]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
     public async Task<IActionResult> GetAllFarms()
     {
         var farms = await _farmService.GetAllFarmsAsync();
@@ -29,7 +30,7 @@ public class FarmController : ControllerBase
     }
 
 	[HttpGet("simple")]
-	// [Authorize(Roles = "CompanyAdmin, Grower")]
+	[Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
 	public async Task<IActionResult> GetAllFarmsSimple()
 	{
 		var farms = await _farmService.GetAllFarmsSimpleAsync();
@@ -37,7 +38,7 @@ public class FarmController : ControllerBase
 	}
 
 	[HttpGet("{id}")]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
     public async Task<IActionResult> GetFarmById(Guid id)
     {
         var farm = await _farmService.GetFarmByIdAsync(id);
@@ -49,7 +50,7 @@ public class FarmController : ControllerBase
     }
 
     [HttpGet("types")]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageFarms)]
     public async Task<IActionResult> GetAllFarmTypes()
     {
         var farmTypes = await _farmService.GetAllFarmTypesAsync();
@@ -57,7 +58,7 @@ public class FarmController : ControllerBase
     }
 
     [HttpPost]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageFarms)]
     public async Task<IActionResult> CreateFarm([FromBody] FarmDTO farmDto)
     {
         var createdFarm = await _farmService.CreateFarmAsync(farmDto);
@@ -65,7 +66,7 @@ public class FarmController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageFarms)]
     public async Task<IActionResult> UpdateFarm(Guid id, [FromBody] FarmDTO farmDto)
     {
         if (id != farmDto.Id)
@@ -77,7 +78,7 @@ public class FarmController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageFarms)]
     public async Task<IActionResult> DeleteFarm(Guid id)
     {
         await _farmService.DeleteFarmAsync(id);
@@ -103,20 +104,32 @@ public class FarmController : ControllerBase
     //    return Ok(plan);
     //}
 
-    // GET api/farm/{farmId}/occupancy?asOf=2025-06-01
     [HttpGet("{farmId}/occupancy")]
-    public async Task<ActionResult<List<LayerOccupancyDTO>>> GetOccupancy(
-        Guid farmId,
-        [FromQuery] DateTime asOf)
+    [Authorize(Policy = AuthorizationPolicies.CanAccessOverviewOperations)]
+    public async Task<ActionResult<List<LayerOccupancyDTO>>> GetOccupancy(Guid farmId, [FromQuery] DateTime asOf, [FromQuery] bool includeSimulations = false)
     {
-        var result = await _farmService.GetLayerOccupancyAsync(farmId, asOf, null);
+        var result = await _farmService.GetLayerOccupancyAsync(farmId, DateOnly.FromDateTime(asOf), null, includeSimulations);
         return Ok(result);
     }
 
-	[HttpGet("{farmId}/rackoccupancy/{rackId}")]
-	public async Task<ActionResult<List<LayerOccupancyDTO>>> GetOccupancy(Guid farmId, Guid rackId)
-	{
-		var result = await _farmService.GetRackOccupancyAsync(farmId, rackId);
-		return Ok(result);
-	}
+    [HttpGet("{farmId}/rackoccupancy/{rackId}")]
+    [Authorize(Policy = AuthorizationPolicies.CanAccessOverviewOperations)]
+    public async Task<ActionResult<List<LayerOccupancyDTO>>> GetOccupancy(Guid farmId, Guid rackId, [FromQuery] DateTime? asOf, [FromQuery] bool includeSimulations = false)
+    {
+        var dateToUse = asOf ?? DateTime.UtcNow;
+        var result = await _farmService.GetRackOccupancyAsync(farmId, rackId, DateOnly.FromDateTime(dateToUse), includeSimulations);
+        return Ok(result);
+    }
+
+    [HttpPut("trays/destination")]
+    [Authorize(Policy = AuthorizationPolicies.FarmManagerAndAbove)]
+    public async Task<IActionResult> UpdateTrayDestination([FromBody] TrayDestinationDTO request)
+    {
+        if (request == null || !request.TrayStateIds.Any())
+        {
+            return BadRequest("Invalid request data.");
+        }
+        await _farmService.UpdateTrayDestinationsAsync(request.TrayStateIds, request.DestinationLayerId, request.RackTypeId);
+        return Ok();
+    }
 }

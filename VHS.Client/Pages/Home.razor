@@ -1,33 +1,296 @@
 ﻿@page "/"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using VHS.Client.Services.Home
+@using VHS.OPC.Models
+@using VHS.Services.Auth.DTO
+@using VHS.Services.Home.DTO
+@using VHS.Services.SystemMessages.DTO
+
+@inject IStringLocalizer<Shared> Localizer
+@inject LocalStorage LocalStorage
+@inject HomeClientService HomeClientService
 @inject PageTitleService PageTitleService
+@inject HubConnection HubConnection
+@inject NavigationManager NavigationManager
+@inject PermissionService PermissionService
+@inject SystemService SystemService
+@implements IDisposable
 
 <MudGrid>
     <MudItem xs="12" sm="6">
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.subtitle1">Planning</MudText>
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudStack>
+                <MudText Typo="Typo.h6">@Localizer["Planning"]</MudText>
+                @if (_planningStats == null)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                }
+                else
+                {
+                    <MudText><b>@Localizer["Occupancy"]</b></MudText>
+                    <div class="d-flex flex-row gap-4 justify-space-around">
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudProgressCircular Value="@_planningStats.GerminationOccupancy" Color="Color.Info" Size="Size.Large">
+                                @($"{_planningStats.GerminationOccupancy:F2}%")
+                            </MudProgressCircular>
+                            <MudText Typo="Typo.caption">@Localizer["Germination"]</MudText>
+                        </MudStack>
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudProgressCircular Value="@_planningStats.PropagationOccupancy" Color="Color.Warning" Size="Size.Large">
+                                @($"{_planningStats.PropagationOccupancy:F2}%")
+                            </MudProgressCircular>
+                            <MudText Typo="Typo.caption">@Localizer["Propagation"]</MudText>
+                        </MudStack>
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudProgressCircular Value="@_planningStats.GrowingOccupancy" Color="Color.Success" Size="Size.Large">
+                                @($"{_planningStats.GrowingOccupancy:F2}%")
+                            </MudProgressCircular>
+                            <MudText Typo="Typo.caption">@Localizer["Growing"]</MudText>
+                        </MudStack>
+                    </div>
+
+                    <MudDivider Class="my-2" />
+
+                    @* <MudSimpleTable Dense="true" Hover="true">
+                        <tbody>
+                            <tr>
+                                <td>Finished Today</td>
+                                <td>@($"{_planningStats.PercentageFinishedToday:F2} %")</td>
+                            </tr>
+                            <tr>
+                                <td>Planned Push Out</td>
+                                <td>@($"{_planningStats.PercentagePlannedPushOut:F2} %")</td>
+                            </tr>
+                            <tr>
+                                <td><b>Difference</b></td>
+                                <td>
+                                    <MudText Color="@(_planningStats.Difference > 0 ? Color.Success : Color.Error)">
+                                        <b>@($"{_planningStats.Difference:F2} %")</b>
+                                    </MudText>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable> *@
+                    @if (PermissionService.CanAccessPlanningOperations)
+                    {
+                        <MudButton Href="/batches/plans" Variant="Variant.Text" Color="Color.Primary" FullWidth="true" Class="mt-2">@Localizer["GoToJobPlans"]</MudButton>
+                    }
+                }
+            </MudStack>
         </MudPaper>
     </MudItem>
+
     <MudItem xs="12" sm="6">
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.subtitle1">Operational</MudText>
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudStack>
+                <MudText Typo="Typo.h6">@Localizer["Operational"]</MudText>
+                @if (_operationalStats == null)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                }
+                else
+                {
+                    <MudText><b>@Localizer["JobsReadyToday"]</b></MudText>
+                    <MudList T="KeyValuePair<string, int>" Clickable="false" Dense="true">
+                        @foreach (var jobType in _operationalStats.JobsToday)
+                        {
+                            <MudListItem T="KeyValuePair<string, int>">
+                                @jobType.Key: <MudChip T="int" Color="Color.Primary" Size="Size.Small">@jobType.Value</MudChip>
+                            </MudListItem>
+                        }
+                    </MudList>
+                    @if (PermissionService.CanAccessPlanningOperations)
+                    {
+                        <MudButton Href="/batches/jobs" Variant="Variant.Text" Color="Color.Primary" FullWidth="true" Class="mt-2">@Localizer["GoToJobs"]</MudButton>
+                    }
+                }
+            </MudStack>
         </MudPaper>
     </MudItem>
+
     <MudItem xs="12" sm="6">
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.subtitle1">Results</MudText>
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudStack>
+                @if (_resultsStats == null)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead>
+                            <tr>
+                                <td></td>
+                                <td>@Localizer["Today"]</td>
+                                <td>@Localizer["ThisMonth"]</td>
+                                <td>@Localizer["ThisYear"]</td>
+                                <td></td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><h3>@Localizer["SeederPassed"]</h3></td>
+                                <td>@_resultsStats.SeederToday</td>
+                                <td>@_resultsStats.SeederThisMonth</td>
+                                <td>@_resultsStats.SeederThisYear</td>
+                            </tr>
+                            <tr>
+                                <td><h3>@Localizer["PaternosterUp"]</h3></td>
+                                <td>@_resultsStats.PaternosterUpToday</td>
+                                <td>@_resultsStats.PaternosterUpThisMonth</td>
+                                <td>@_resultsStats.PaternosterUpThisYear</td>
+                            </tr>
+                            <tr>
+                                <td><h3>@Localizer["Washed"]</h3></td>
+                                <td>@_resultsStats.WashedToday</td>
+                                <td>@_resultsStats.WashedThisMonth</td>
+                                <td>@_resultsStats.WashedThisYear</td>
+                            </tr>
+                            <tr>
+                                <td><h3>@Localizer["Harvest"]</h3></td>
+                                <td>@($"{_resultsStats.TotalWeightToday:F2} {_resultsStats.WeightUnit} ({@_resultsStats.HarvestedToday})")</td>
+                                <td>@($"{_resultsStats.TotalWeightThisMonth:F2} {_resultsStats.WeightUnit} ({@_resultsStats.HarvestedThisMonth})")</td>
+                                <td>@($"{_resultsStats.TotalWeightThisYear:F2} {_resultsStats.WeightUnit} ({@_resultsStats.HarvestedThisYear})")</td>
+                            </tr>
+
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudSpacer />
+                    <MudDivider Class="my-2" />
+                    <h3>@Localizer["AverageWeightPerTray"]</h3>
+                    @($"{_resultsStats.AverageWeightPerTray:F2} {_resultsStats.WeightUnit}")
+                    <MudSpacer />
+                    <MudDivider Class="my-2" />
+                    @if (_resultsStats.WeightMinusAlert)
+                    {
+                        <MudText Color="Color.Error">@Localizer["WeightLowAlert"]</MudText>
+                        <MudSpacer />
+                        <MudDivider Class="my-2" />
+                    }
+
+                    @if (PermissionService.CanAccessPlanningOperations)
+                    {
+                        <MudButton Href="/results" Variant="Variant.Text" Color="Color.Primary" FullWidth="true" Class="mt-2">@Localizer["GoToResults"]</MudButton>
+                    }
+                }
+            </MudStack>
         </MudPaper>
     </MudItem>
+
     <MudItem xs="12" sm="6">
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.subtitle1">System messages</MudText>
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudStack>
+                <MudText Typo="Typo.h6">@Localizer["SystemMessagesLast24h"]</MudText>
+                @if (_systemMessages == null)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                }
+                else
+                {
+                    <MudTable Items="_systemMessages" Dense="true" Hover="true" FixedHeader="true" Style="max-height: 350px; overflow-y: auto;">
+                        <HeaderContent>
+                            <MudTh>@Localizer["Time"]</MudTh>
+                            <MudTh>@Localizer["Severity"]</MudTh>
+                            <MudTh>@Localizer["Message"]</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Time">@context.AddedDateTime.ToString("HH:mm")</MudTd>
+                            <MudTd DataLabel="Severity">
+                                @{
+                                    var severityGuid = context.Severity;
+                                    var chipColor = severityGuid == GlobalConstants.SYSTEM_MESSAGE_SEVERITY_ERROR
+                                    ? Color.Error
+                                    : severityGuid == GlobalConstants.SYSTEM_MESSAGE_SEVERITY_WARNING
+                                    ? Color.Warning
+                                    : Color.Info;
+                                }
+                                <MudChip T="Guid"
+                                         Label="true"
+                                         Color="@chipColor"
+                                         Size="Size.Small">
+                                    @GetSeverityText(severityGuid)
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Message">@context.Message</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudStack>
         </MudPaper>
     </MudItem>
+
+    <Alarms/>
 </MudGrid>
 
 
 @code {
-    protected override void OnInitialized()
+    private PlanningStatsDTO? _planningStats;
+    private OperationalStatsDTO? _operationalStats;
+    private ResultsStatsDTO? _resultsStats;
+    private List<SystemMessageDTO>? _systemMessages;
+
+
+    protected override async Task OnInitializedAsync()
     {
         PageTitleService.Title = "";
+        PageTitleService.BackUrl = "";
+
+        _planningStats = await HomeClientService.GetPlanningStatsAsync();
+        _operationalStats = await HomeClientService.GetOperationalStatsAsync();
+        _resultsStats = await HomeClientService.GetResultsStatsAsync();
+
+        await PermissionService.CheckPermissions();
+
+        // var userJson = await LocalStorage.GetStateAsync("VHS_USER");
+        // if (!string.IsNullOrWhiteSpace(userJson))
+        // {
+        //     var storedUser = JsonSerializer.Deserialize<UserDTO>(userJson);
+        //     if (storedUser != null)
+        //     {
+        //         _resultsStats = await HomeClientService.GetResultsStatsAsync(storedUser.Id);
+        //     }
+        // }
+        // else
+        // {
+        //     _resultsStats = new ResultsStatsDTO();
+        // }
+
+        _systemMessages = await HomeClientService.GetSystemMessagesAsync();
+
+        SetupSignalRListeners();
     }
+
+    private void SetupSignalRListeners()
+    {
+        if (HubConnection is not null)
+        {
+            HubConnection.On("RefreshHome", async () =>
+            {
+                _planningStats = await HomeClientService.GetPlanningStatsAsync();
+                _operationalStats = await HomeClientService.GetOperationalStatsAsync();
+                _resultsStats = await HomeClientService.GetResultsStatsAsync();
+                _systemMessages = await HomeClientService.GetSystemMessagesAsync();
+                await InvokeAsync(StateHasChanged);
+            });
+        }
+
+    }
+
+    public void Dispose()
+    {
+        if (HubConnection != null)
+        {
+            HubConnection.Remove("RefreshHome");
+        }
+    }
+
+    private string GetSeverityText(Guid severity)
+    {
+        if (severity == GlobalConstants.SYSTEM_MESSAGE_SEVERITY_ERROR) return Localizer["Error"];
+        if (severity == GlobalConstants.SYSTEM_MESSAGE_SEVERITY_WARNING) return Localizer["Warning"];
+        if (severity == GlobalConstants.SYSTEM_MESSAGE_SEVERITY_INFO) return Localizer["Info"];
+        return Localizer["Unknown"];
+    }
+
 }

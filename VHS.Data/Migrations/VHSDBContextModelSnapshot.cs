@@ -17,7 +17,7 @@ namespace VHS.Data.Core.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.9")
                 .HasAnnotation("Proxies:ChangeTracking", false)
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
@@ -34,21 +34,17 @@ namespace VHS.Data.Core.Migrations
                     b.Property<DateTime>("AddedDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("BatchName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("BatchPlanId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("DeletedDateTime")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("FarmId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("HarvestDate")
-                        .HasColumnType("datetime2");
+                    b.Property<Guid>("GrowPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("HarvestDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("LotReference")
                         .HasColumnType("nvarchar(max)");
@@ -56,11 +52,15 @@ namespace VHS.Data.Core.Migrations
                     b.Property<DateTime>("ModifiedDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("ScheduledDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("SeedDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly?>("SeedDate")
+                        .HasColumnType("date");
 
                     b.Property<Guid>("StatusId")
                         .HasColumnType("uniqueidentifier");
@@ -70,61 +70,11 @@ namespace VHS.Data.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BatchPlanId");
-
                     b.HasIndex("FarmId");
+
+                    b.HasIndex("GrowPlanId");
 
                     b.ToTable("Batches", (string)null);
-                });
-
-            modelBuilder.Entity("VHS.Data.Core.Models.BatchPlan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AddedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("BatchPlanTypeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("DaysForPlan")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("DeletedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("FarmId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid?>("RecipeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("StatusId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("TraysPerDay")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FarmId");
-
-                    b.HasIndex("RecipeId");
-
-                    b.ToTable("BatchPlans", (string)null);
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.BatchRow", b =>
@@ -258,6 +208,59 @@ namespace VHS.Data.Core.Migrations
                     b.ToTable("Floors", (string)null);
                 });
 
+            modelBuilder.Entity("VHS.Data.Core.Models.GrowPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AddedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DaysForPlan")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeletedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("FarmId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GrowPlanTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("RecipeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TraysPerDay")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FarmId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("GrowPlans", (string)null);
+                });
+
             modelBuilder.Entity("VHS.Data.Core.Models.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -295,8 +298,8 @@ namespace VHS.Data.Core.Migrations
                     b.Property<bool>("Paused")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime>("ScheduledDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("ScheduledDate")
+                        .HasColumnType("date");
 
                     b.Property<Guid>("StatusId")
                         .HasColumnType("uniqueidentifier");
@@ -330,9 +333,6 @@ namespace VHS.Data.Core.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("OrderInJob")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("OrderOnLayer")
                         .HasColumnType("int");
 
                     b.Property<Guid?>("ParentJobTrayId")
@@ -375,6 +375,12 @@ namespace VHS.Data.Core.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsBufferLayer")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsTransportLayer")
                         .HasColumnType("bit");
 
                     b.Property<int>("Number")
@@ -459,6 +465,29 @@ namespace VHS.Data.Core.Migrations
                     b.HasIndex("LightZoneId");
 
                     b.ToTable("LightZoneSchedules", (string)null);
+                });
+
+            modelBuilder.Entity("VHS.Data.Core.Models.Note", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AddedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId");
+
+                    b.ToTable("Notes", (string)null);
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.Product", b =>
@@ -801,35 +830,17 @@ namespace VHS.Data.Core.Migrations
 
                     b.HasIndex("GrowLayerId");
 
+                    b.HasIndex("GrowTransportLayerId");
+
                     b.HasIndex("PreGrowLayerId");
+
+                    b.HasIndex("PreGrowTransportLayerId");
 
                     b.HasIndex("RecipeId");
 
                     b.HasIndex("TrayId");
 
                     b.ToTable("TrayStates", (string)null);
-                });
-
-            modelBuilder.Entity("VHS.Data.Core.Models.TrayStateAudit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AddedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("OPCAuditId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TrayStateId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrayStateId");
-
-                    b.ToTable("TrayStateAudits", (string)null);
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.WaterZone", b =>
@@ -910,39 +921,21 @@ namespace VHS.Data.Core.Migrations
 
             modelBuilder.Entity("VHS.Data.Core.Models.Batch", b =>
                 {
-                    b.HasOne("VHS.Data.Core.Models.BatchPlan", "BatchPlan")
+                    b.HasOne("VHS.Data.Core.Models.Farm", "Farm")
+                        .WithMany()
+                        .HasForeignKey("FarmId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("VHS.Data.Core.Models.GrowPlan", "GrowPlan")
                         .WithMany("Batches")
-                        .HasForeignKey("BatchPlanId")
+                        .HasForeignKey("GrowPlanId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
-
-                    b.HasOne("VHS.Data.Core.Models.Farm", "Farm")
-                        .WithMany()
-                        .HasForeignKey("FarmId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("BatchPlan");
-
-                    b.Navigation("Farm");
-                });
-
-            modelBuilder.Entity("VHS.Data.Core.Models.BatchPlan", b =>
-                {
-                    b.HasOne("VHS.Data.Core.Models.Farm", "Farm")
-                        .WithMany()
-                        .HasForeignKey("FarmId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("VHS.Data.Core.Models.Recipe", "Recipe")
-                        .WithMany("BatchPlans")
-                        .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Farm");
 
-                    b.Navigation("Recipe");
+                    b.Navigation("GrowPlan");
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.BatchRow", b =>
@@ -962,7 +955,7 @@ namespace VHS.Data.Core.Migrations
                         .HasForeignKey("LayerId");
 
                     b.HasOne("VHS.Data.Core.Models.Rack", "Rack")
-                        .WithMany()
+                        .WithMany("BatchRows")
                         .HasForeignKey("RackId");
 
                     b.Navigation("Batch");
@@ -994,6 +987,24 @@ namespace VHS.Data.Core.Migrations
                         .IsRequired();
 
                     b.Navigation("Farm");
+                });
+
+            modelBuilder.Entity("VHS.Data.Core.Models.GrowPlan", b =>
+                {
+                    b.HasOne("VHS.Data.Core.Models.Farm", "Farm")
+                        .WithMany()
+                        .HasForeignKey("FarmId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("VHS.Data.Core.Models.Recipe", "Recipe")
+                        .WithMany("BatchPlans")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Farm");
+
+                    b.Navigation("Recipe");
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.Job", b =>
@@ -1167,10 +1178,18 @@ namespace VHS.Data.Core.Migrations
                         .HasForeignKey("GrowLayerId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("VHS.Data.Core.Models.Layer", "GrowTransportLayer")
+                        .WithMany()
+                        .HasForeignKey("GrowTransportLayerId");
+
                     b.HasOne("VHS.Data.Core.Models.Layer", "PreGrowLayer")
                         .WithMany("PreGrowTrayStates")
                         .HasForeignKey("PreGrowLayerId")
                         .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("VHS.Data.Core.Models.Layer", "PreGrowTransportLayer")
+                        .WithMany()
+                        .HasForeignKey("PreGrowTransportLayerId");
 
                     b.HasOne("VHS.Data.Core.Models.Recipe", "Recipe")
                         .WithMany()
@@ -1185,22 +1204,15 @@ namespace VHS.Data.Core.Migrations
 
                     b.Navigation("GrowLayer");
 
+                    b.Navigation("GrowTransportLayer");
+
                     b.Navigation("PreGrowLayer");
+
+                    b.Navigation("PreGrowTransportLayer");
 
                     b.Navigation("Recipe");
 
                     b.Navigation("Tray");
-                });
-
-            modelBuilder.Entity("VHS.Data.Core.Models.TrayStateAudit", b =>
-                {
-                    b.HasOne("VHS.Data.Core.Models.TrayState", "TrayState")
-                        .WithMany("TrayStateAudits")
-                        .HasForeignKey("TrayStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TrayState");
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.WaterZone", b =>
@@ -1232,11 +1244,6 @@ namespace VHS.Data.Core.Migrations
                     b.Navigation("Jobs");
                 });
 
-            modelBuilder.Entity("VHS.Data.Core.Models.BatchPlan", b =>
-                {
-                    b.Navigation("Batches");
-                });
-
             modelBuilder.Entity("VHS.Data.Core.Models.Farm", b =>
                 {
                     b.Navigation("Floors");
@@ -1250,6 +1257,11 @@ namespace VHS.Data.Core.Migrations
             modelBuilder.Entity("VHS.Data.Core.Models.Floor", b =>
                 {
                     b.Navigation("Racks");
+                });
+
+            modelBuilder.Entity("VHS.Data.Core.Models.GrowPlan", b =>
+                {
+                    b.Navigation("Batches");
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.Job", b =>
@@ -1271,6 +1283,8 @@ namespace VHS.Data.Core.Migrations
 
             modelBuilder.Entity("VHS.Data.Core.Models.Rack", b =>
                 {
+                    b.Navigation("BatchRows");
+
                     b.Navigation("Layers");
                 });
 
@@ -1286,11 +1300,6 @@ namespace VHS.Data.Core.Migrations
             modelBuilder.Entity("VHS.Data.Core.Models.Tray", b =>
                 {
                     b.Navigation("TrayStates");
-                });
-
-            modelBuilder.Entity("VHS.Data.Core.Models.TrayState", b =>
-                {
-                    b.Navigation("TrayStateAudits");
                 });
 
             modelBuilder.Entity("VHS.Data.Core.Models.WaterZone", b =>

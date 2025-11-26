@@ -1,0 +1,1314 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DarkMode" xml:space="preserve">
+    <value>Donkere Modus</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Taal</value>
+  </data>
+  <data name="LightMode" xml:space="preserve">
+    <value>Lichtmode</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Uitloggen</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Profiel</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Thema</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Overzicht</value>
+  </data>
+  <data name="ClientsContracts" xml:space="preserve">
+    <value>Klanten &amp; Contracten</value>
+  </data>
+  <data name="OrdersPrognoses" xml:space="preserve">
+    <value>Bestellingen &amp; Prognoses</value>
+  </data>
+  <data name="GrowSchedule" xml:space="preserve">
+    <value>Teeltschema</value>
+  </data>
+  <data name="CapacityAnalysis" xml:space="preserve">
+    <value>Capaciteitsanalyse</value>
+  </data>
+  <data name="ProduceRecipes" xml:space="preserve">
+    <value>Productie &amp; Recepten</value>
+  </data>
+  <data name="SystemSettings" xml:space="preserve">
+    <value>Systeeminstellingen</value>
+  </data>
+  <data name="FarmOverview" xml:space="preserve">
+    <value>Bedrijfsoverzicht</value>
+  </data>
+  <data name="DashboardSeeder" xml:space="preserve">
+    <value>Zaaier</value>
+  </data>
+  <data name="DashboardTransplanter" xml:space="preserve">
+    <value>Transplanter</value>
+  </data>
+  <data name="DashboardHarvester" xml:space="preserve">
+    <value>Oogsten</value>
+  </data>
+  <data name="DashboardTransport" xml:space="preserve">
+    <value>Transport</value>
+  </data>
+  <data name="DashboardAll" xml:space="preserve">
+    <value>Alle taken</value>
+  </data>
+  <data name="JobPlans" xml:space="preserve">
+    <value>Taken planning</value>
+  </data>
+  <data name="Jobs" xml:space="preserve">
+    <value>Taken</value>
+  </data>
+  <data name="RackOccupancy" xml:space="preserve">
+    <value>Rek Vulling</value>
+  </data>
+  <data name="GrowPlans" xml:space="preserve">
+    <value>Groei planning</value>
+  </data>
+  <data name="Racks" xml:space="preserve">
+    <value>Rekken</value>
+  </data>
+  <data name="Batches" xml:space="preserve">
+    <value>Batches</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="InTransit" xml:space="preserve">
+    <value>Bewegingen</value>
+  </data>
+  <data name="Results" xml:space="preserve">
+    <value>Resultaten</value>
+  </data>
+  <data name="OPCStats" xml:space="preserve">
+    <value>OPC Statistieken</value>
+  </data>
+  <data name="FirstName" xml:space="preserve">
+    <value>Voornaam</value>
+  </data>
+  <data name="LastName" xml:space="preserve">
+    <value>Achternaam</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Preferences" xml:space="preserve">
+    <value>Voorkeuren</value>
+  </data>
+  <data name="PreferencesSubtitle" xml:space="preserve">
+    <value>Pas uw applicatie-ervaring aan.</value>
+  </data>
+  <data name="ProfileSubtitle" xml:space="preserve">
+    <value>Werk uw persoonlijke gegevens bij.</value>
+  </data>
+  <data name="MeasurementSystem" xml:space="preserve">
+    <value>Meetsysteem</value>
+  </data>
+  <data name="WeightUnit" xml:space="preserve">
+    <value>Gewichtseenheid</value>
+  </data>
+  <data name="LengthUnit" xml:space="preserve">
+    <value>Lengte-eenheid</value>
+  </data>
+  <data name="TemperatureUnit" xml:space="preserve">
+    <value>Temperatuureenheid</value>
+  </data>
+  <data name="VolumeUnit" xml:space="preserve">
+    <value>Volume-eenheid</value>
+  </data>
+  <data name="SaveSettings" xml:space="preserve">
+    <value>Instellingen Opslaan</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Acties</value>
+  </data>
+  <data name="AddNewBatch" xml:space="preserve">
+    <value>Nieuwe Batch Toevoegen</value>
+  </data>
+  <data name="AddNewJob" xml:space="preserve">
+    <value>Nieuwe Taak Toevoegen</value>
+  </data>
+  <data name="AddNewPlan" xml:space="preserve">
+    <value>Nieuw Plan Toevoegen</value>
+  </data>
+  <data name="Batch" xml:space="preserve">
+    <value>Batch</value>
+  </data>
+  <data name="BatchAddedSuccess" xml:space="preserve">
+    <value>Batch succesvol toegevoegd</value>
+  </data>
+  <data name="BatchDeletedSuccess" xml:space="preserve">
+    <value>Batch succesvol verwijderd</value>
+  </data>
+  <data name="BatchName" xml:space="preserve">
+    <value>Batchnaam</value>
+  </data>
+  <data name="BatchUpdatedSuccess" xml:space="preserve">
+    <value>Batch succesvol bijgewerkt</value>
+  </data>
+  <data name="CalendarView" xml:space="preserve">
+    <value>Kalenderweergave</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annuleren</value>
+  </data>
+  <data name="ClearFilters" xml:space="preserve">
+    <value>Filters Wissen</value>
+  </data>
+  <data name="Completed" xml:space="preserve">
+    <value>Voltooid</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>Verwijderen Bevestigen</value>
+  </data>
+  <data name="ConfirmDeleteBatchMessage" xml:space="preserve">
+    <value>Weet u zeker dat u deze batch wilt verwijderen?</value>
+  </data>
+  <data name="ConfirmDeleteJobMessage" xml:space="preserve">
+    <value>Weet u zeker dat u deze taak wilt verwijderen?</value>
+  </data>
+  <data name="ConfirmDeletePlanMessage" xml:space="preserve">
+    <value>Weet u zeker dat u dit plan wilt verwijderen?</value>
+  </data>
+  <data name="ConfirmDuplicate" xml:space="preserve">
+    <value>Dupliceren Bevestigen</value>
+  </data>
+  <data name="ConfirmDuplicatePlanMessage" xml:space="preserve">
+    <value>Weet u zeker dat u dit plan wilt dupliceren?</value>
+  </data>
+  <data name="ConfirmStart" xml:space="preserve">
+    <value>Start Bevestigen</value>
+  </data>
+  <data name="ConfirmStartPlanMessage" xml:space="preserve">
+    <value>Weet u zeker dat u dit plan wilt starten? Deze actie kan niet ongedaan worden gemaakt.</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="Duplicate" xml:space="preserve">
+    <value>Dupliceren</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Bewerken</value>
+  </data>
+  <data name="EditBatch" xml:space="preserve">
+    <value>Batch Bewerken</value>
+  </data>
+  <data name="EditJob" xml:space="preserve">
+    <value>Taak Bewerken</value>
+  </data>
+  <data name="EditPlan" xml:space="preserve">
+    <value>Plan Bewerken</value>
+  </data>
+  <data name="EnterBatchName" xml:space="preserve">
+    <value>Batchnaam Invoeren</value>
+  </data>
+  <data name="EnterJobName" xml:space="preserve">
+    <value>Taaknaam Invoeren</value>
+  </data>
+  <data name="EnterPlanName" xml:space="preserve">
+    <value>Plannaam Invoeren</value>
+  </data>
+  <data name="FailedToDuplicatePlan" xml:space="preserve">
+    <value>Dupliceren van plan mislukt.</value>
+  </data>
+  <data name="FailedToLoadPlan" xml:space="preserve">
+    <value>Laden van plan mislukt.</value>
+  </data>
+  <data name="FailedToStartPlan" xml:space="preserve">
+    <value>Starten van plan mislukt</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="FilterByBatchName" xml:space="preserve">
+    <value>Filter op Batchnaam</value>
+  </data>
+  <data name="FilterByJobName" xml:space="preserve">
+    <value>Filter op Taaknaam</value>
+  </data>
+  <data name="FilterByLocation" xml:space="preserve">
+    <value>Filter op Locatie</value>
+  </data>
+  <data name="FilterByName" xml:space="preserve">
+    <value>Filter op Naam</value>
+  </data>
+  <data name="FilterByPlanName" xml:space="preserve">
+    <value>Filter op Plannaam</value>
+  </data>
+  <data name="FilterByProduct" xml:space="preserve">
+    <value>Filter op Product</value>
+  </data>
+  <data name="FilterByRecipe" xml:space="preserve">
+    <value>Filter op Recept</value>
+  </data>
+  <data name="Filters" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="Finished" xml:space="preserve">
+    <value>Voltooid</value>
+  </data>
+  <data name="HarvestDate" xml:space="preserve">
+    <value>Oogstdatum</value>
+  </data>
+  <data name="HarvestDateRange" xml:space="preserve">
+    <value>Oogstdatumbereik</value>
+  </data>
+  <data name="InProgress" xml:space="preserve">
+    <value>In Uitvoering</value>
+  </data>
+  <data name="JobAddedSuccess" xml:space="preserve">
+    <value>Taak succesvol toegevoegd</value>
+  </data>
+  <data name="JobDeletedSuccess" xml:space="preserve">
+    <value>Taak succesvol verwijderd</value>
+  </data>
+  <data name="JobUpdatedSuccess" xml:space="preserve">
+    <value>Taak succesvol bijgewerkt</value>
+  </data>
+  <data name="LoadingData" xml:space="preserve">
+    <value>Gegevens laden...</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Locatie</value>
+  </data>
+  <data name="LotReference" xml:space="preserve">
+    <value>Lotreferentie</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Naam</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>Nieuw</value>
+  </data>
+  <data name="NewPlan" xml:space="preserve">
+    <value>Nieuw Plan</value>
+  </data>
+  <data name="NoBatchesFound" xml:space="preserve">
+    <value>Geen batches gevonden.</value>
+  </data>
+  <data name="NoJobsFound" xml:space="preserve">
+    <value>Geen taken gevonden.</value>
+  </data>
+  <data name="NoPlansFound" xml:space="preserve">
+    <value>Geen plannen gevonden.</value>
+  </data>
+  <data name="NoRecordsFound" xml:space="preserve">
+    <value>Geen records gevonden.</value>
+  </data>
+  <data name="Notes" xml:space="preserve">
+    <value>Notities</value>
+  </data>
+  <data name="NotesUpdatedSuccess" xml:space="preserve">
+    <value>Notities succesvol bijgewerkt</value>
+  </data>
+  <data name="NotStarted" xml:space="preserve">
+    <value>Niet gestart</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Plan" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="PlanAddedSuccess" xml:space="preserve">
+    <value>Plan succesvol toegevoegd</value>
+  </data>
+  <data name="PlanDeletedSuccess" xml:space="preserve">
+    <value>Plan succesvol verwijderd</value>
+  </data>
+  <data name="PlanDuplicatedSuccess" xml:space="preserve">
+    <value>Plan succesvol gedupliceerd.</value>
+  </data>
+  <data name="PlanStartedSuccess" xml:space="preserve">
+    <value>Plan succesvol gestart.</value>
+  </data>
+  <data name="PlanUpdatedSuccess" xml:space="preserve">
+    <value>Plan succesvol bijgewerkt</value>
+  </data>
+  <data name="Product" xml:space="preserve">
+    <value>Product</value>
+  </data>
+  <data name="Recipe" xml:space="preserve">
+    <value>Recept</value>
+  </data>
+  <data name="RunOrder" xml:space="preserve">
+    <value>Volgorde</value>
+  </data>
+  <data name="ScheduledDate" xml:space="preserve">
+    <value>Geplande Datum</value>
+  </data>
+  <data name="ScheduledDateRange" xml:space="preserve">
+    <value>Geplande Datums</value>
+  </data>
+  <data name="SeedDate" xml:space="preserve">
+    <value>Zaaidatum</value>
+  </data>
+  <data name="SeedDateRange" xml:space="preserve">
+    <value>Zaaidatumbereik</value>
+  </data>
+  <data name="SeedIdentifier" xml:space="preserve">
+    <value>Zaad</value>
+  </data>
+  <data name="SelectLocation" xml:space="preserve">
+    <value>Selecteer een Locatie</value>
+  </data>
+  <data name="SelectProduct" xml:space="preserve">
+    <value>Selecteer een Product</value>
+  </data>
+  <data name="SelectRecipe" xml:space="preserve">
+    <value>Selecteer een Recept</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Started" xml:space="preserve">
+    <value>Gestart</value>
+  </data>
+  <data name="StartDateRange" xml:space="preserve">
+    <value>Startdatumbereik</value>
+  </data>
+  <data name="StartPlan" xml:space="preserve">
+    <value>Plan Starten</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="SuggestedJobs" xml:space="preserve">
+    <value>Voorgestelde Taken</value>
+  </data>
+  <data name="TotalDays" xml:space="preserve">
+    <value>Totaal dagen</value>
+  </data>
+  <data name="TotalTrays" xml:space="preserve">
+    <value>Totaal Trays</value>
+  </data>
+  <data name="Trays" xml:space="preserve">
+    <value>Trays</value>
+  </data>
+  <data name="TraysPerDay" xml:space="preserve">
+    <value>Trays per dag</value>
+  </data>
+  <data name="TrayTag" xml:space="preserve">
+    <value>Plaat Tag</value>
+  </data>
+  <data name="ViewEditNotes" xml:space="preserve">
+    <value>Notities Bekijken/Bewerken</value>
+  </data>
+  <data name="ViewNotes" xml:space="preserve">
+    <value>Bekijk Notities</value>
+  </data>
+  <data name="Weight" xml:space="preserve">
+    <value>Gewicht</value>
+  </data>
+  <data name="AlarmsAndStops" xml:space="preserve">
+    <value>Alarmen &amp; Stops</value>
+  </data>
+  <data name="AllFloors" xml:space="preserve">
+    <value>Alle verdiepingen</value>
+  </data>
+  <data name="AsOfDate" xml:space="preserve">
+    <value>Per datum</value>
+  </data>
+  <data name="AverageWeightPerTray" xml:space="preserve">
+    <value>Gemiddeld Gewicht per Tray</value>
+  </data>
+  <data name="BatchID" xml:space="preserve">
+    <value>Batch ID</value>
+  </data>
+  <data name="ChangeDestination" xml:space="preserve">
+    <value>Bestemming Wijzigen</value>
+  </data>
+  <data name="ChangeDestinationLayer" xml:space="preserve">
+    <value>Bestemmingslaag Wijzigen</value>
+  </data>
+  <data name="ChooseNewDestinationLayer" xml:space="preserve">
+    <value>Kies nieuwe bestemmingslaag</value>
+  </data>
+  <data name="ChooseRack" xml:space="preserve">
+    <value>Kies rek</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Sluiten</value>
+  </data>
+  <data name="ControlledStop" xml:space="preserve">
+    <value>Gecontroleerde Stop</value>
+  </data>
+  <data name="Current" xml:space="preserve">
+    <value>Huidig</value>
+  </data>
+  <data name="Days1to3" xml:space="preserve">
+    <value>1–3 dagen</value>
+  </data>
+  <data name="Days4to7" xml:space="preserve">
+    <value>4–7 dagen</value>
+  </data>
+  <data name="Days8to14" xml:space="preserve">
+    <value>8–14 dagen</value>
+  </data>
+  <data name="DaysOver14" xml:space="preserve">
+    <value>&gt;14 dagen</value>
+  </data>
+  <data name="DestinationForAllTrays" xml:space="preserve">
+    <value>Bestemming Voor Alle Trays in Transportlaag</value>
+  </data>
+  <data name="EmergencyStop" xml:space="preserve">
+    <value>Noodstop</value>
+  </data>
+  <data name="Empty" xml:space="preserve">
+    <value>Leeg</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Fout</value>
+  </data>
+  <data name="Filled" xml:space="preserve">
+    <value>Gevuld</value>
+  </data>
+  <data name="FilterByFloor" xml:space="preserve">
+    <value>Filter op Verdieping</value>
+  </data>
+  <data name="FinishedGrowing" xml:space="preserve">
+    <value>Kweek Voltooid</value>
+  </data>
+  <data name="Floor" xml:space="preserve">
+    <value>Verdieping</value>
+  </data>
+  <data name="ForcedStop" xml:space="preserve">
+    <value>Geforceerde Stop</value>
+  </data>
+  <data name="GERMINATIONRACK" xml:space="preserve">
+    <value>Kiemrek</value>
+  </data>
+  <data name="Germination" xml:space="preserve">
+    <value>Kieming</value>
+  </data>
+  <data name="GerminationArea" xml:space="preserve">
+    <value>Kiemgebied</value>
+  </data>
+  <data name="GoToJobPlans" xml:space="preserve">
+    <value>Ga naar Taakplanning</value>
+  </data>
+  <data name="GoToJobs" xml:space="preserve">
+    <value>Ga naar Taken</value>
+  </data>
+  <data name="GoToResults" xml:space="preserve">
+    <value>Ga naar Resultaten</value>
+  </data>
+  <data name="GROWRACK" xml:space="preserve">
+    <value>Kweekrek</value>
+  </data>
+  <data name="GrowDay" xml:space="preserve">
+    <value>Kweekdag</value>
+  </data>
+  <data name="GrowLayers" xml:space="preserve">
+    <value>Kweeklagen</value>
+  </data>
+  <data name="GrowLineInput" xml:space="preserve">
+    <value>Kweeklijn Invoer</value>
+  </data>
+  <data name="GrowLineOutput" xml:space="preserve">
+    <value>Kweeklijn Uitvoer</value>
+  </data>
+  <data name="GrowOrder" xml:space="preserve">
+    <value>Kweekvolgorde</value>
+  </data>
+  <data name="Growing" xml:space="preserve">
+    <value>Kweken</value>
+  </data>
+  <data name="HARVESTER" xml:space="preserve">
+    <value>Oogstmachine</value>
+  </data>
+  <data name="Harvest" xml:space="preserve">
+    <value>Oogst</value>
+  </data>
+  <data name="Harvested" xml:space="preserve">
+    <value>Geoogst</value>
+  </data>
+  <data name="HarvestingStation" xml:space="preserve">
+    <value>Oogststation</value>
+  </data>
+  <data name="Info" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="InTransitTrays" xml:space="preserve">
+    <value>Tray in transport</value>
+  </data>
+  <data name="JobsReadyToday" xml:space="preserve">
+    <value>Taken Klaar Vandaag</value>
+  </data>
+  <data name="Layer" xml:space="preserve">
+    <value>Laag</value>
+  </data>
+  <data name="layers" xml:space="preserve">
+    <value>Lagen</value>
+  </data>
+  <data name="LiveActivity" xml:space="preserve">
+    <value>Live Activiteit</value>
+  </data>
+  <data name="Message" xml:space="preserve">
+    <value>Bericht</value>
+  </data>
+  <data name="Occupancy" xml:space="preserve">
+    <value>Bezetting</value>
+  </data>
+  <data name="OccupancyTable" xml:space="preserve">
+    <value>Bezettingstabel</value>
+  </data>
+  <data name="Operational" xml:space="preserve">
+    <value>Operationeel</value>
+  </data>
+  <data name="PATERNOSTER" xml:space="preserve">
+    <value>Paternoster</value>
+  </data>
+  <data name="PaternosterUp" xml:space="preserve">
+    <value>Paternoster Omhoog</value>
+  </data>
+  <data name="Planning" xml:space="preserve">
+    <value>Planning</value>
+  </data>
+  <data name="PreGrowOrder" xml:space="preserve">
+    <value>Voorkweekvolgorde</value>
+  </data>
+  <data name="Propagation" xml:space="preserve">
+    <value>Voortplanting</value>
+  </data>
+  <data name="Rack" xml:space="preserve">
+    <value>Rek</value>
+  </data>
+  <data name="RackArea1" xml:space="preserve">
+    <value>Rekgebied 1</value>
+  </data>
+  <data name="RackArea2" xml:space="preserve">
+    <value>Rekgebied 2</value>
+  </data>
+  <data name="RackTowers" xml:space="preserve">
+    <value>Rektorens</value>
+  </data>
+  <data name="RackType" xml:space="preserve">
+    <value>Rektype</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Opslaan</value>
+  </data>
+  <data name="SaveDestination" xml:space="preserve">
+    <value>Bestemming Opslaan</value>
+  </data>
+  <data name="SEEDER" xml:space="preserve">
+    <value>Zaaimachine</value>
+  </data>
+  <data name="SeederPassed" xml:space="preserve">
+    <value>Zaaimachine gepasseerd</value>
+  </data>
+  <data name="SeedingStation" xml:space="preserve">
+    <value>Zaaistation</value>
+  </data>
+  <data name="Severity" xml:space="preserve">
+    <value>Ernst</value>
+  </data>
+  <data name="ShowEmptyLayers" xml:space="preserve">
+    <value>Toon Lege Lagen</value>
+  </data>
+  <data name="ShowRecipe" xml:space="preserve">
+    <value>Toon Recept</value>
+  </data>
+  <data name="ShowTrayID" xml:space="preserve">
+    <value>Toon Plaat ID</value>
+  </data>
+  <data name="ShowTrayTargetLayer" xml:space="preserve">
+    <value>Toon Doellaag Plaat</value>
+  </data>
+  <data name="Simulation" xml:space="preserve">
+    <value>Simulatie</value>
+  </data>
+  <data name="SimulationMode" xml:space="preserve">
+    <value>Simulatiemodus</value>
+  </data>
+  <data name="SystemMessagesLast24h" xml:space="preserve">
+    <value>Systeemberichten (Laatste 24u)</value>
+  </data>
+  <data name="ThisMonth" xml:space="preserve">
+    <value>Deze maand</value>
+  </data>
+  <data name="ThisYear" xml:space="preserve">
+    <value>Dit jaar</value>
+  </data>
+  <data name="Time" xml:space="preserve">
+    <value>Tijd</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>Vandaag</value>
+  </data>
+  <data name="TRANSPLANTER" xml:space="preserve">
+    <value>Verplanter</value>
+  </data>
+  <data name="TransportFromPater" xml:space="preserve">
+    <value>Transport Van Pater</value>
+  </data>
+  <data name="TransportLayer" xml:space="preserve">
+    <value>Transportlaag</value>
+  </data>
+  <data name="TransportToPater" xml:space="preserve">
+    <value>Transport Naar Pater</value>
+  </data>
+  <data name="Transplant" xml:space="preserve">
+    <value>Verplanten</value>
+  </data>
+  <data name="TransplantStation" xml:space="preserve">
+    <value>Verplantstation</value>
+  </data>
+  <data name="TrayState" xml:space="preserve">
+    <value>Plaatstatus</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Onbekend</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Waarschuwing</value>
+  </data>
+  <data name="WASHER" xml:space="preserve">
+    <value>Wasser</value>
+  </data>
+  <data name="Washed" xml:space="preserve">
+    <value>Gewassen</value>
+  </data>
+  <data name="WashingStation" xml:space="preserve">
+    <value>Wasstation</value>
+  </data>
+  <data name="ActiveJob" xml:space="preserve">
+    <value>Actieve taak</value>
+  </data>
+  <data name="CompletedJobs" xml:space="preserve">
+    <value>Voltooide taken</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Bevestigen</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>Datum</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Bestemming</value>
+  </data>
+  <data name="EmptyTrays" xml:space="preserve">
+    <value>Lege Tray(s)</value>
+  </data>
+  <data name="EnterLotReference" xml:space="preserve">
+    <value>Voer Lotreferentie in voor Batch</value>
+  </data>
+  <data name="EventId" xml:space="preserve">
+    <value>GebeurtenisId</value>
+  </data>
+  <data name="Farm" xml:space="preserve">
+    <value>Kas</value>
+  </data>
+  <data name="FarmManagement" xml:space="preserve">
+    <value>Kasbeheer</value>
+  </data>
+  <data name="Floors" xml:space="preserve">
+    <value>Verdiepingen</value>
+  </data>
+  <data name="FromOPC" xml:space="preserve">
+    <value>Van OPC</value>
+  </data>
+  <data name="Growth" xml:space="preserve">
+    <value>Groei</value>
+  </data>
+  <data name="left" xml:space="preserve">
+    <value>over</value>
+  </data>
+  <data name="LightZones" xml:space="preserve">
+    <value>Lichtzones</value>
+  </data>
+  <data name="LightingSchedules" xml:space="preserve">
+    <value>Verlichtingsschema's</value>
+  </data>
+  <data name="MoveJobDown" xml:space="preserve">
+    <value>Taak Omlaag Verplaatsen</value>
+  </data>
+  <data name="MoveJobs" xml:space="preserve">
+    <value>Verplaats Taken</value>
+  </data>
+  <data name="MoveJobUp" xml:space="preserve">
+    <value>Taak Omhoog Verplaatsen</value>
+  </data>
+  <data name="NextJobs" xml:space="preserve">
+    <value>Volgende taken</value>
+  </data>
+  <data name="NoCompletedJobs" xml:space="preserve">
+    <value>Nog geen voltooide taken</value>
+  </data>
+  <data name="NoCurrentJob" xml:space="preserve">
+    <value>Geen huidige taak beschikbaar</value>
+  </data>
+  <data name="NoNextJobs" xml:space="preserve">
+    <value>Geen volgende taak/taken beschikbaar</value>
+  </data>
+  <data name="NotAvailable" xml:space="preserve">
+    <value>Niet beschikbaar</value>
+  </data>
+  <data name="NotSet" xml:space="preserve">
+    <value>Niet ingesteld</value>
+  </data>
+  <data name="Paused" xml:space="preserve">
+    <value>Gepauzeerd</value>
+  </data>
+  <data name="Plug" xml:space="preserve">
+    <value>Plug</value>
+  </data>
+  <data name="ProductTypes" xml:space="preserve">
+    <value>Productsoorten</value>
+  </data>
+  <data name="ProductVariants" xml:space="preserve">
+    <value>Productvarianten</value>
+  </data>
+  <data name="ReceiveDateTime" xml:space="preserve">
+    <value>Ontvangsttijd</value>
+  </data>
+  <data name="RecipeLightingSchedules" xml:space="preserve">
+    <value>Recept Verlichtingsschema's</value>
+  </data>
+  <data name="Recipes" xml:space="preserve">
+    <value>Recepten</value>
+  </data>
+  <data name="RecipeWateringSchedules" xml:space="preserve">
+    <value>Recept Bewateringsschema's</value>
+  </data>
+  <data name="RefreshLog" xml:space="preserve">
+    <value>Log Vernieuwen</value>
+  </data>
+  <data name="ReturnToOPC" xml:space="preserve">
+    <value>Terug naar OPC</value>
+  </data>
+  <data name="Topper" xml:space="preserve">
+    <value>Topper</value>
+  </data>
+  <data name="TrayType" xml:space="preserve">
+    <value>Plaattype</value>
+  </data>
+  <data name="Vilt" xml:space="preserve">
+    <value>Vilt</value>
+  </data>
+  <data name="WateringSchedules" xml:space="preserve">
+    <value>Bewateringsschema's</value>
+  </data>
+  <data name="WaterZones" xml:space="preserve">
+    <value>Waterzones</value>
+  </data>
+  <data name="WorkerStatus" xml:space="preserve">
+    <value>Workerstatus</value>
+  </data>
+  <data name="AddNew" xml:space="preserve">
+    <value>Nieuw Toevoegen</value>
+  </data>
+  <data name="AddNewFarm" xml:space="preserve">
+    <value>Nieuwe Kas Toevoegen</value>
+  </data>
+  <data name="AddNewProductVariant" xml:space="preserve">
+    <value>Nieuwe Productvariant Toevoegen</value>
+  </data>
+  <data name="AddNewRecipe" xml:space="preserve">
+    <value>Nieuw Recept Toevoegen</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>Alles</value>
+  </data>
+  <data name="ChooseFile" xml:space="preserve">
+    <value>Kies Bestand</value>
+  </data>
+  <data name="ClearImage" xml:space="preserve">
+    <value>Afbeelding Wissen</value>
+  </data>
+  <data name="Depth" xml:space="preserve">
+    <value>Diepte</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Omschrijving</value>
+  </data>
+  <data name="EditFarm" xml:space="preserve">
+    <value>Kwekerij Bewerken</value>
+  </data>
+  <data name="Enabled" xml:space="preserve">
+    <value>Ingeschakeld</value>
+  </data>
+  <data name="FarmAddedSuccess" xml:space="preserve">
+    <value>Kas succesvol toegevoegd</value>
+  </data>
+  <data name="FarmName" xml:space="preserve">
+    <value>Naam Kas</value>
+  </data>
+  <data name="FarmType" xml:space="preserve">
+    <value>Type Kas</value>
+  </data>
+  <data name="FarmUpdatedSuccess" xml:space="preserve">
+    <value>Kas succesvol bijgewerkt</value>
+  </data>
+  <data name="FilterByProductType" xml:space="preserve">
+    <value>Filter op Productsoort</value>
+  </data>
+  <data name="FilterByProductVariant" xml:space="preserve">
+    <value>Filter op Productvariant</value>
+  </data>
+  <data name="FloorNumber" xml:space="preserve">
+    <value>Verdiepingsnummer</value>
+  </data>
+  <data name="FloorUpdatedSuccess" xml:space="preserve">
+    <value>Verdieping succesvol bijgewerkt</value>
+  </data>
+  <data name="GerminationDays" xml:space="preserve">
+    <value>Kiemdagen</value>
+  </data>
+  <data name="GrowDays" xml:space="preserve">
+    <value>Kweekdagen</value>
+  </data>
+  <data name="Image" xml:space="preserve">
+    <value>Afbeelding</value>
+  </data>
+  <data name="IsBufferLayer" xml:space="preserve">
+    <value>Is Bufferlaag</value>
+  </data>
+  <data name="LayerNumber" xml:space="preserve">
+    <value>Laagnummer</value>
+  </data>
+  <data name="LayerUpdatedSuccess" xml:space="preserve">
+    <value>Laag succesvol bijgewerkt</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>Nee</value>
+  </data>
+  <data name="NoFarmsFound" xml:space="preserve">
+    <value>Geen kas gevonden.</value>
+  </data>
+  <data name="NoFloorsFound" xml:space="preserve">
+    <value>Geen verdiepingen gevonden.</value>
+  </data>
+  <data name="NoLayersFound" xml:space="preserve">
+    <value>Geen lagen gevonden.</value>
+  </data>
+  <data name="NoProductTypesFound" xml:space="preserve">
+    <value>Geen productsoorten gevonden.</value>
+  </data>
+  <data name="NoProductVariantsFound" xml:space="preserve">
+    <value>Geen productvarianten gevonden.</value>
+  </data>
+  <data name="NoRacksFound" xml:space="preserve">
+    <value>Geen rekken gevonden.</value>
+  </data>
+  <data name="NoRecipesFound" xml:space="preserve">
+    <value>Geen recepten gevonden.</value>
+  </data>
+  <data name="ProductType" xml:space="preserve">
+    <value>Productsoort</value>
+  </data>
+  <data name="ProductVariant" xml:space="preserve">
+    <value>Productvariant</value>
+  </data>
+  <data name="PropagationDays" xml:space="preserve">
+    <value>Voortplantingsdagen</value>
+  </data>
+  <data name="RackUpdatedSuccess" xml:space="preserve">
+    <value>Rek succesvol bijgewerkt</value>
+  </data>
+  <data name="RecipesForProductVariants" xml:space="preserve">
+    <value>Recepten voor uw productvarianten.</value>
+  </data>
+  <data name="SeedSupplier" xml:space="preserve">
+    <value>Zaadleverancier</value>
+  </data>
+  <data name="SelectRack" xml:space="preserve">
+    <value>Selecteer Rek</value>
+  </data>
+  <data name="UploadImage" xml:space="preserve">
+    <value>Afbeelding Uploaden</value>
+  </data>
+  <data name="UploadImageHelper" xml:space="preserve">
+    <value>Moet een PNG of JPG zijn, kleiner dan 2048×2048 en 2MB.</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Ja</value>
+  </data>
+  <data name="AnErrorOccurredWhileDuplicatingPlan" xml:space="preserve">
+    <value>Er is een fout opgetreden bij het dupliceren van het plan: {0}</value>
+  </data>
+  <data name="PlanName" xml:space="preserve">
+    <value>Plannaam</value>
+  </data>
+  <data name="NoRecipeEmptyTrays" xml:space="preserve">
+    <value>-- Geen recept, lege trays --</value>
+  </data>
+  <data name="ManualType" xml:space="preserve">
+    <value>Handmatig Type</value>
+  </data>
+  <data name="StartDate" xml:space="preserve">
+    <value>Startdatum</value>
+  </data>
+  <data name="GerminationLayers" xml:space="preserve">
+    <value>Kiemingslagen</value>
+  </data>
+  <data name="PropagationLayers" xml:space="preserve">
+    <value>Voortplantingslagen</value>
+  </data>
+  <data name="GrowingLayers" xml:space="preserve">
+    <value>Kweeklagen</value>
+  </data>
+  <data name="AddPlan" xml:space="preserve">
+    <value>Plan Toevoegen</value>
+  </data>
+  <data name="RecipeHelperTextFormat" xml:space="preserve">
+    <value>Kieming: {0}d, Voortplanting: {1}d, Kweek: {2}d</value>
+  </data>
+  <data name="NoRecipesAvailableWarning" xml:space="preserve">
+    <value>Geen recepten beschikbaar. Voeg een recept toe voordat u verdergaat.</value>
+  </data>
+  <data name="ConfirmSave" xml:space="preserve">
+    <value>Opslaan Bevestigen</value>
+  </data>
+  <data name="ConfirmSaveWithEmptyTrays" xml:space="preserve">
+    <value>U heeft {0} lege trays, wilt u doorgaan?</value>
+  </data>
+  <data name="RackDetailsFormat" xml:space="preserve">
+    <value>Rek {0} ({1} lagen)</value>
+  </data>
+  <data name="LayerNumberFormat" xml:space="preserve">
+    <value>Laag {0}</value>
+  </data>
+  <data name="LayerStatusEmpty" xml:space="preserve">
+    <value>(leeg)</value>
+  </data>
+  <data name="AddLayer" xml:space="preserve">
+    <value>Laag Toevoegen</value>
+  </data>
+  <data name="TrayAssignmentSummary" xml:space="preserve">
+    <value>Totaal toegewezen trays: {0} / Nodig: {1}</value>
+  </data>
+  <data name="PlugsNeededFormat" xml:space="preserve">
+    <value>{0} pluggen nodig ({1}x16)</value>
+  </data>
+  <data name="PlugsPropagatedFormat" xml:space="preserve">
+    <value>{0} pluggen opgekweekt ({1}x384)</value>
+  </data>
+  <data name="ThrowingAwayPlugsFormat" xml:space="preserve">
+    <value>{0} pluggen weggooien</value>
+  </data>
+  <data name="EmptyTraysOnLayerFormat" xml:space="preserve">
+    <value>{0} lege Trays op Laag {1}</value>
+  </data>
+  <data name="TraysAddedForLayerTypeFormat" xml:space="preserve">
+    <value>{0} Trays toegevoegd voor {1} Laag</value>
+  </data>
+  <data name="AddBatch" xml:space="preserve">
+    <value>Add Batch</value>
+  </data>
+  <data name="NoPlansAvailableWarning" xml:space="preserve">
+    <value>No plans available. Please add a plan before proceeding.</value>
+  </data>
+  <data name="JobName" xml:space="preserve">
+    <value>Taaknaam</value>
+  </data>
+  <data name="Users" xml:space="preserve">
+    <value>Gebruikers</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Instellingen</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Inloggen</value>
+  </data>
+  <data name="AddNewUser" xml:space="preserve">
+    <value>Nieuwe Gebruiker Toevoegen</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>Rol</value>
+  </data>
+  <data name="FailedToLoadUsers" xml:space="preserve">
+    <value>Laden van gebruikers mislukt</value>
+  </data>
+  <data name="FailedToLoadRoles" xml:space="preserve">
+    <value>Laden van rollen mislukt</value>
+  </data>
+  <data name="CreateNewUser" xml:space="preserve">
+    <value>Nieuwe Gebruiker Aanmaken</value>
+  </data>
+  <data name="UserCreatedSuccess" xml:space="preserve">
+    <value>Gebruiker succesvol aangemaakt.</value>
+  </data>
+  <data name="FailedToCreateUser" xml:space="preserve">
+    <value>Kan gebruiker niet aanmaken</value>
+  </data>
+  <data name="PasswordValidationFailed" xml:space="preserve">
+    <value>Wachtwoordvalidatie mislukt</value>
+  </data>
+  <data name="EditUser" xml:space="preserve">
+    <value>Gebruiker Bewerken</value>
+  </data>
+  <data name="UserUpdatedSuccess" xml:space="preserve">
+    <value>Gebruiker succesvol bijgewerkt.</value>
+  </data>
+  <data name="FailedToUpdateUser" xml:space="preserve">
+    <value>Bijwerken van gebruiker mislukt</value>
+  </data>
+  <data name="ConfirmUserDeletion" xml:space="preserve">
+    <value>Verwijdering Gebruiker Bevestigen</value>
+  </data>
+  <data name="ConfirmDeleteUserMessage" xml:space="preserve">
+    <value>Weet u zeker dat u de gebruiker '{0}' wilt verwijderen?</value>
+  </data>
+  <data name="UserDeletedSuccess" xml:space="preserve">
+    <value>Gebruiker succesvol verwijderd.</value>
+  </data>
+  <data name="FailedToDeleteUser" xml:space="preserve">
+    <value>Verwijderen van gebruiker mislukt</value>
+  </data>
+  <data name="FirstNameRequired" xml:space="preserve">
+    <value>Voornaam is verplicht.</value>
+  </data>
+  <data name="LastNameRequired" xml:space="preserve">
+    <value>Achternaam is verplicht.</value>
+  </data>
+  <data name="EmailRequired" xml:space="preserve">
+    <value>Een geldig e-mailadres is verplicht.</value>
+  </data>
+  <data name="RoleRequired" xml:space="preserve">
+    <value>Rol is verplicht.</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Wachtwoord</value>
+  </data>
+  <data name="PasswordRequiredForNewUser" xml:space="preserve">
+    <value>Wachtwoord is verplicht voor nieuwe gebruikers.</value>
+  </data>
+  <data name="PasswordRequirements" xml:space="preserve">
+    <value>Wachtwoordvereisten</value>
+  </data>
+  <data name="PasswordRequirementsDetails" xml:space="preserve">
+    <value>Minimaal 8 tekens, ten minste één cijfer (0-9), ten minste één kleine letter (a-z)</value>
+  </data>
+  <data name="WelcomeBack" xml:space="preserve">
+    <value>Welkom Terug</value>
+  </data>
+  <data name="SignInToContinue" xml:space="preserve">
+    <value>Log in om door te gaan</value>
+  </data>
+  <data name="EmailAddress" xml:space="preserve">
+    <value>E-mailadres</value>
+  </data>
+  <data name="EmailIsRequired" xml:space="preserve">
+    <value>E-mail is verplicht.</value>
+  </data>
+  <data name="PasswordIsRequired" xml:space="preserve">
+    <value>Wachtwoord is verplicht.</value>
+  </data>
+  <data name="ForgotPassword" xml:space="preserve">
+    <value>Wachtwoord Vergeten?</value>
+  </data>
+  <data name="SigningIn" xml:space="preserve">
+    <value>Inloggen...</value>
+  </data>
+  <data name="SignIn" xml:space="preserve">
+    <value>Inloggen</value>
+  </data>
+  <data name="LoginFailedCredentials" xml:space="preserve">
+    <value>Inloggen mislukt. Controleer uw gegevens.</value>
+  </data>
+  <data name="LoginFailedError" xml:space="preserve">
+    <value>Inloggen mislukt. Er is een fout opgetreden.</value>
+  </data>
+  <data name="ResetPassword" xml:space="preserve">
+    <value>Wachtwoord Herstellen</value>
+  </data>
+  <data name="EnterEmailAndPassword" xml:space="preserve">
+    <value>Voer uw e-mailadres en nieuwe wachtwoord in.</value>
+  </data>
+  <data name="NewPassword" xml:space="preserve">
+    <value>Nieuw Wachtwoord</value>
+  </data>
+  <data name="NewPasswordRequired" xml:space="preserve">
+    <value>Een nieuw wachtwoord is verplicht.</value>
+  </data>
+  <data name="Resetting" xml:space="preserve">
+    <value>Herstellen...</value>
+  </data>
+  <data name="BackToLogin" xml:space="preserve">
+    <value>Terug naar Inloggen</value>
+  </data>
+  <data name="PasswordResetSuccess" xml:space="preserve">
+    <value>Wachtwoord succesvol hersteld! U wordt doorgestuurd naar de inlogpagina...</value>
+  </data>
+  <data name="PasswordResetFailed" xml:space="preserve">
+    <value>Wachtwoord herstellen mislukt. Controleer uw gegevens en probeer het opnieuw.</value>
+  </data>
+  <data name="EmailCanOnlyBeChangedByGlobalAdmin" xml:space="preserve">
+    <value>E-mailadres kan alleen worden gewijzigd door globale beheerders.</value>
+  </data>
+  <data name="RoleCanOnlyBeChangedByAuthorizedUsers" xml:space="preserve">
+    <value>Rolwijzigingen zijn beperkt tot geautoriseerde gebruikers.</value>
+  </data>
+  <data name="CannotDeleteYourself" xml:space="preserve">
+    <value>U kunt uzelf niet verwijderen.</value>
+  </data>
+  <data name="Unauthorized" xml:space="preserve">
+    <value>Ongeautoriseerd</value>
+  </data>
+  <data name="AccessDenied" xml:space="preserve">
+    <value>Toegang Geweigerd</value>
+  </data>
+  <data name="AccessDeniedMessage" xml:space="preserve">
+    <value>U heeft geen toestemming om deze pagina te bekijken.</value>
+  </data>
+  <data name="GoToHome" xml:space="preserve">
+    <value>Ga naar Home</value>
+  </data>
+  <data name="EndDate" xml:space="preserve">
+    <value>Einddatum</value>
+  </data>
+  <data name="StopPlanDescription" xml:space="preserve">
+    <value>Selecteer de einddatum om dit plan te stoppen. Alle taken na deze datum worden geannuleerd.</value>
+  </data>
+  <data name="StopPlan" xml:space="preserve">
+    <value>Plan Stoppen</value>
+  </data>
+  <data name="CancelPlan" xml:space="preserve">
+    <value>Plan Annuleren</value>
+  </data>
+  <data name="PlanStoppedSuccess" xml:space="preserve">
+    <value>Plan succesvol gestopt</value>
+  </data>
+  <data name="FailedToStopPlan" xml:space="preserve">
+    <value>Stoppen van plan mislukt</value>
+  </data>
+  <data name="PlanCancelledSuccess" xml:space="preserve">
+    <value>Plan succesvol geannuleerd</value>
+  </data>
+  <data name="FailedToCancelPlan" xml:space="preserve">
+    <value>Annuleren van plan mislukt</value>
+  </data>
+  <data name="ConfirmCancel" xml:space="preserve">
+    <value>Annulering Bevestigen</value>
+  </data>
+  <data name="ConfirmCancelPlanMessage" xml:space="preserve">
+    <value>Weet u zeker dat u dit plan wilt annuleren? Dit zal alle gerelateerde taken annuleren.</value>
+  </data>
+  <data name="CreateJobPlans" xml:space="preserve">
+    <value>Create JobPlans</value>
+  </data>
+</root>

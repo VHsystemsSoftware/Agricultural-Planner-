@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VHS.Services;
+using VHS.Services.Auth.DTO;
+using VHS.WebAPI.Authorization;
 
 namespace VHS.WebAPI.Controllers.Auth;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temp allow
+[Authorize]
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -16,13 +19,15 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.CanManageUsers)]
     public async Task<IActionResult> GetAllUsers()
     {
-        var users = await _userService.GetAllUsersAsync();
+        var users = await _userService.GetAllUsersAsync(User);
         return Ok(users);
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageUsers)]
     public async Task<IActionResult> GetUserById(Guid id)
     {
         var user = await _userService.GetUserByIdAsync(id);
@@ -33,11 +38,12 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("create")]
+    [Authorize(Policy = AuthorizationPolicies.GlobalAdminOnly)]
     public async Task<IActionResult> CreateUser([FromBody] UserDTO userDto)
     {
         try
         {
-            var createdUser = await _userService.CreateUserAsync(userDto);
+            var createdUser = await _userService.CreateUserAsync(userDto, User);
             return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
         }
         catch (Exception ex)
@@ -47,11 +53,12 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("update")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAndAbove)]
     public async Task<IActionResult> UpdateUser([FromBody] UserDTO userDto)
     {
         try
         {
-            var updatedUser = await _userService.UpdateUserAsync(userDto);
+            var updatedUser = await _userService.UpdateUserAsync(userDto, User);
             return Ok(updatedUser);
         }
         catch (Exception ex)
@@ -61,12 +68,13 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.GlobalAdminOnly)]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         try
         {
-            await _userService.DeleteUserAsync(id);
-            return NoContent(); // Success, no content to return
+            await _userService.DeleteUserAsync(id, User);
+            return NoContent();
         }
         catch (Exception ex)
         {

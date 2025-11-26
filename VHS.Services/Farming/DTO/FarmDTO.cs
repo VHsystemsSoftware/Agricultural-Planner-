@@ -11,7 +11,15 @@ public class FarmDTO
 
     public ICollection<FloorDTO> Floors { get; set; } = new List<FloorDTO>();
 
-    public ICollection<RackDTO> GrowRacks
+	public ICollection<RackDTO> Racks
+	{
+		get
+		{
+            return Floors.SelectMany(x => x.Racks).ToList();
+		}
+	}
+
+	public ICollection<RackDTO> GrowRacks
     {
         get
         {

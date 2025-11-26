@@ -1,0 +1,74 @@
+﻿@inject NavigationManager Navigation
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudTabs Outlined="true" Position="Position.Top" Rounded="true" Border="true" ApplyEffectsToContainer="true"
+             AlwaysShowScrollButtons="false" ActiveTabClass="border-solid border-2 mud-border-primary"
+             @bind-ActivePanelIndex="ActiveTabIndex">
+        @foreach (var setting in TitleUrl)
+        {
+            <MudTabPanel Text="@setting.Title" />
+        }
+    </MudTabs>
+
+    <MudGrid Class="pt-2">
+        <MudItem xs="12">
+            <MudPaper Outlined="true" Square="true">
+                @ChildContent
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private List<TitleUrl> TitleUrl = new()
+    {
+        //new("Batch Management", "/system-settings/batches/management"),
+        new("Batch Plans", "/system-settings/batches/plans"),
+        // new("Batch Journal", "/system-settings/batches/journal"),
+        new("Jobs", "/system-settings/batches/jobs"),
+        //new("Job Trays", "/system-settings/batches/job-trays")
+    };
+
+    private int _activeTabIndex;
+    private int ActiveTabIndex
+    {
+        get => _activeTabIndex;
+        set
+        {
+            if (_activeTabIndex != value)
+            {
+                _activeTabIndex = value;
+                if (_activeTabIndex >= 0 && _activeTabIndex < TitleUrl.Count)
+                {
+                    Navigation.NavigateTo(TitleUrl[_activeTabIndex].Url);
+                }
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SetActiveTab();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void SetActiveTab()
+    {
+        var currentUrl = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/').ToLowerInvariant();
+        var index = TitleUrl.FindIndex(s => currentUrl.StartsWith(s.Url.Trim('/').ToLowerInvariant()));
+        _activeTabIndex = index >= 0 ? index : 0;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        SetActiveTab();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

@@ -428,7 +428,9 @@ div.green.on {
 .opc-worker-indicator.red-light {
 	background-color: #fe0000;
 }
-
+	.opc-worker-indicator.no-light {
+		background-color: #555;
+	}
 .opc-stats-cards {
 	height: 100%;
 	border-radius: 8px;
@@ -472,7 +474,7 @@ div.green.on {
 }
 
 .bg-empty {
-	background-color: #388e3c !important;
+	background-color: #f0dbf8 !important;
 }
 
 /* tray states */
@@ -532,7 +534,7 @@ div.green.on {
 	height: 32px;
 	padding: 0 !important;
 	text-align: center;
-	vertical-align: middle;
+	vertical-align: top;
 	cursor: pointer;
 	border: none;
 	box-shadow: inset 0 0 0 0.1px #555;
@@ -559,6 +561,12 @@ div.green.on {
 	color: black;
 }
 
+.farm-rack-tray-estimated {
+	background-color: #e48d2f;
+	color: black;
+	border: dashed 1px #333;
+}
+
 .farm-rack-tray-empty {
 	background-color: #e0e0e0;
 	color: black;
@@ -580,7 +588,27 @@ div.green.on {
 }
 
 .farm-rack-tray-aged {
-	background-color: #1976d2;
+	background-color: #2a6b2d;
+	color: black;
+}
+
+.farm-rack-tray-germination-age-1 {
+	background-color: #e21c6a;
+	color: black;
+}
+
+.farm-rack-tray-germination-age-2 {
+	background-color: #9d1449;
+	color: black;
+}
+
+.farm-rack-tray-germination-age-3 {
+	background-color: #570b29;
+	color: black;
+}
+
+.farm-rack-tray-germination-aged {
+	background-color: #110208;
 	color: black;
 }
 
@@ -598,4 +626,17 @@ div.green.on {
 .farm-rack-layer-label-transport {
 	font-weight: bold;
 	color: #5e35b1;
+}
+
+.calendar-view .rz-button-box {
+	color: var(--mud-palette-action-default);
+}
+
+.calendar-view .rz-scheduler {
+	height: 900px;
+	padding: 16px;
+}
+
+.rz-html-editor:focus-within {
+	outline: none !important;
 }

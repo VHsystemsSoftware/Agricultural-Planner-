@@ -36,6 +36,9 @@
                     <MudDatePicker @bind-Date="TrayState.WillBePushedOutPreGrow" Label="Push Out Pre-Grow (Date)" Variant="Variant.Outlined" />
                     <MudTimePicker T="TimeSpan?" @bind-Time="WillBePushedOutPreGrowTime" Label="Push Out Pre-Grow (Time)" Variant="Variant.Outlined" AmPm="true" />
                 </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="TrayState.PreGrowOrderOnLayer" Label="Pregrow order on layer" Variant="Variant.Outlined" Disabled="false" />
+                </MudItem>
 
                 <MudItem xs="12">
                     <MudDivider Class="my-2" />
@@ -60,7 +63,9 @@
                     <MudDatePicker @bind-Date="TrayState.WillBePushedOutGrow" Label="Push Out Grow (Date)" Variant="Variant.Outlined" />
                     <MudTimePicker T="TimeSpan?" @bind-Time="WillBePushedOutGrowTime" Label="Push Out Grow (Time)" Variant="Variant.Outlined" AmPm="true" />
                 </MudItem>
-
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="TrayState.GrowOrderOnLayer" Label="Grow order on layer" Variant="Variant.Outlined" Disabled="false" />
+                </MudItem>
                 <MudItem xs="12">
                     <MudDivider Class="my-2" />
                     <MudText Typo="Typo.h6">Harvest & Washing</MudText>

@@ -10,13 +10,17 @@
 @using VHS.Services.Common.Enums.Languages
 @using VHS.Services.Common.Enums.Themes
 @using VHS.Services.Common.Enums.Measurements
+@using VHS.Services.Common.Enums.DateTimeFormats
 @using MetricUnits = VHS.Services.Common.Enums.Measurements.Metric
 @using ImperialUnits = VHS.Services.Common.Enums.Measurements.Imperial
+@using Blazored.LocalStorage
 
 @inject UserSettingClientService UserSettingClientService
-@inject LocalStorage LocalStorage
+@inject ILocalStorageService LocalStorage
 @inject ISnackbar Snackbar
 @inject PageTitleService PageTitleService
+@inject IStringLocalizer<Shared> Localizer
+@inject NavigationManager NavigationManager
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <EditForm Model="@_viewModel" OnValidSubmit="HandleValidSubmit">
@@ -26,24 +30,24 @@
                 <MudGrid Spacing="4">
 
                     <MudItem xs="12" md="6">
-                        <MudText Typo="Typo.h6" GutterBottom="true">Profile</MudText>
-                        <MudText Typo="Typo.body2" Class="mb-6">Update your personal information.</MudText>
+                        <MudText Typo="Typo.h6" GutterBottom="true">@Localizer["Profile"]</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-6">@Localizer["ProfileSubtitle"]</MudText>
 
                         <MudTextField @bind-Value="_viewModel.FirstName"
-                                        Label="First Name"
+                                        Label="@Localizer["FirstName"]"
                                         For="@(() => _viewModel.FirstName)"
                                         Variant="Variant.Outlined"
                                         Required="true" />
 
                         <MudTextField @bind-Value="_viewModel.LastName"
-                                        Label="Last Name"
+                                        Label="@Localizer["LastName"]"
                                         For="@(() => _viewModel.LastName)"
                                         Class="mt-3"
                                         Variant="Variant.Outlined"
                                         Required="true" />
 
                         <MudTextField @bind-Value="_viewModel.Email"
-                                        Label="Email"
+                                        Label="@Localizer["Email"]"
                                         For="@(() => _viewModel.Email)"
                                         Class="mt-3"
                                         Variant="Variant.Outlined"
@@ -52,52 +56,60 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudText Typo="Typo.h6" GutterBottom="true">Preferences</MudText>
-                        <MudText Typo="Typo.body2" Class="mb-4">Customize your application experience.</MudText>
+                        <MudText Typo="Typo.h6" GutterBottom="true">@Localizer["Preferences"]</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-4">@Localizer["PreferencesSubtitle"]</MudText>
 
-                        <MudSelect T="string" Label="Language" @bind-Value="_viewModel.PreferredLanguage" Variant="Variant.Outlined" Required="true">
+                        <MudSelect T="string" Label="@Localizer["Language"]" @bind-Value="_viewModel.PreferredLanguage" Variant="Variant.Outlined" Required="true">
                             @foreach (var item in _languageMapping)
                             {
                                 <MudSelectItem Value="@item.Value">@item.Key</MudSelectItem>
                             }
                         </MudSelect>
 
-                        <MudSelect T="string" Label="Theme" @bind-Value="_viewModel.PreferredTheme" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                        <MudSelect T="string" Label="@Localizer["Theme"]" @bind-Value="_viewModel.PreferredTheme" Class="mt-3" Variant="Variant.Outlined" Required="true">
                             @foreach (var theme in Enum.GetNames(typeof(ThemeEnum)))
                             {
                                 <MudSelectItem Value="@theme">@theme</MudSelectItem>
                             }
                         </MudSelect>
 
-                        <MudSelect T="string" Label="Measurement System" Value="@_viewModel.PreferredMeasurementSystem" Class="mt-3" Variant="Variant.Outlined" Required="true" ValueChanged="OnMeasurementSystemChanged">
+                        
+                        <MudSelect T="string" Label="Date/Time Format" @bind-Value="_viewModel.PreferredDateTimeFormat" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                            @foreach (var format in _dateTimeFormatMapping)
+                            {
+                                <MudSelectItem Value="@format.Key">@($"{format.Key} ({format.Value})")</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" Label="@Localizer["MeasurementSystem"]" Value="@_viewModel.PreferredMeasurementSystem" Class="mt-3" Variant="Variant.Outlined" Required="true" ValueChanged="OnMeasurementSystemChanged">
                             @foreach (var ms in Enum.GetNames(typeof(MeasurementSystemEnum)))
                             {
                                 <MudSelectItem Value="@ms">@ms</MudSelectItem>
                             }
                         </MudSelect>
 
-                        <MudSelect T="string" Label="Weight Unit" @bind-Value="_viewModel.PreferredWeightUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                        <MudSelect T="string" Label="@Localizer["WeightUnit"]" @bind-Value="_viewModel.PreferredWeightUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
                             @foreach (var wu in _weightUnitOptions)
                             {
                                 <MudSelectItem Value="@wu">@wu</MudSelectItem>
                             }
                         </MudSelect>
 
-                        <MudSelect T="string" Label="Length Unit" @bind-Value="_viewModel.PreferredLengthUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                        <MudSelect T="string" Label="@Localizer["LengthUnit"]" @bind-Value="_viewModel.PreferredLengthUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
                             @foreach (var lu in _lengthUnitOptions)
                             {
                                 <MudSelectItem Value="@lu">@lu</MudSelectItem>
                             }
                         </MudSelect>
 
-                        <MudSelect T="string" Label="Temperature Unit" @bind-Value="_viewModel.PreferredTemperatureUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                        <MudSelect T="string" Label="@Localizer["TemperatureUnit"]" @bind-Value="_viewModel.PreferredTemperatureUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
                             @foreach (var tu in _temperatureUnitOptions)
                             {
                                 <MudSelectItem Value="@tu">@tu</MudSelectItem>
                             }
                         </MudSelect>
 
-                        <MudSelect T="string" Label="Volume Unit" @bind-Value="_viewModel.PreferredVolumeUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
+                        <MudSelect T="string" Label="@Localizer["VolumeUnit"]" @bind-Value="_viewModel.PreferredVolumeUnit" Class="mt-3" Variant="Variant.Outlined" Required="true">
                             @foreach (var vu in _volumeUnitOptions)
                             {
                                 <MudSelectItem Value="@vu">@vu</MudSelectItem>
@@ -107,7 +119,7 @@
                 </MudGrid>
             </MudCardContent>
             <MudCardActions>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Save Settings</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">@Localizer["SaveSettings"]</MudButton>
             </MudCardActions>
         </MudCard>
     </EditForm>
@@ -116,6 +128,7 @@
 @code {
     private UserSettingDTO _viewModel = new();
     private Dictionary<string, string> _languageMapping = new() { { "English", "en-US" }, { "Dutch", "nl-NL" } };
+    private Dictionary<string, string> _dateTimeFormatMapping = new();
     private IEnumerable<string> _weightUnitOptions = Enumerable.Empty<string>();
     private IEnumerable<string> _lengthUnitOptions = Enumerable.Empty<string>();
     private IEnumerable<string> _temperatureUnitOptions = Enumerable.Empty<string>();
@@ -123,24 +136,55 @@
 
     protected override async Task OnInitializedAsync()
     {
+        InitializeDateTimeFormatOptions();
         PageTitleService.Title = "Settings";
-        var userJson = await LocalStorage.GetStateAsync("VHS_USER");
-        if (!string.IsNullOrWhiteSpace(userJson))
+        UserDTO storedUser = null;
+
+        try
         {
-            var storedUser = JsonSerializer.Deserialize<UserDTO>(userJson);
-            if (storedUser != null)
+            var userJsonString = await LocalStorage.GetItemAsStringAsync("VHS_USER");
+
+            if (!string.IsNullOrWhiteSpace(userJsonString))
             {
-                var result = await UserSettingClientService.GetUserSettingsByUserIdAsync(storedUser.Id);
-                if (result != null)
+                try
                 {
-                    _viewModel = result;
-                    InitializeMeasurementUnitOptions(_viewModel.PreferredMeasurementSystem);
+                    storedUser = JsonSerializer.Deserialize<UserDTO>(userJsonString);
                 }
+                catch (JsonException)
+                {
+                    var cleanJson = JsonSerializer.Deserialize<string>(userJsonString);
+                    if (cleanJson != null)
+                    {
+                        storedUser = JsonSerializer.Deserialize<UserDTO>(cleanJson);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error reading user data: {ex.Message}", Severity.Error);
+            await LocalStorage.RemoveItemAsync("VHS_USER");
+        }
+
+        if (storedUser != null)
+        {
+            var result = await UserSettingClientService.GetUserSettingsByUserIdAsync(storedUser.Id);
+            if (result != null)
+            {
+                _viewModel = result;
+                InitializeMeasurementUnitOptions(_viewModel.PreferredMeasurementSystem);
             }
         }
         else
         {
-            Snackbar.Add("User not found.", Severity.Warning);
+            if (!string.IsNullOrWhiteSpace(await LocalStorage.GetItemAsStringAsync("VHS_USER")))
+            {
+                Snackbar.Add("Could not parse user data. Please try again.", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("User not found.", Severity.Warning);
+            }
         }
     }
 
@@ -148,15 +192,25 @@
     {
         try
         {
+            var existingSettings = await LocalStorage.GetItemAsync<UserSettingDTO>("VHS_USER_SETTINGS");
+            var originalLanguage = existingSettings?.PreferredLanguage ?? "en-US";
+
             var updatedViewModel = await UserSettingClientService.UpdateUserSettingsAsync(_viewModel);
             if (updatedViewModel != null)
             {
                 _viewModel = updatedViewModel;
 
                 var userToStore = new UserDTO { Id = _viewModel.UserId, FirstName = _viewModel.FirstName, LastName = _viewModel.LastName, Email = _viewModel.Email };
-                await LocalStorage.SaveStateAsync("VHS_USER", JsonSerializer.Serialize(userToStore));
+                await LocalStorage.SetItemAsync("VHS_USER", userToStore);
+                await LocalStorage.SetItemAsync("VHS_USER_SETTINGS", _viewModel);
 
                 Snackbar.Add("Settings saved successfully.", Severity.Success);
+
+                if (originalLanguage != _viewModel.PreferredLanguage)
+                {
+                    await Task.Delay(1000);
+                    NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+                }
             }
         }
         catch (Exception ex)
@@ -170,6 +224,26 @@
         _viewModel.PreferredMeasurementSystem = newSystem;
         InitializeMeasurementUnitOptions(newSystem, true);
         StateHasChanged();
+    }
+
+    private void InitializeDateTimeFormatOptions()
+    {
+        var now = DateTime.Now;
+        _dateTimeFormatMapping = Enum.GetValues(typeof(DateTimeFormatEnum))
+            .Cast<DateTimeFormatEnum>()
+            .ToDictionary(
+                t => t.GetType()
+                      .GetField(t.ToString())?
+                      .GetCustomAttributes(typeof(DescriptionAttribute), false)
+                      .SingleOrDefault() is not DescriptionAttribute attr ? t.ToString() : attr.Description,
+                t =>
+                {
+                    var formatString = t.GetType()
+                                        .GetField(t.ToString())?
+                                        .GetCustomAttributes(typeof(DescriptionAttribute), false)
+                                        .SingleOrDefault() is not DescriptionAttribute attr ? t.ToString() : attr.Description;
+                    return now.ToString(formatString);
+                });
     }
 
     private void InitializeMeasurementUnitOptions(string system, bool reset = false)

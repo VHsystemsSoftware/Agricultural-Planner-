@@ -1,300 +1,428 @@
 {
-  "HostnameOrIP": "10.1.102.18",
-  "PortNumber": 4840,
-  "ServerId": 100,
-  "DiscoveryUrl": "opc.tcp://10.1.102.18:4840",
-  "NamespaceUrn": "urn:B&R/pv/",
-  "LastBrowseDate": "2025-05-06T22:55:04.9564216+02:00",
-  "Components": [
-    {
-      "Name": "General",
-      "Node": "ns=6;s=::ExtComm:CS.General",
-      "Id": 1,
-      "Variables": [
+    "HostnameOrIP": "10.1.102.18",
+    "PortNumber": 4840,
+    "ServerId": 100,
+    "DiscoveryUrl": "opc.tcp://10.1.102.18:4840",
+    "NamespaceUrn": "urn:B&R/pv/",
+    "LastBrowseDate": "2025-05-06T22:55:04.9564216+02:00",
+    "Components": [
         {
-          "Name": "HeartBeat",
-          "Node": "ns=6;s=::ExtComm:CS.General.HeartBeat",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 1,
-          "HandleId": 1000101
+            "Name": "General",
+            "Node": "ns=6;s=::ExtComm:CS.General",
+            "Id": 1,
+            "Variables": [
+                {
+                    "Name": "HeartBeat",
+                    "Node": "ns=6;s=::ExtComm:CS.General.HeartBeat",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 1,
+                    "HandleId": 1000101
+                },
+                {
+                    "Name": "FireAlarmActive",
+                    "Node": "ns=6;s=::ExtComm:STS.General.FireAlarmActive",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 2,
+                    "HandleId": 1000102
+                },
+                {
+                    "Name": "HeartBeat",
+                    "Node": "ns=6;s=::ExtComm:STS.General.HeartBeat",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 3,
+                    "HandleId": 1000103
+                },
+                {
+                    "Name": "AlarmActiveFloor",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveFloor",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 4,
+                    "HandleId": 1000104
+                },
+                {
+                    "Name": "AlarmActiveGerminationArea",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveGerminationArea",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 5,
+                    "HandleId": 1000105
+                },
+                {
+                    "Name": "AlarmActiveHarvestingStation",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveHarvestingStation",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 6,
+                    "HandleId": 1000106
+                },
+                {
+                    "Name": "AlarmActivePaternoster",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActivePaternoster",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 7,
+                    "HandleId": 1000107
+                },
+                {
+                    "Name": "AlarmActiveSeedingStation",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveSeedingStation",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 8,
+                    "HandleId": 1000108
+                },
+                {
+                    "Name": "AlarmActiveTransplantStation",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveTransplantStation",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 9,
+                    "HandleId": 1000109
+                },
+                {
+                    "Name": "AlarmActiveTransportFromPater",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveTransportFromPater",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 10,
+                    "HandleId": 1000110
+                },
+                {
+                    "Name": "AlarmActiveTransportToPater",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveTransportToPater",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 11,
+                    "HandleId": 1000111
+                },
+                {
+                    "Name": "AlarmActiveWashingStation",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveWashingStation",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 12,
+                    "HandleId": 1000112
+                },
+                {
+                    "Name": "AlarmActiveGrowLineInput",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveGrowLineInput",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 13,
+                    "HandleId": 1000113
+                },
+                {
+                    "Name": "AlarmActiveGrowLineOutput",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveGrowLineOutput",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 14,
+                    "HandleId": 1000114
+                },
+                {
+                    "Name": "AlarmActiveRackArea1",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveRackArea1",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 15,
+                    "HandleId": 1000115
+                },
+                {
+                    "Name": "AlarmActiveRackArea2",
+                    "Node": "ns=6;s=::ExtComm:STS.General.AlarmActiveRackArea2",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 16,
+                    "HandleId": 1000116
+                },
+                {
+                    "Name": "EmergencyStop",
+                    "Node": "ns=6;s=::ExtComm:STS.General.EmergencyStop",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 17,
+                    "HandleId": 1000117
+                },
+                {
+                    "Name": "ControlledStop",
+                    "Node": "ns=6;s=::ExtComm:STS.General.ControlledStop",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 18,
+                    "HandleId": 1000118
+                },
+                {
+                    "Name": "ForcedStop",
+                    "Node": "ns=6;s=::ExtComm:STS.General.ForcedStop",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 19,
+                    "HandleId": 1000119
+                }
+            ]
         },
         {
-          "Name": "FireAlarmActive",
-          "Node": "ns=6;s=::ExtComm:STS.General.FireAlarmActive",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 2,
-          "HandleId": 1000102
+            "Name": "Harvester",
+            "Node": "ns=6;s=::ExtComm:CS.Harvester",
+            "Id": 2,
+            "Variables": [
+                {
+                    "Name": "HarvestAllowed",
+                    "Node": "ns=6;s=::ExtComm:CS.Harvester.HarvestAllowed",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 1,
+                    "HandleId": 1000201
+                },
+                {
+                    "Name": "RequestHarvest",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvester.RequestHarvest",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 2,
+                    "HandleId": 1000202
+                },
+                {
+                    "Name": "TrayId",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvester.TrayId",
+                    "Type": 2,
+                    "MustSubscribe": false,
+                    "Id": 3,
+                    "HandleId": 1000203
+                },
+                {
+                    "Name": "Weight_kg",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvester.Weight_kg",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 4,
+                    "HandleId": 1000204
+                },
+                {
+                    "Name": "PlannerInControl",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvester.PlannerInControl",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 6,
+                    "HandleId": 1000205
+                }
+            ]
         },
         {
-          "Name": "HeartBeat",
-          "Node": "ns=6;s=::ExtComm:STS.General.HeartBeat",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 3,
-          "HandleId": 1000103
+            "Name": "Harvesting",
+            "Node": "ns=6;s=::ExtComm:CS.Harvesting",
+            "Id": 3,
+            "Variables": [
+                {
+                    "Name": "Destination",
+                    "Node": "ns=6;s=::ExtComm:CS.Harvesting.Destination",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 1,
+                    "HandleId": 1000301
+                },
+                {
+                    "Name": "RequestTrayInfo",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvesting.RequestTrayInfo",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 2,
+                    "HandleId": 1000302
+                },
+                {
+                    "Name": "TrayId",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvesting.TrayId",
+                    "Type": 2,
+                    "MustSubscribe": false,
+                    "Id": 3,
+                    "HandleId": 1000303
+                },
+                {
+                    "Name": "TrayInfoAccepted",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvesting.TrayInfoAccepted",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 4,
+                    "HandleId": 1000304
+                },
+                {
+                    "Name": "PlannerInControl",
+                    "Node": "ns=6;s=::ExtComm:STS.Harvesting.PlannerInControl",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 5,
+                    "HandleId": 1000305
+                }
+            ]
+        },
+        {
+            "Name": "Paternoster",
+            "Node": "ns=6;s=::ExtComm:CS.Paternoster",
+            "Id": 4,
+            "Variables": [
+                {
+                    "Name": "Destination",
+                    "Node": "ns=6;s=::ExtComm:CS.Paternoster.Destination",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 1,
+                    "HandleId": 1000401
+                },
+                {
+                    "Name": "RequestTrayInfo",
+                    "Node": "ns=6;s=::ExtComm:STS.Paternoster.RequestTrayInfo",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 2,
+                    "HandleId": 1000402
+                },
+                {
+                    "Name": "TrayId",
+                    "Node": "ns=6;s=::ExtComm:STS.Paternoster.TrayId",
+                    "Type": 2,
+                    "MustSubscribe": false,
+                    "Id": 3,
+                    "HandleId": 1000403
+                },
+                {
+                    "Name": "TrayInfoAccepted",
+                    "Node": "ns=6;s=::ExtComm:STS.Paternoster.TrayInfoAccepted",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 4,
+                    "HandleId": 1000404
+                },
+                {
+                    "Name": "PlannerInControl",
+                    "Node": "ns=6;s=::ExtComm:STS.Paternoster.PlannerInControl",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 5,
+                    "HandleId": 1000505
+                }
+            ]
+        },
+        {
+            "Name": "Seeding",
+            "Node": "ns=6;s=::ExtComm:CS.Seeding",
+            "Id": 5,
+            "Variables": [
+                {
+                    "Name": "DestinationCurrentTray",
+                    "Node": "ns=6;s=::ExtComm:CS.Seeding.DestinationCurrentTray",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 1,
+                    "HandleId": 1000501
+                },
+                {
+                    "Name": "DestinationOutputTray",
+                    "Node": "ns=6;s=::ExtComm:CS.Seeding.DestinationOutputTray",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 2,
+                    "HandleId": 1000502
+                },
+                {
+                    "Name": "Layer",
+                    "Node": "ns=6;s=::ExtComm:CS.Seeding.Layer",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 3,
+                    "HandleId": 1000503
+                },
+                {
+                    "Name": "TrayIdOutputTray",
+                    "Node": "ns=6;s=::ExtComm:CS.Seeding.TrayIdOutputTray",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 4,
+                    "HandleId": 1000504
+                },
+                {
+                    "Name": "TrayInterval",
+                    "Node": "ns=6;s=::ExtComm:CS.Seeding.TrayInterval",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 5,
+                    "HandleId": 1000505
+                },
+                {
+                    "Name": "RequestTrayInfo",
+                    "Node": "ns=6;s=::ExtComm:STS.Seeding.RequestTrayInfo",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 6,
+                    "HandleId": 1000506
+                },
+                {
+                    "Name": "TrayId",
+                    "Node": "ns=6;s=::ExtComm:STS.Seeding.TrayId",
+                    "Type": 2,
+                    "MustSubscribe": false,
+                    "Id": 7,
+                    "HandleId": 1000507
+                },
+                {
+                    "Name": "TrayInfoAccepted",
+                    "Node": "ns=6;s=::ExtComm:STS.Seeding.TrayInfoAccepted",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 8,
+                    "HandleId": 1000508
+                },
+                {
+                    "Name": "PlannerInControl",
+                    "Node": "ns=6;s=::ExtComm:STS.Seeding.PlannerInControl",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 9,
+                    "HandleId": 1000509
+                }
+            ]
+        },
+        {
+            "Name": "Washing",
+            "Node": "ns=6;s=::ExtComm:CS.Washing",
+            "Id": 6,
+            "Variables": [
+                {
+                    "Name": "Accepted",
+                    "Node": "ns=6;s=::ExtComm:CS.Washing.Accepted",
+                    "Type": 1,
+                    "MustSubscribe": false,
+                    "Id": 1,
+                    "HandleId": 1000601
+                },
+                {
+                    "Name": "Request",
+                    "Node": "ns=6;s=::ExtComm:STS.Washing.Request",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 2,
+                    "HandleId": 1000602
+                },
+                {
+                    "Name": "TrayId",
+                    "Node": "ns=6;s=::ExtComm:STS.Washing.TrayId",
+                    "Type": 2,
+                    "MustSubscribe": false,
+                    "Id": 3,
+                    "HandleId": 1000603
+                },
+                {
+                    "Name": "PlannerInControl",
+                    "Node": "ns=6;s=::ExtComm:STS.Washing.PlannerInControl",
+                    "Type": 2,
+                    "MustSubscribe": true,
+                    "Id": 4,
+                    "HandleId": 1000604
+                }
+            ]
         }
-      ]
-    },
-    {
-      "Name": "Harvester",
-      "Node": "ns=6;s=::ExtComm:CS.Harvester",
-      "Id": 2,
-      "Variables": [
-        {
-          "Name": "HarvestAllowed",
-          "Node": "ns=6;s=::ExtComm:CS.Harvester.HarvestAllowed",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 1,
-          "HandleId": 1000201
-        },
-        {
-          "Name": "RequestHarvest",
-          "Node": "ns=6;s=::ExtComm:STS.Harvester.RequestHarvest",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 2,
-          "HandleId": 1000202
-        },
-        {
-          "Name": "TrayId",
-          "Node": "ns=6;s=::ExtComm:STS.Harvester.TrayId",
-          "Type": 2,
-          "MustSubscribe": false,
-          "Id": 3,
-          "HandleId": 1000203
-        },
-        {
-          "Name": "Weight_kg",
-          "Node": "ns=6;s=::ExtComm:STS.Harvester.Weight_kg",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 4,
-          "HandleId": 1000204
-        },
-        {
-          "Name": "PlannerInControl",
-          "Node": "ns=6;s=::ExtComm:STS.Harvester.PlannerInControl",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 6,
-          "HandleId": 1000205
-        }
-      ]
-    },
-    {
-      "Name": "Harvesting",
-      "Node": "ns=6;s=::ExtComm:CS.Harvesting",
-      "Id": 3,
-      "Variables": [
-        {
-          "Name": "Destination",
-          "Node": "ns=6;s=::ExtComm:CS.Harvesting.Destination",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 1,
-          "HandleId": 1000301
-        },
-        {
-          "Name": "RequestTrayInfo",
-          "Node": "ns=6;s=::ExtComm:STS.Harvesting.RequestTrayInfo",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 2,
-          "HandleId": 1000302
-        },
-        {
-          "Name": "TrayId",
-          "Node": "ns=6;s=::ExtComm:STS.Harvesting.TrayId",
-          "Type": 2,
-          "MustSubscribe": false,
-          "Id": 3,
-          "HandleId": 1000303
-        },
-        {
-          "Name": "TrayInfoAccepted",
-          "Node": "ns=6;s=::ExtComm:STS.Harvesting.TrayInfoAccepted",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 4,
-          "HandleId": 1000304
-        },
-        {
-          "Name": "PlannerInControl",
-          "Node": "ns=6;s=::ExtComm:STS.Harvesting.PlannerInControl",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 5,
-          "HandleId": 1000305
-        }
-      ]
-    },
-    {
-      "Name": "Paternoster",
-      "Node": "ns=6;s=::ExtComm:CS.Paternoster",
-      "Id": 4,
-      "Variables": [
-        {
-          "Name": "Destination",
-          "Node": "ns=6;s=::ExtComm:CS.Paternoster.Destination",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 1,
-          "HandleId": 1000401
-        },
-        {
-          "Name": "RequestTrayInfo",
-          "Node": "ns=6;s=::ExtComm:STS.Paternoster.RequestTrayInfo",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 2,
-          "HandleId": 1000402
-        },
-        {
-          "Name": "TrayId",
-          "Node": "ns=6;s=::ExtComm:STS.Paternoster.TrayId",
-          "Type": 2,
-          "MustSubscribe": false,
-          "Id": 3,
-          "HandleId": 1000403
-        },
-        {
-          "Name": "TrayInfoAccepted",
-          "Node": "ns=6;s=::ExtComm:STS.Paternoster.TrayInfoAccepted",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 4,
-          "HandleId": 1000404
-        },
-        {
-          "Name": "PlannerInControl",
-          "Node": "ns=2;s=::ExtComm:STS.Paternoster.PlannerInControl",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 5,
-          "HandleId": 1000505
-        }
-      ]
-    },
-    {
-      "Name": "Seeding",
-      "Node": "ns=6;s=::ExtComm:CS.Seeding",
-      "Id": 5,
-      "Variables": [
-        {
-          "Name": "DestinationCurrentTray",
-          "Node": "ns=6;s=::ExtComm:CS.Seeding.DestinationCurrentTray",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 1,
-          "HandleId": 1000501
-        },
-        {
-          "Name": "DestinationOutputTray",
-          "Node": "ns=6;s=::ExtComm:CS.Seeding.DestinationOutputTray",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 2,
-          "HandleId": 1000502
-        },
-        {
-          "Name": "Layer",
-          "Node": "ns=6;s=::ExtComm:CS.Seeding.Layer",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 3,
-          "HandleId": 1000503
-        },
-        {
-          "Name": "TrayIdOutputTray",
-          "Node": "ns=6;s=::ExtComm:CS.Seeding.TrayIdOutputTray",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 4,
-          "HandleId": 1000504
-        },
-        {
-          "Name": "TrayInterval",
-          "Node": "ns=6;s=::ExtComm:CS.Seeding.TrayInterval",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 5,
-          "HandleId": 1000505
-        },
-        {
-          "Name": "RequestTrayInfo",
-          "Node": "ns=6;s=::ExtComm:STS.Seeding.RequestTrayInfo",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 6,
-          "HandleId": 1000506
-        },
-        {
-          "Name": "TrayId",
-          "Node": "ns=6;s=::ExtComm:STS.Seeding.TrayId",
-          "Type": 2,
-          "MustSubscribe": false,
-          "Id": 7,
-          "HandleId": 1000507
-        },
-        {
-          "Name": "TrayInfoAccepted",
-          "Node": "ns=6;s=::ExtComm:STS.Seeding.TrayInfoAccepted",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 8,
-          "HandleId": 1000508
-        },
-        {
-          "Name": "PlannerInControl",
-          "Node": "ns=6;s=::ExtComm:STS.Seeding.PlannerInControl",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 9,
-          "HandleId": 1000509
-        }
-      ]
-    },
-    {
-      "Name": "Washing",
-      "Node": "ns=6;s=::ExtComm:CS.Washing",
-      "Id": 6,
-      "Variables": [
-        {
-          "Name": "Accepted",
-          "Node": "ns=6;s=::ExtComm:CS.Washing.Accepted",
-          "Type": 1,
-          "MustSubscribe": false,
-          "Id": 1,
-          "HandleId": 1000601
-        },
-        {
-          "Name": "Request",
-          "Node": "ns=6;s=::ExtComm:STS.Washing.Request",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 2,
-          "HandleId": 1000602
-        },
-        {
-          "Name": "TrayId",
-          "Node": "ns=6;s=::ExtComm:STS.Washing.TrayId",
-          "Type": 2,
-          "MustSubscribe": false,
-          "Id": 3,
-          "HandleId": 1000603
-        },
-        {
-          "Name": "PlannerInControl",
-          "Node": "ns=6;s=::ExtComm:STS.Washing.PlannerInControl",
-          "Type": 2,
-          "MustSubscribe": true,
-          "Id": 4,
-          "HandleId": 1000604
-        }
-      ]
-    }
-  ]
+    ]
 }

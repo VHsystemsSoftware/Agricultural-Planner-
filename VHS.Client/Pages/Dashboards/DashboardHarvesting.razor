@@ -1,23 +1,36 @@
 ﻿@page "/dashboard-harvesting"
 @inject HubConnection _hubConnection
 @inject PageTitleService PageTitleService
+@implements IDisposable
+
 <DashboardComponent JobLocationId="@GlobalConstants.JOBLOCATION_HARVESTER" @ref="dc" />
 
 @code {
-    private DashboardComponent? dc;
+	private DashboardComponent? dc;
 
-    protected override async Task OnInitializedAsync()
-    {
-        PageTitleService.Title = "";
+	protected override async Task OnInitializedAsync()
+	{
+		PageTitleService.Title = "";
+		PageTitleService.BackUrl = "";
 
-        await ConnectNotification();
-    }
+		await ConnectNotification();
+	}
 
-    private async Task ConnectNotification()
-    {
-        _hubConnection.On<Guid, Guid>("Transport", (jobId, trayId) =>
-        {
-            dc.LoadJobs();
-        });
-    }
+	private async Task ConnectNotification()
+	{
+		_hubConnection.On("RefreshDashboardHarvester", () =>
+		 {
+			 dc.LoadJobs();
+		 });
+
+	}
+
+	public void Dispose()
+	{
+		if (_hubConnection != null)
+		{
+			_hubConnection.Remove("RefreshDashboardHarvester");
+		}
+	}
 }
+

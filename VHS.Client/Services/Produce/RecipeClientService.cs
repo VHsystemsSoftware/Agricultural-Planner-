@@ -24,7 +24,7 @@ namespace VHS.Client.Services.Produce
 
         public async Task<List<RecipeDTO>> GetRecipesByFarmAsync(Guid farmId)
         {
-            return await _httpClient.GetFromJsonAsync<List<RecipeDTO>>($"api/recipe/by-farm/{farmId}");
+            return await _httpClient.GetFromJsonAsync<List<RecipeDTO>>($"api/recipe/byfarm/{farmId}");
         }
 
         public async Task<RecipeDTO?> CreateRecipeAsync(RecipeDTO recipeDto)

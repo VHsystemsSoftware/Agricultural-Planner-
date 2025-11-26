@@ -9,7 +9,7 @@ public class JobDTO
 	public string Name { get; set; } = string.Empty; //default = batch config name = scheduledatetime ?
 	public int OrderOnDay { get; set; } = 1;
 	public int TrayCount { get; set; }
-	public DateTime ScheduledDate { get; set; }
+	public DateOnly ScheduledDate { get; set; }
 	public DateTime AddedDateTime { get; set; }
 	public Guid JobLocationTypeId { get; set; } = GlobalConstants.JOBLOCATION_SEEDER;
 

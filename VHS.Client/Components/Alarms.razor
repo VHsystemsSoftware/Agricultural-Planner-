@@ -1,0 +1,61 @@
+﻿@using VHS.OPC.Models
+@inject HubConnection HubConnection
+@inject IStringLocalizer<Shared> Localizer
+@inject SystemService SystemService
+@implements IDisposable
+
+<MudItem xs="12" sm="12">
+    <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+        <MudStack>
+            <MudItem xs="12" md="12">
+                <MudPaper Class="pa-4" Style="height: 100%;" Elevation="2">
+                    <MudText Typo="Typo.h6" GutterBottom="true">@Localizer["AlarmsAndStops"]</MudText>
+
+                    <MudGrid Spacing="1">
+                        @foreach (var alarm in alarms)
+                        {
+                            <MudItem xs="3">
+                                <MudStack Row="true" AlignItems="AlignItems.Center">
+                                    <div class="opc-worker-indicator @(alarm.Status ? "red-light" : "green-light")" style="width: 20px; height: 20px;"></div>
+                                    <MudText>@alarm.Name</MudText>
+                                </MudStack>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudStack>
+    </MudPaper>
+</MudItem>
+
+@code {
+    List<OPCAlarm> alarms = new List<OPCAlarm>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        alarms = await SystemService.GetAlarms();
+
+        if (HubConnection is not null)
+        {
+       
+            HubConnection.On<string>("AlarmStatusChanged", async (alarmName) =>
+            {
+                alarms = await SystemService.GetAlarms();
+
+                if (alarms != null)
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
+
+    }
+
+    public void Dispose()
+    {
+        if (HubConnection != null)
+        {
+            HubConnection.Remove("AlarmStatusChanged");
+        }
+    }
+}

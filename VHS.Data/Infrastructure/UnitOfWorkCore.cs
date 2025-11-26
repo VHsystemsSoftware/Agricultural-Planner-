@@ -15,7 +15,6 @@ namespace VHS.Data.Core.Infrastructure
         public IRackRepository Rack { get; }
         public ILayerRepository Layer { get; }
         public ITrayRepository Tray { get; }
-        public ITrayStateAuditRepository TrayStateAudit { get; }
 		//public ITrayCurrentStateRepository TrayCurrentState { get; }
 		public ITrayStateRepository TrayState { get; }
 		public IProductRepository Product { get; }
@@ -27,12 +26,14 @@ namespace VHS.Data.Core.Infrastructure
         public IRecipeLightScheduleRepository RecipeLightSchedule { get; }
         public IRecipeWaterScheduleRepository RecipeWaterSchedule { get; }
         public IBatchRepository Batch { get; }
-        public IBatchPlanRepository BatchPlan { get; }
+        public IGrowPlanRepository GrowPlan { get; }
         public IBatchRowRepository BatchRow { get; }
         public IJobRepository Job { get; }
         public IJobTrayRepository JobTray { get; }
 
-		public UnitOfWorkCore(
+        public INoteRepository Note { get; }
+
+        public UnitOfWorkCore(
             VHSCoreDBContext contextCore,
 			ILogger<UnitOfWorkCore> logger,
             IFarmRepository farmRepository,
@@ -52,12 +53,12 @@ namespace VHS.Data.Core.Infrastructure
             IRecipeLightScheduleRepository recipeLightScheduleRepository,
             IRecipeWaterScheduleRepository recipeWaterScheduleRepository,
             IBatchRepository batchRepository,
-            IBatchPlanRepository batchPlanRepository,
+            IGrowPlanRepository batchPlanRepository,
             IBatchRowRepository batchRowRepository,
             IJobRepository jobRepository,
             IJobTrayRepository jobTrayRepository,
-            ITrayStateAuditRepository trayStateAuditRepository
-			)
+            INoteRepository noteRepository
+            )
         {
             _contextCore = contextCore;
 			_logger = logger;
@@ -78,12 +79,12 @@ namespace VHS.Data.Core.Infrastructure
             RecipeLightSchedule = recipeLightScheduleRepository;
             RecipeWaterSchedule = recipeWaterScheduleRepository;
             Batch = batchRepository;
-            BatchPlan = batchPlanRepository;
+            GrowPlan = batchPlanRepository;
             BatchRow = batchRowRepository;
             Job = jobRepository;
             JobTray = jobTrayRepository;
-            TrayStateAudit = trayStateAuditRepository;
-		}
+            Note = noteRepository;
+        }
 
         public async Task<int> SaveChangesAsync() => await _contextCore.SaveChangesAsync();
 

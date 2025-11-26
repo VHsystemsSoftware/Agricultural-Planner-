@@ -75,7 +75,7 @@ public class OpcUaServerManager
 			{
 				while (server.ClientSession.State != CommunicationState.Opened)
 				{
-					//_logger.LogInformation("Waiting for session to open: {Url}", server.DiscoveryUrl);
+					_logger.LogInformation("Waiting for session to open: {Url}", server.DiscoveryUrl);
 					try
 					{
 						using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -116,15 +116,24 @@ public class OpcUaServerManager
 	/// <summary>Step 4: Read all current node values.</summary>
 	public async Task GetCurrentValuesAsync()
 	{
+		_logger.LogInformation("Get variables");
 		foreach (var server in _servers)
 		{
+			_logger.LogInformation($"Read server {server.HostnameOrIP}");
 			foreach (var comp in server.Components)
+			{
+				
+				_logger.LogInformation($"Read component {comp.Name}");
 				foreach (var variable in comp.Variables)
 				{
+					_logger.LogInformation("Try reading {Node}", variable.Node);
+
 					var resp = await server.ReadNodeDataAsync(new List<string> { variable.Node });
 					var val = resp.Results?.FirstOrDefault()?.Value;
+
 					_logger.LogInformation("Read {Node} = {Value}", variable.Node, val);
 				}
+			}
 		}
 	}
 

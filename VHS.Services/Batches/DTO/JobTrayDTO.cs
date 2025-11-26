@@ -6,8 +6,8 @@ namespace VHS.Services.Batches.DTO;
 public class JobTrayDTO
 {
 	public Guid Id { get; set; }
-
-	public Guid? TrayId { get; set; }
+    public Guid? ParentJobTrayId { get; set; }
+    public Guid? TrayId { get; set; }
 	public virtual TrayDTO? Tray { get; set; }
 
 	[Required]
@@ -22,7 +22,7 @@ public class JobTrayDTO
 	[Required]
 	public int OrderInJob { get; set; }
 
-	public Guid CurrentPhaseId { get; set; }
+	public bool IsDone { get; set; }
 
 	public DateTime AddedDateTime { get; set; }
 }

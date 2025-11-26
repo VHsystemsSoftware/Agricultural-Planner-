@@ -28,6 +28,7 @@ public class BatchRowService : IBatchRowService
             FloorId = r.FloorId,
             RackId = r.RackId,
             LayerId = r.LayerId,
+            EmptyCount = r.EmptyCount,
             TrayCount = r.Rack?.TrayCountPerLayer ?? 0,
             AddedDateTime = r.AddedDateTime,
             LayerRackTypeId = r.Rack?.TypeId ?? Guid.Empty,

@@ -1,12 +1,14 @@
 ﻿@using VHS.Services.Farming.DTO
+
+@inject IStringLocalizer<Shared> Localizer
 @inject ISnackbar Snackbar
 
 <Dialog Title="@DialogTitle" ShowDefaultActions="false">
     <ChildContent>
         <MudForm Model="Farm" IsValid="IsValid">
-            <MudTextField @bind-Value="Farm.Name" Label="Farm Name" Variant="Variant.Outlined" Required="true" />
-            <MudTextField @bind-Value="Farm.Description" Lines="3" Variant="Variant.Outlined" Label="Description" />
-            <MudSelect @bind-Value="Farm.FarmTypeId" Label="Farm Type" Variant="Variant.Outlined" Required="true">
+            <MudTextField @bind-Value="Farm.Name" Label="@Localizer["FarmName"]" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="Farm.Description" Lines="3" Variant="Variant.Outlined" Label="@Localizer["Description"]" />
+            <MudSelect @bind-Value="Farm.FarmTypeId" Label="@Localizer["FarmType"]" Variant="Variant.Outlined" Required="true">
                 @foreach (var type in FarmTypes)
                 {
                     <MudSelectItem Value="@type.Id">@type.Name</MudSelectItem>
@@ -15,8 +17,8 @@
         </MudForm>
     </ChildContent>
     <ActionsContent>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
-        <MudButton OnClick="Save" Disabled="!IsValid" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">@Localizer["Cancel"]</MudButton>
+        <MudButton OnClick="Save" Disabled="!IsValid" Variant="Variant.Filled" Color="Color.Primary">@Localizer["Save"]</MudButton>
     </ActionsContent>
 </Dialog>
 
@@ -26,7 +28,7 @@
     [Parameter] public FarmDTO Farm { get; set; } = new FarmDTO();
     [Parameter] public List<FarmTypeDTO> FarmTypes { get; set; } = new();
 
-    private string DialogTitle => Farm.Id == Guid.Empty ? "Add New Farm" : "Edit Farm";
+    private string DialogTitle => Farm.Id == Guid.Empty ? Localizer["AddNewFarm"] : Localizer["EditFarm"];
 
     private bool IsValid => !string.IsNullOrWhiteSpace(Farm.Name) && Farm.FarmTypeId != Guid.Empty;
 

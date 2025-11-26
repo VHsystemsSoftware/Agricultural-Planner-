@@ -16,11 +16,16 @@ public class VHSAuditDBContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<OPCAudit> OPCAudits { get; set; }
 
+	// System
+	public DbSet<SystemMessage> SystemMessages { get; set; }
+
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfiguration(new AuditLogMap());
         modelBuilder.ApplyConfiguration(new OPCAuditMap());
-    }
+		// System
+		modelBuilder.ApplyConfiguration(new SystemMessageMap());
+	}
 }

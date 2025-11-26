@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Json;
-using VHS.Services.Batches.DTO;
 using VHS.Services.Farming.DTO;
 
 namespace VHS.Client.Services.Batches
@@ -16,6 +15,11 @@ namespace VHS.Client.Services.Batches
         public async Task<List<TrayStateDTO>?> GetCurrentStates()
         {
             return await _httpClient.GetFromJsonAsync<List<TrayStateDTO>>("api/traystate/current");
+        }
+
+        public async Task<List<TrayStateDTO>?> GetCurrentStates(Guid batchId)
+        {
+            return await _httpClient.GetFromJsonAsync<List<TrayStateDTO>>($"api/traystate/{batchId}");
         }
 
         public async Task UpdateTrayStateAsync(TrayStateDTO dto)

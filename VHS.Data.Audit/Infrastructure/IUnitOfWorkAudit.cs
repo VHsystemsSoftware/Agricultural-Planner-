@@ -8,6 +8,8 @@ public interface IUnitOfWorkAudit : IDisposable
     IAuditLogRepository AuditLog { get; }
     IOPCAuditRepository OPCAudit { get; }
 
+	ISystemMessageRepository SystemMessage { get; }
+
 	Task<int> SaveChangesAsync();
     Task<IDbContextTransaction> BeginTransactionAsync();
     Task<IDbContextTransaction> EnsureTransactionAsync();

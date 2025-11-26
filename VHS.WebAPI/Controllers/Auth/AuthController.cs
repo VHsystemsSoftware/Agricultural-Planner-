@@ -7,6 +7,7 @@ using System.Text;
 using VHS.Data.Auth.Models.Auth;
 using VHS.Services.Auth.DTO;
 using Microsoft.AspNetCore.Authorization;
+using VHS.Services.Auth;
 
 namespace VHS.WebAPI.Controllers.Auth
 {
@@ -17,15 +18,18 @@ namespace VHS.WebAPI.Controllers.Auth
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IConfiguration _config;
+        private readonly IUserAuthorizationService _authorizationService;
 
         public AuthController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            IConfiguration config)
+            IConfiguration config,
+            IUserAuthorizationService authorizationService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _config = config;
+            _authorizationService = authorizationService;
         }
 
         [AllowAnonymous]
@@ -33,7 +37,7 @@ namespace VHS.WebAPI.Controllers.Auth
         public async Task<IActionResult> Login([FromBody] LoginDTO loginDto)
         {
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
-            if (user == null)
+            if (user == null || user.DeletedDateTime != null)
             {
                 return Unauthorized(LoginResultDTO.Failed());
             }
@@ -62,7 +66,7 @@ namespace VHS.WebAPI.Controllers.Auth
         public async Task<IActionResult> ResetPassword([FromBody] PasswordResetDTO dto)
         {
             var user = await _userManager.FindByEmailAsync(dto.Email);
-            if (user == null)
+            if (user == null || user.DeletedDateTime != null)
                 return NotFound(new { message = "User not found." });
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
@@ -70,10 +74,55 @@ namespace VHS.WebAPI.Controllers.Auth
             if (!resetResult.Succeeded)
                 return BadRequest(resetResult.Errors);
 
-            return NoContent();
-        }
+        return NoContent();
+    }
 
-        private async Task<string> GenerateJwtToken(User user)
+    [HttpGet("permissions")]
+    [Authorize]
+    public IActionResult GetCurrentUserPermissions()
+    {
+        try
+        {
+            var currentUser = User;
+            
+            var permissions = new UserAuthorizationDTO
+            {
+                IsGlobalAdmin = _authorizationService.IsGlobalAdmin(currentUser),
+                CanViewUsers = _authorizationService.CanViewUsers(currentUser),
+                CanCreateUsers = _authorizationService.CanCreateUsers(currentUser),
+                CanEditUsers = _authorizationService.CanEditUser(currentUser, Guid.Empty),
+                CanDeleteUsers = _authorizationService.CanDeleteUser(currentUser, Guid.Empty),
+                CanChangeUserRole = _authorizationService.CanChangeUserRole(currentUser),
+                CurrentUserRole = _authorizationService.GetCurrentUserRole(currentUser),
+                CurrentUserId = _authorizationService.GetCurrentUserId(currentUser)
+            };
+
+            return Ok(permissions);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("can-delete-user/{targetUserId}")]
+    [Authorize]
+    public IActionResult CanDeleteSpecificUser(Guid targetUserId)
+    {
+        try
+        {
+            var currentUser = User;
+            var canDelete = _authorizationService.CanDeleteUser(currentUser, targetUserId);
+            
+            return Ok(new { CanDelete = canDelete });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    private async Task<string> GenerateJwtToken(User user)
         {
             var jwtSection = _config.GetSection("JwtSettings");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["SecretKey"]!));
@@ -98,7 +147,7 @@ namespace VHS.WebAPI.Controllers.Auth
                 issuer: jwtSection["Issuer"],
                 audience: jwtSection["Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(6),
+                expires: DateTime.UtcNow.AddDays(30),
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

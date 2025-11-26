@@ -1,0 +1,585 @@
+﻿@using VHS.Services.Batches.DTO
+@using VHS.Services.Farming.DTO
+@using VHS.Services.Produce.DTO
+@using VHS.Client.Services.Farming
+@using VHS.Client.Services.Batches
+@using VHS.Client.Services.Produce
+@using MudExtensions
+@using VHS.Client.Services
+
+@inject ISnackbar Snackbar
+@inject FarmClientService FarmClientService
+@inject RecipeClientService RecipeClientService
+@inject BatchPlanClientService BatchPlanClientService
+@inject FloorClientService FloorClientService
+@inject RackClientService RackClientService
+@inject LayerClientService LayerClientService
+@inject IDialogService Dialog
+@inject IStringLocalizer<Shared> Localizer
+@inject GrowPlanClientService GrowPlanClientService
+
+<Dialog Title="@DialogTitle" ShowDefaultActions="false" @ref="dialog">
+    <ChildContent>
+        @if (GrowPlan != null && RackSizes.Any())
+        {
+            <MudForm Model="GrowPlan" @ref="form" @bind-IsValid="_formIsValid">
+                <MudGrid>
+                    <MudItem sm="2">
+                        <MudStack Spacing="3">
+                            @if (Recipes.Any())
+                            {
+                                <MudTextField @bind-Value="GrowPlan.Name" Label="@Localizer["PlanName"]" Variant="Variant.Outlined" Required="true" />
+                                <MudSelect T="Guid" Label="@Localizer["Recipe"]" @bind-Value="SelectedRecipeId" Variant="Variant.Outlined" Required="true" HelperText="@GetRecipeHelperText()">
+                                    <MudSelectItem Value="Guid.Empty">@Localizer["NoRecipeSelected"]</MudSelectItem>
+                                    @foreach (var recipe in Recipes.OrderBy(x => x.Name))
+                                    {
+                                        <MudSelectItem Value="@recipe.Id">@recipe.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            <MudField Label="@Localizer["StartDate"]" Variant="Variant.Outlined">
+                                <MudDatePicker PickerVariant="PickerVariant.Inline"
+                                               Date="GrowPlan.StartDate.Value.ToDateTime(new TimeOnly(0, 0))"
+                                               Orientation="Orientation.Portrait"
+                                               DateFormat="yyyy-MM-dd"
+                                               Required="true"
+                                               DateChanged="ChangeDate" />
+                            </MudField>
+                            <MudGrid>
+                                <MudItem xs="12" sm="4">
+                                    <MudNumericField T="int"
+                                                     Value="GrowPlan.DaysForPlan"
+                                                     ValueChanged="@(v => { GrowPlan.DaysForPlan = v; })"
+                                                     Label="Days"
+                                                     Variant="Variant.Outlined"
+                                                     Required="true"
+                                                     Min="2"
+                                                     Immediate="true" />
+                                </MudItem>
+
+
+                                <MudItem xs="12" sm="4">
+                                    <MudNumericField T="int"
+                                                     Value="LayerCount"
+                                                     ValueChanged="@(v => { LayerCount = v;  GrowPlan.TraysPerDay=SelectedRackSize*v; CalculateTotalTrays();})"
+                                                     Label="@Localizer["Layers"]"
+                                                     Variant="Variant.Outlined"
+                                                     Required="true"
+                                                     Min="1"
+                                                     Immediate="true" />
+                                </MudItem>
+                                <MudItem xs="12" sm="4">
+                                    <MudSelect T="int" Label="@Localizer["RackSize"]" Value="SelectedRackSize" Variant="Variant.Outlined" Required="true"
+                                               ValueChanged="@(v => {SelectedRackSize=v; GrowPlan.TraysPerDay = SelectedRackSize * LayerCount; CalculateTotalTrays(); })">
+                                        @foreach (var rackSize in RackSizes)
+                                        {
+                                            <MudSelectItem Value="@rackSize">@rackSize</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                @* 	<MudItem xs="12">
+										<MudCheckBox T="bool" Value="CleanGrowRack" ValueChanged="@(v => { CleanGrowRack = v; })" Color="Color.Primary" Label="Clean Racks" />
+									</MudItem> *@
+                                <MudItem xs="12">
+                                    <MudText>End Date of Plan: @EndDateDisplay.ToString("yyyy-MM-dd")</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="12">
+                                    <MudText>Trays per day: @GrowPlan.TraysPerDay </MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="12">
+                                    <MudText>Trays total: @TotalTraysDisplay </MudText>
+                                </MudItem>
+                            </MudGrid>
+
+                            <MudButton Disabled="SelectedRecipeId == Guid.Empty" OnClick="Calculate" Variant="Variant.Filled" Color="Color.Primary">@Localizer["Calculate"]</MudButton>
+
+                        </MudStack>
+                    </MudItem>
+                    <MudItem sm="10">
+                        <MudLoading Loading="IsLoading" Style="height:400px">
+                            @if (GrowPlanResults != null)
+                            {
+                                <MudGrid Spacing="1">
+                                    <MudItem sm="12">
+                                        <span>Totals: Harvested: @GrowPlanResults.Sum(x => x.Harvested), Washed: @GrowPlanResults.Sum(x => x.Washed)</span>
+                                    </MudItem>
+                                </MudGrid>
+                                <MudDivider />
+                                <MudSpacer />
+                                <MudGrid Justify="Justify.FlexStart" Class="mt-2" Spacing="2">
+                                    <MudItem xs="12" sm="6" Class="d-flex justify-content-start">
+                                        <div class="d-flex flex-row gap-4 mb-2">
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box" style="background-color:khaki"></div>
+                                                <span class="ml-2">@Localizer["Propagation"]</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box bg-empty"></div><span class="ml-2">@Localizer["Empty"]</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-age-1"></div><span class="ml-2">0%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-age-2"></div><span class="ml-2">50%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-age-3"></div><span class="ml-2">75%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-aged"></div><span class="ml-2">100%</span>
+                                            </div>
+                                        </div>
+                                    </MudItem>
+                                </MudGrid>
+                                <MudGrid Justify="Justify.FlexStart" Class="mt-2" Spacing="2">
+                                    <MudItem xs="12" sm="6" Class="d-flex justify-content-start">
+                                        <div class="d-flex flex-row gap-4 mb-2">
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box" style="background-color:lavender"></div>
+                                                <span class="ml-2">@Localizer["Germination"]</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box bg-empty"></div><span class="ml-2">@Localizer["Empty"]</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-age-1"></div><span class="ml-2">0%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-age-2"></div><span class="ml-2">50%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-age-3"></div><span class="ml-2">75%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-germination-aged"></div><span class="ml-2">100%</span>
+                                            </div>
+                                        </div>
+                                    </MudItem>
+                                </MudGrid>
+                                <MudGrid Justify="Justify.FlexStart" Class="mt-2" Spacing="2">
+                                    <MudItem xs="12" sm="6" Class="d-flex justify-start">
+                                        <div class="d-flex flex-row gap-4 mb-2">
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box" style="background-color:lightblue"></div>
+                                                <span class="ml-2">@Localizer["Growing"]</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box bg-empty"></div><span class="ml-2">@Localizer["Empty"]</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-age-1"></div><span class="ml-2">0%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-age-2"></div><span class="ml-2">50%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-age-3"></div><span class="ml-2">75%</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <div class="farm-rack-legend-box farm-rack-tray-aged"></div><span class="ml-2">100%</span>
+                                            </div>
+                                        </div>
+                                    </MudItem>
+                                </MudGrid>
+                                <MudDivider />
+                                <MudSpacer />
+                                <MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" MinimumTabWidth="30px" Border="true" @ref="tabs" @bind-ActivePanelIndex="activeTabIndex"
+                                         TabPanelHeaderPosition="TabHeaderPosition.After">
+                                    <Header>
+                                        <MudButtonGroup>
+                                            <MudTooltip Text="Previous day">
+                                                <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => { if (activeTabIndex > 0) activeTabIndex = activeTabIndex - 1; })" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="Next day">
+                                                <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => { if (activeTabIndex < tabs.Panels.Count() - 1) activeTabIndex = activeTabIndex + 1; })" />
+                                            </MudTooltip>
+                                        </MudButtonGroup>
+                                    </Header>
+                                    <ChildContent>
+                                        @foreach (var result in GrowPlanResults)
+                                        {
+                                            <MudTabPanel ToolTip="@($"{result.Date}")">
+                                                <TabContent>
+
+                                                    @if (result.Errors.Any())
+                                                    {
+                                                        <div style="color:red">@result.DayCount</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div style="color:limegreen">@result.DayCount</div>
+                                                    }
+                                                </TabContent>
+                                                <ChildContent>
+                                                    <h5>@result.Date</h5>
+                                                    @if (result.Messages.Any())
+                                                    {
+                                                        foreach (var message in result.Messages)
+                                                        {
+                                                            <h5>@message</h5>
+                                                        }
+                                                    }
+                                                    <MudDivider />
+                                                    @if (result.Errors.Any())
+                                                    {
+                                                        <h3>Errors</h3>
+                                                        foreach (var error in result.Errors)
+                                                        {
+                                                            <h5>@error</h5>
+                                                        }
+                                                    }
+                                                    <MudDivider />
+                                                    <MudSpacer />
+                                                    <div class="d-flex flex-row gap-4 flex-wrap justify-content-center">
+                                                        @foreach (var rack in result.Racks.OrderBy(x => x.Floor.Number).ThenBy(x => x.Number))
+                                                        {
+                                                            <MudPaper Style="@GetRackTypeBackgroundColor(rack.TypeId)">
+                                                                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                                                    @if (rack.TypeId == GlobalConstants.RACKTYPE_GERMINATION)
+                                                                    {
+                                                                        <div> @Localizer["Germination"]</div>
+                                                                    }
+                                                                    @if (rack.TypeId == GlobalConstants.RACKTYPE_PROPAGATION)
+                                                                    {
+                                                                        <div class="ml-2"> @Localizer["Propagation"]</div>
+                                                                    }
+                                                                    @if (rack.TypeId == GlobalConstants.RACKTYPE_GROWING)
+                                                                    {
+                                                                        <div class="ml-2"> @Localizer["Growing"]</div>
+                                                                    }
+                                                                    <div class="ml-2">@($"{rack.Floor.Name}-{rack.Name} ({rack.TrayCountPerLayer})")</div>
+                                                                </MudText>
+                                                                <div class="d-flex flex-row gap-1 flex-wrap justify-content-center">
+                                                                    <div class="rack-set-container">
+                                                                        <div class="rack-head"></div>
+
+                                                                        @foreach (var layer in rack.Layers.Where(x =>
+                                                                                                                                rack.TypeId != GlobalConstants.RACKTYPE_GERMINATION ||
+                                                                                                                                (rack.TypeId == GlobalConstants.RACKTYPE_GERMINATION && x.BatchId.HasValue)).OrderBy(l => l.Number))
+                                                                        {
+
+
+                                                                            var colorClass = GetOccupancyColor(GrowPlan.Id, layer, result.Date);
+
+                                                                            <div class="rack-tray @colorClass">
+                                                                                <MudTooltip>
+                                                                                    <ChildContent>
+
+                                                                                        <div class="rack-tray-overlay">
+                                                                                            <div class="rack-tray-overlay-text overlay-dot">
+                                                                                                <i class="pe-1 bi-circle-fill"></i>
+                                                                                                @($"{layer.Number.ToString("D2")}")
+                                                                                                [@layer.BatchRowNumber]
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                    </ChildContent>
+                                                                                    <TooltipContent>
+                                                                                        <MudText Typo="Typo.subtitle1">Layer: @layer.Number</MudText>
+                                                                                        @if (@layer.Batch?.GrowPlan != null)
+                                                                                        {
+                                                                                            <MudText Typo="Typo.body2">Plan: @layer.Batch?.GrowPlan?.Name</MudText>
+                                                                                        }
+                                                                                        @if (@layer.Batch != null)
+                                                                                        {
+                                                                                            <MudText Typo="Typo.body2">Batch: @layer.Batch?.Name</MudText>
+
+
+                                                                                            @if (layer.Batch.Recipe != null)
+                                                                                            {
+                                                                                                <MudText Typo="Typo.body2">Recipe: @layer.Batch?.Recipe?.Name</MudText>
+                                                                                                <MudText Typo="Typo.body2"> Seeded: @layer.Batch?.SeedDate.Value.ToString("yyyy-MM-dd") </MudText>
+                                                                                                <MudText Typo="Typo.body2"> Done: @layer.Batch?.HarvestDate.Value.ToString("yyyy-MM-dd") </MudText>
+
+                                                                                            }
+                                                                                        }
+                                                                                    </TooltipContent>
+                                                                                </MudTooltip>
+                                                                            </div>
+
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            </MudPaper>
+                                                        }
+                                                    </div>
+                                                </ChildContent>
+                                            </MudTabPanel>
+                                        }
+                                    </ChildContent>
+
+                                </MudTabs>
+                            }
+                        </MudLoading>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </ChildContent>
+    <ActionsContent>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">@Localizer["Cancel"]</MudButton>
+        <MudButton OnClick="Save" Disabled="@(form == null || IsLoading || GrowPlanResults == null || !form.IsValid || AreErrorsDetected)" Variant="Variant.Filled" Color="Color.Primary">@Localizer["CreateJobPlans"]</MudButton>
+    </ActionsContent>
+</Dialog>
+
+@code {
+
+    private Dialog? dialog;
+
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+    [Parameter]
+    public GrowPlanDTO GrowPlan { get; set; }
+
+    MudTabs tabs;
+    int activeTabIndex;
+
+    private MudForm form = new MudForm();
+    private bool _formIsValid;
+    private FarmDTO SelectedFarm;
+    private List<RecipeDTO> Recipes = new List<RecipeDTO>();
+    private List<RackDTO> Racks = new();
+
+    public List<GrowDemandResultPerDay>? GrowPlanResults;
+
+    private DateOnly EndDateDisplay => CalculateEndDate();
+    private string TotalTraysDisplay => CalculateTotalTrays().ToString();
+
+    private int DaysForPlan { get; set; }
+    private int TraysPerDay { get; set; }
+
+    private bool AreErrorsDetected = false;
+
+    private Guid _selectedRecipeId;
+    private Guid SelectedRecipeId
+    {
+        get => _selectedRecipeId;
+        set
+        {
+            if (_selectedRecipeId != value)
+            {
+                _selectedRecipeId = value;
+
+                if (_selectedRecipeId != Guid.Empty)
+                {
+                    GrowPlan.GrowPlanTypeId = GlobalConstants.BATCHPLANTYPE_RECIPE;
+                    UpdateGrowPlanFromRecipe();
+                }
+            }
+            StateHasChanged();
+        }
+    }
+    private bool CleanGrowRack { get; set; } = false;
+    private string DialogTitle => GrowPlan.Id == Guid.Empty ? Localizer["AddPlan"] : Localizer["EditPlan"];
+    private bool IsLoading { get; set; } = false;
+    private bool hasStarted;
+    private bool isFinished => GrowPlan.StatusId == GlobalConstants.BATCHPLANSTATUS_FINISHED;
+
+    private List<int> RackSizes = new List<int>();
+    private int SelectedRackSize;
+    private int LayerCount = 1;
+
+    private string GetRecipeHelperText()
+    {
+        var selected = Recipes.FirstOrDefault(r => r.Id == SelectedRecipeId);
+        return selected != null
+            ? Localizer.GetString("RecipeHelperTextFormat", selected.GerminationDays, selected.PropagationDays, selected.GrowDays)
+            : string.Empty;
+    }
+
+    public async Task ChangeDate(DateTime? newDate)
+    {
+        GrowPlan.StartDate = DateOnly.FromDateTime(newDate.Value);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        SelectedFarm = await FarmClientService.GetFirstFarmsSimpleAsync();
+        Recipes = (await RecipeClientService.GetRecipesByFarmAsync(SelectedFarm.Id))?.ToList() ?? new List<RecipeDTO>();
+        Racks = (await RackClientService.GetAllRacksAsync(SelectedFarm.Id)).Where(x => x.Enabled && x.TypeId == GlobalConstants.RACKTYPE_GROWING).OrderBy(x => x.Number).ToList();
+
+        GrowPlan.GrowPlanTypeId = GlobalConstants.BATCHPLANTYPE_RECIPE;
+
+        RackSizes = Racks.Select(x => x.TrayCountPerLayer).Distinct().OrderBy(x => x).ToList();
+        SelectedRackSize = RackSizes.Max();
+
+        if (GrowPlan.Id == Guid.Empty)
+        {
+            GrowPlan.StartDate = DateOnly.FromDateTime(DateTime.Today);
+
+            GrowPlan.Recipe ??= new RecipeDTO();
+            if (_selectedRecipeId != Guid.Empty)
+            {
+                GrowPlan.GrowPlanTypeId = GlobalConstants.BATCHPLANTYPE_RECIPE;
+                UpdateGrowPlanFromRecipe();
+            }
+
+        }
+        else if (GrowPlan.Id != Guid.Empty)
+        {
+            hasStarted = GrowPlan?.StatusId == GlobalConstants.BATCHPLANSTATUS_PLANNED;
+
+            _selectedRecipeId = GrowPlan.Recipe?.Id ?? Guid.Empty;
+        }
+        else
+        {
+            GrowPlan.Batches = new List<BatchDTO>();
+        }
+
+
+        GrowPlan.TraysPerDay = SelectedRackSize * LayerCount;
+        CalculateTotalTrays();
+    }
+
+
+    private DateOnly CalculateEndDate()
+    {
+        return (GrowPlan.StartDate ?? DateOnly.FromDateTime(DateTime.UtcNow.Date)).AddDays(GrowPlan.DaysForPlan).AddDays(GrowPlan.Recipe.GerminationDays + GrowPlan.Recipe.GrowDays);
+    }
+
+    private int CalculateTotalTrays()
+    {
+        return (GrowPlan?.DaysForPlan ?? 0) * (GrowPlan?.TraysPerDay ?? 0);
+    }
+
+    private void UpdateGrowPlanFromRecipe()
+    {
+        var selectedRecipe = Recipes.Single(r => r.Id == _selectedRecipeId);
+        GrowPlan.Recipe ??= new RecipeDTO();
+        GrowPlan.Recipe.Id = selectedRecipe.Id;
+        GrowPlan.Recipe.Name = selectedRecipe.Name;
+        GrowPlan.Recipe.GerminationDays = selectedRecipe.GerminationDays;
+        GrowPlan.Recipe.PropagationDays = selectedRecipe.PropagationDays;
+        GrowPlan.Recipe.GrowDays = selectedRecipe.GrowDays;
+    }
+
+    private async Task BatchRowsChanged()
+    {
+        await BatchPlanClientService.UpdateBatchPlanAsync(GrowPlan);
+    }
+
+    private void AddTabCallback(Boolean append)
+    {
+        // //the tab becomes available after it is rendered. Hence, we can't set the index here
+        // if (append == true)
+        // {
+        // 	_tabs.Add(tabView);
+        // 	_nextIndex = _tabs.Count - 1;
+        // }
+        // else
+        // {
+        // 	_tabs.Insert(0, tabView);
+        // 	_nextIndex = 0;
+        // }
+    }
+
+    private async Task Calculate()
+    {
+        IsLoading = true;
+        GrowPlan.FarmId = SelectedFarm.Id;
+        GrowPlanResults = await GrowPlanClientService.GetGrowPlanCalculationOutputAsync(SelectedFarm.Id, GrowPlan, SelectedRackSize, LayerCount, CleanGrowRack);
+
+        AreErrorsDetected = GrowPlanResults.Any(x => x.Errors.Any());
+
+        activeTabIndex = 0;
+        //SetActiveTab();
+
+        IsLoading = false;
+    }
+
+    // private void SetActiveTab()
+    // {
+    // 	tabs.ActivePanelIndex = activeTabIndex;
+    // 	StateHasChanged();
+    // }
+
+    private async Task Save()
+    {
+        await form.Validate();
+        if (!_formIsValid)
+            return;
+
+
+        if (form != null && !IsLoading)
+        {
+            GrowPlan.FarmId = SelectedFarm.Id;
+
+            if (Recipes.Any() && SelectedRecipeId != Guid.Empty)
+            {
+                var selectedRecipe = Recipes.FirstOrDefault(r => r.Id == SelectedRecipeId);
+                GrowPlan.Recipe = selectedRecipe ?? new RecipeDTO();
+                GrowPlan.Recipe.Id = _selectedRecipeId;
+                GrowPlan.StatusId = GlobalConstants.BATCHPLANSTATUS_NEW;
+                GrowPlan.Batches = GrowPlanResults.SelectMany(x => x.Batches).ToList();
+            }
+            else
+            {
+                GrowPlan.Recipe = new RecipeDTO();
+            }
+
+            MudDialog?.Close(DialogResult.Ok(GrowPlan));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string GetRackTypeBackgroundColor(Guid typeId)
+    {
+        if (typeId == GlobalConstants.RACKTYPE_GROWING) return "background-color:lightblue";
+        if (typeId == GlobalConstants.RACKTYPE_GERMINATION) return "background-color:lavender";
+        if (typeId == GlobalConstants.RACKTYPE_PROPAGATION) return "background-color:khaki";
+
+        return string.Empty;
+    }
+
+    private string GetOccupancyColor(Guid? growPlanId, LayerDTO layer, DateOnly futureDate)
+    {
+        if (!layer.Enabled)
+        {
+            return string.Empty;
+        }
+
+        if (layer.Batch == null)
+        {
+            return "bg-empty";
+        }
+        else
+        {
+            if (layer.FinishedGrowing)
+            {
+                return "bg-low";
+            }
+            else
+            {
+
+                if (layer.Batch.Recipe != null)
+                {
+                    if (layer.Batch?.GrowPlan?.Id != growPlanId)
+                    {
+                        return "bg-low";
+                    }
+                    var isGermination = layer.RackTypeId == GlobalConstants.RACKTYPE_GERMINATION;
+
+                    var finishedOn = isGermination ? layer.FinishedDateGermination.Value : layer.FinishedDateGrowing.Value;
+                    var started = layer.Batch.SeedDate.Value;
+                    var days = (finishedOn.DayNumber - futureDate.DayNumber);
+
+                    var totalDays = finishedOn.DayNumber - started.DayNumber;
+                    var percent = ((totalDays - days) / (double)totalDays) * 100;
+                    Console.WriteLine(percent);
+                    if (percent <= 25)
+                        return isGermination ? "farm-rack-tray-germination-age-1" : "farm-rack-tray-age-1";
+                    else if (percent <= 50)
+                        return isGermination ? "farm-rack-tray-germination-age-2" : "farm-rack-tray-age-2";
+                    else if (percent <= 75)
+                        return isGermination ? "farm-rack-tray-germination-age-3" : "farm-rack-tray-age-3";
+                    else
+                        return isGermination ? "farm-rack-tray-germination-aged" : "farm-rack-tray-aged";
+                }
+                else
+                {
+                    return "bg-empty";
+                }
+            }
+        }
+    }
+}

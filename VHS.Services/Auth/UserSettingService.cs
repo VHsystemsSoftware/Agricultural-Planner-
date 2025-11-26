@@ -50,6 +50,7 @@ public class UserSettingService : IUserSettingService
             PreferredLengthUnit = settings.PreferredLengthUnit,
             PreferredTemperatureUnit = settings.PreferredTemperatureUnit,
             PreferredVolumeUnit = settings.PreferredVolumeUnit,
+            PreferredDateTimeFormat = settings.PreferredDateTimeFormat,
             AddedDateTime = settings.AddedDateTime,
             ModifiedDateTime = settings.ModifiedDateTime
         };
@@ -76,7 +77,8 @@ public class UserSettingService : IUserSettingService
                 PreferredWeightUnit = existingSettings.PreferredWeightUnit,
                 PreferredLengthUnit = existingSettings.PreferredLengthUnit,
                 PreferredTemperatureUnit = existingSettings.PreferredTemperatureUnit,
-                PreferredVolumeUnit = existingSettings.PreferredVolumeUnit
+                PreferredVolumeUnit = existingSettings.PreferredVolumeUnit,
+                PreferredDateTimeFormat = existingSettings.PreferredDateTimeFormat,
             };
         }
 
@@ -90,7 +92,8 @@ public class UserSettingService : IUserSettingService
             PreferredWeightUnit = "Kilogram",
             PreferredLengthUnit = "Meter",
             PreferredTemperatureUnit = "Celsius",
-            PreferredVolumeUnit = "Liter"
+            PreferredVolumeUnit = "Liter",
+            PreferredDateTimeFormat = "dd-MM-yyyy HH:mm",
         };
 
         await _unitOfWork.UserSetting.AddAsync(defaultSettings);
@@ -112,7 +115,8 @@ public class UserSettingService : IUserSettingService
             PreferredWeightUnit = defaultSettings.PreferredWeightUnit,
             PreferredLengthUnit = defaultSettings.PreferredLengthUnit,
             PreferredTemperatureUnit = defaultSettings.PreferredTemperatureUnit,
-            PreferredVolumeUnit = defaultSettings.PreferredVolumeUnit
+            PreferredVolumeUnit = defaultSettings.PreferredVolumeUnit,
+            PreferredDateTimeFormat = defaultSettings.PreferredDateTimeFormat,
         };
     }
 
@@ -144,6 +148,7 @@ public class UserSettingService : IUserSettingService
         existingSettings.PreferredLengthUnit = settingsDto.PreferredLengthUnit;
         existingSettings.PreferredTemperatureUnit = settingsDto.PreferredTemperatureUnit;
         existingSettings.PreferredVolumeUnit = settingsDto.PreferredVolumeUnit;
+        existingSettings.PreferredDateTimeFormat = settingsDto.PreferredDateTimeFormat;
         existingSettings.ModifiedDateTime = DateTime.UtcNow;
 
         _unitOfWork.UserSetting.Update(existingSettings);

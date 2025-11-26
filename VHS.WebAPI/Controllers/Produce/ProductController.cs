@@ -9,7 +9,6 @@ namespace VHS.WebAPI.Controllers.Produce;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temp allow
 public class ProductController : ControllerBase
 {
     private readonly IProductService _productService;
@@ -25,6 +24,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllProduceTypes(Guid? farmId = null)
     {
         var produceTypes = await _productService.GetAllProductsAsync(farmId);
@@ -32,6 +32,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetProduceTypeById(Guid id)
     {
         var produceType = await _productService.GetProductByIdAsync(id);
@@ -43,6 +44,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> CreateProduceType([FromBody] ProductDTO productDto)
     {
         var createdProduceType = await _productService.CreateProductAsync(productDto, GetCurrentUserId());
@@ -50,6 +52,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> UpdateProduceType(Guid id, [FromBody] ProductDTO productDto)
     {
         if (id != productDto.Id)
@@ -61,6 +64,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> DeleteProduceType(Guid id)
     {
         await _productService.DeleteProductAsync(id, GetCurrentUserId());
@@ -68,6 +72,8 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("image/{productId}")]
+    //[Authorize(Policy = "FarmManagerAndAbove")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetProductImage(Guid productId)
     {
         var imageDataBase64 = await _productService.GetProductImageDataAsync(productId);
@@ -108,6 +114,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPost("validate-image")]
+    [Authorize(Policy = "CanAccessPlanningOperations")]
     public async Task<IActionResult> ValidateImage(IFormFile file)
     {
         if (file == null || file.Length == 0)

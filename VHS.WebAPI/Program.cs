@@ -14,6 +14,7 @@ using VHS.Data.Core;
 using VHS.WebAPI.Hubs;
 using VHS.WebAPI.Infra.Exceptions;
 using VHS.WebAPI.Middlewares;
+using VHS.WebAPI.Authorization;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,8 @@ var environment = builder.Environment;
 
 builder.Configuration.AddJsonFile($"appsettings.json", optional: false, reloadOnChange: true);
 builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: false, reloadOnChange: true);
+
+builder.Services.AddMemoryCache();
 
 var loggingDirectory = builder.Configuration.GetValue<string>("LoggingDirectory");
 Environment.SetEnvironmentVariable("LoggingDirectory", loggingDirectory);
@@ -81,11 +84,24 @@ if (string.IsNullOrEmpty(secretKey))
 	throw new InvalidOperationException("JWT SecretKey is not configured in appsettings.");
 }
 
-// Configure Authentication with JWT Bearer
+// Add Identity Services BEFORE JWT to avoid conflicts
+services.AddIdentity<User, IdentityRole<Guid>>(opts =>
+{
+	opts.User.RequireUniqueEmail = true;
+	opts.Password.RequireDigit = true;
+	opts.Password.RequiredLength = 8;
+	opts.Password.RequireNonAlphanumeric = false;
+	opts.Password.RequireUppercase = false;
+})
+.AddEntityFrameworkStores<VHSAuthDBContext>()
+.AddDefaultTokenProviders();
+
+// Configure Authentication with JWT Bearer (override Identity defaults)
 services.AddAuthentication(options =>
 {
 	options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 	options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+	options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -100,7 +116,47 @@ services.AddAuthentication(options =>
 		ValidateLifetime = true,
 		ClockSkew = TimeSpan.Zero
 	};
+	
+	// Add event handlers for debugging
+	options.Events = new JwtBearerEvents
+	{
+		OnAuthenticationFailed = context =>
+		{
+			// Console.WriteLine($"[DEBUG] JWT Authentication failed: {context.Exception.Message}");
+			return Task.CompletedTask;
+		},
+		OnTokenValidated = context =>
+		{
+			// Console.WriteLine($"[DEBUG] JWT Token validated for user: {context.Principal?.Identity?.Name}");
+			return Task.CompletedTask;
+		},
+		OnChallenge = context =>
+		{
+			// Console.WriteLine($"[DEBUG] JWT Challenge triggered: {context.Error} - {context.ErrorDescription}");
+			// Check if this is an API request (JSON Accept header) vs browser request
+			var acceptHeader = context.Request.Headers.Accept.ToString();
+			var isApiRequest = acceptHeader.Contains("application/json", StringComparison.OrdinalIgnoreCase);
+			
+			if (isApiRequest)
+			{
+				// For API requests, return 401 without redirect
+				context.HandleResponse();
+				context.Response.StatusCode = 401;
+				return context.Response.WriteAsync("Unauthorized");
+			}
+			else
+			{
+				// For browser requests, redirect to login page
+				context.Response.StatusCode = 302;
+				context.Response.Headers.Location = "/login";
+				return Task.CompletedTask;
+			}
+		}
+	};
 });
+
+// Configure Authorization Policies
+services.AddPolicies();
 
 // Add SignalR
 services.AddSignalR();
@@ -116,17 +172,7 @@ ServiceInitialization.ConfigureDatabaseProvider(services, configuration);
 // Initialize all dependencies for services
 ServiceInitialization.Initialize(services, configuration);
 
-// Add Identity Services
-services.AddIdentity<User, IdentityRole<Guid>>(opts =>
-{
-	opts.User.RequireUniqueEmail = true;
-	opts.Password.RequireDigit = true;
-	opts.Password.RequiredLength = 8;
-	opts.Password.RequireNonAlphanumeric = false;
-	opts.Password.RequireUppercase = false;
-})
-.AddEntityFrameworkStores<VHSAuthDBContext>()
-.AddDefaultTokenProviders();
+// Identity Services already configured above with JWT
 
 var app = builder.Build();
 
@@ -185,8 +231,9 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers().RequireAuthorization();
+app.MapControllers();
 app.UseResponseCompression();
+
 // Map SignalR Hub
 app.MapHub<VHSNotificationHub>("/hubs/notifications");
 

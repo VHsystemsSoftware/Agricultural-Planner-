@@ -17,7 +17,7 @@ namespace VHS.Data.Auth.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.5")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Proxies:ChangeTracking", false)
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
@@ -256,6 +256,13 @@ namespace VHS.Data.Auth.Migrations
 
                     b.Property<DateTime>("ModifiedDateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("PreferredDateTimeFormat")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("dd-MM-yyyy HH:mm");
 
                     b.Property<string>("PreferredLanguage")
                         .IsRequired()

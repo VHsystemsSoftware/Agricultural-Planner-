@@ -10,6 +10,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.Extensions.Localization
 @using MudBlazor
+@using Radzen.Blazor
 @using VHS.Client
 @using VHS.Client.Auth
 @using VHS.Client.Services
@@ -19,3 +20,24 @@
 @using VHS.Client.Resources
 @using VHS.Client.Resources.Languages
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Text.Json
+@using MudExtensions
+@using VHS.Client.Services.Audit
+@using VHS.Data.Models.Audit
+@using VHS.Common
+
+@using VHS.Client.Services.Farming
+@using VHS.Services.Farming.DTO
+@using VHS.Services.Batches.DTO
+@using VHS.Services.Produce.DTO
+
+@using System.ComponentModel
+@using VHS.Services.Results.DTO
+@using VHS.Services.Auth.DTO
+@using VHS.Client.Services.Results
+@using VHS.Client.Services.Produce
+@using VHS.Client.Services.Batches
+@using VHS.Client.Services.Auth
+@using ImperialUnits = VHS.Services.Common.Enums.Measurements.Imperial
+
+@inject TrayStateClientService TrayStateClientService

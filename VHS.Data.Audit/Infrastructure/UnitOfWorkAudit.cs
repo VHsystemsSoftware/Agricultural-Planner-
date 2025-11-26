@@ -13,16 +13,20 @@ public class UnitOfWorkAudit : IUnitOfWorkAudit, IDisposable
     public IAuditLogRepository AuditLog { get; }
     public IOPCAuditRepository OPCAudit { get; }
 
+	public ISystemMessageRepository SystemMessage { get; }
+
 	public UnitOfWorkAudit(
         VHSAuditDBContext contextCore,
 		ILogger<UnitOfWorkAudit> logger,
         IAuditLogRepository auditLogRepository,
-        IOPCAuditRepository jobOPCAuditRepository)
+        IOPCAuditRepository jobOPCAuditRepository,
+	    ISystemMessageRepository systemMessageRepository)
     {
         _contextCore = contextCore;
 		_logger = logger;
         AuditLog = auditLogRepository;
         OPCAudit = jobOPCAuditRepository;
+        SystemMessage = systemMessageRepository;
 	}
 
     public async Task<int> SaveChangesAsync() => await _contextCore.SaveChangesAsync();

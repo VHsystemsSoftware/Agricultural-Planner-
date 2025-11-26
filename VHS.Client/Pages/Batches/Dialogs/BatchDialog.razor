@@ -1,18 +1,22 @@
 ﻿@using VHS.Services.Batches.DTO
 @using VHS.Services.Farming.DTO
 @using VHS.Services.Produce.DTO
+@using VHS.Services.Notes.DTO
 @using VHS.Client.Services.Farming
 @using VHS.Client.Services.Batches
 @using VHS.Client.Services.Produce
+@using VHS.Client.Services.Notes
 @using VHS.Services.Common
+@inject IStringLocalizer<Shared> Localizer
 @inject ISnackbar Snackbar
 @inject BatchPlanClientService BatchPlanClientService
+@inject NoteClientService NoteClientService
 
 <Dialog Title="@DialogTitle" ShowDefaultActions="false">
     <ChildContent>
         <MudForm Model="Batch" @ref="form">
-            <MudTextField @bind-Value="Batch.BatchName" Label="Batch Name" Variant="Variant.Outlined" Required="true" />
-            @if (!IsLoading)
+            <MudTextField @bind-Value="Batch.Name" Label="@Localizer["BatchName"]" Variant="Variant.Outlined" Required="true" />
+@*             @if (!IsLoading)
             {
                 @if (Plans.Any())
                 {
@@ -23,23 +27,35 @@
                         }
                     </MudSelect>
                 }
+            } *@
+@*             <MudText>Plan: @Batch.BatchPlan.Name</MudText>
+            @if (Batch.SeedDate.HasValue){
+                <MudText>Seed Date: @Batch.SeedDate.Value.ToShortDateString()</MudText>
             }
-            <MudDatePicker @bind-Date="Batch.SeedDate" Label="Seed Date" Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Required="true" />
-            <MudDatePicker @bind-Date="Batch.HarvestDate" Label="Harvest Date" Variant="Variant.Outlined" />
-            <MudTextField @bind-Value="Batch.LotReference" Label="Lot Reference" Variant="Variant.Outlined" Required="true" />
-            @if (!IsLoading)
+            @if (Batch.HarvestDate.HasValue) 
+            {
+                <MudText>Harvest Date: @Batch.HarvestDate.Value.ToShortDateString()</MudText>
+            } *@
+
+            @* <MudDatePicker @bind-Date="Batch.SeedDate" Label="Seed Date" Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Required="true" /> *@
+            @* <MudDatePicker @bind-Date="Batch.HarvestDate" Label="Harvest Date" Variant="Variant.Outlined" /> *@
+            <MudTextField @bind-Value="Batch.LotReference" Label="@Localizer["LotReference"]" Variant="Variant.Outlined" Required="true" />
+@*             @if (!IsLoading)
             {
                 <MudSelect T="Guid" Label="Status" @bind-Value="Batch.StatusId" Variant="Variant.Outlined" Required="true">
                     <MudSelectItem Value="@GlobalConstants.BATCHSTATUS_CANCELLED">Cancelled</MudSelectItem>
                     <MudSelectItem Value="@GlobalConstants.BATCHSTATUS_COMPLETED">Completed</MudSelectItem>
                     <MudSelectItem Value="@GlobalConstants.BATCHSTATUS_PLANNED">Planned</MudSelectItem>
                 </MudSelect>
-            }
+            } *@
+            <MudField Label="@Localizer["Notes"]" Variant="Variant.Outlined">
+                <RadzenHtmlEditor @bind-Value="NoteText" Style="height: 300px;" Change=@OnNoteTextChanged />
+            </MudField>
         </MudForm>
     </ChildContent>
     <ActionsContent>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
-        <MudButton OnClick="Save" Disabled="@(form == null || IsLoading || !Plans.Any())" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">@Localizer["Cancel"]</MudButton>
+        <MudButton OnClick="Save" Disabled="@(form == null || IsLoading || !Plans.Any())" Variant="Variant.Filled" Color="Color.Primary">@Localizer["Save"]</MudButton>
     </ActionsContent>
 </Dialog>
 
@@ -48,23 +64,24 @@
     [Parameter] public BatchDTO Batch { get; set; } = new BatchDTO();
 
     private MudForm form = new MudForm();
-    private List<BatchPlanDTO> Plans = new List<BatchPlanDTO>();
+    private List<GrowPlanDTO> Plans = new List<GrowPlanDTO>();
     private Guid SelectedPlanId { get; set; }
-    private string DialogTitle => Batch.Id == Guid.Empty ? "Add Batch" : "Edit Batch";
+    private string DialogTitle => Batch.Id == Guid.Empty ? Localizer["AddBatch"] : Localizer["EditBatch"];
     private bool IsLoading { get; set; } = true;
+    private string NoteText { get; set; } = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        Plans = (await BatchPlanClientService.GetAllBatchPlansAsync())?.ToList() ?? new List<BatchPlanDTO>();
+        Plans = (await BatchPlanClientService.GetAllBatchPlansAsync())?.ToList() ?? new List<GrowPlanDTO>();
 
         if (!Plans.Any())
         {
-            Snackbar.Add("No plans available. Please add a plan before proceeding.", Severity.Error);
+            Snackbar.Add(Localizer["NoPlansAvailableWarning"], Severity.Error);
         }
 
-        if (Batch.BatchPlan != null && Batch.BatchPlan.Id != Guid.Empty)
+        if (Batch.GrowPlan != null && Batch.GrowPlan.Id != Guid.Empty)
         {
-            SelectedPlanId = Batch.BatchPlan.Id;
+            SelectedPlanId = Batch.GrowPlan.Id;
         }
         else if (Plans.Any())
         {
@@ -75,18 +92,79 @@
         {
             Batch.StatusId = GlobalConstants.BATCHSTATUS_PLANNED;
         }
+
+        if (Batch.Id != Guid.Empty)
+        {
+            var notes = await NoteClientService.GetNotesForEntityAsync(Batch.Id);
+            var latestNote = notes?.OrderByDescending(n => n.AddedDateTime).FirstOrDefault();
+            NoteText = latestNote?.Text ?? string.Empty;
+        }
+
         IsLoading = false;
     }
 
-    private void Save()
+    private async Task Save()
     {
         if (form != null && !IsLoading && Plans.Any())
         {
-            Batch.BatchPlan = Plans.FirstOrDefault(c => c.Id == SelectedPlanId) ?? new BatchPlanDTO();
+            Batch.GrowPlan = Plans.FirstOrDefault(c => c.Id == SelectedPlanId) ?? new GrowPlanDTO();
+
+            if (!string.IsNullOrWhiteSpace(NoteText))
+            {
+                if (Batch.Id != Guid.Empty)
+                {
+                    var existingNotes = await NoteClientService.GetNotesForEntityAsync(Batch.Id);
+                    var existingNote = existingNotes?.OrderByDescending(n => n.AddedDateTime).FirstOrDefault();
+
+                    if (existingNote != null)
+                    {
+                        existingNote.Text = NoteText;
+                        await NoteClientService.UpdateNoteAsync(existingNote);
+                    }
+                    else
+                    {
+                        var newNote = new NoteDTO
+                            {
+                                Id = Guid.NewGuid(),
+                                EntityId = Batch.Id,
+                                Text = NoteText,
+                                AddedDateTime = DateTime.UtcNow
+                            };
+
+                        await NoteClientService.CreateNoteAsync(newNote);
+                    }
+                }
+                else
+                {
+                    var note = new NoteDTO
+                        {
+                            Id = Guid.NewGuid(),
+                            EntityId = Guid.NewGuid(),
+                            Text = NoteText,
+                            AddedDateTime = DateTime.UtcNow
+                        };
+
+                    Batch.Notes ??= new List<NoteDTO>();
+                    Batch.Notes.Clear();
+                    Batch.Notes.Add(note);
+                }
+            }
+            else
+            {
+                if (Batch.Notes != null)
+                {
+                    Batch.Notes.Clear();
+                }
+            }
+
             MudDialog.Close(DialogResult.Ok(Batch));
         }
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private void OnNoteTextChanged(string value)
+    {
+        NoteText = value;
+    }
 }
- 

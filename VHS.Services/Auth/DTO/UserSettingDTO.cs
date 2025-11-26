@@ -18,6 +18,7 @@ namespace VHS.Services.Auth.DTO
         public string PreferredLengthUnit { get; set; } = "Meter";
         public string PreferredTemperatureUnit { get; set; } = "Celsius";
         public string PreferredVolumeUnit { get; set; } = "Liter";
+        public string PreferredDateTimeFormat { get; set; } = "dd-MM-yyyy HH:mm";
         public DateTime AddedDateTime { get; set; }
         public DateTime ModifiedDateTime { get; set; }
     }

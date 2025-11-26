@@ -1,6 +1,8 @@
 ﻿@page "/system-settings/product/types"
 @using VHS.Services.Common
 @using VHS.Services.Produce.DTO
+
+@inject IStringLocalizer<Shared> Localizer
 @inject ISnackbar Snackbar
 @inject PageTitleService PageTitleService
 
@@ -10,8 +12,8 @@
             <MudPaper Outlined="true" Square="true">
                 <MudDataGrid Items="@ProduceTypesList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info">
                     <Columns>
-                        <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
-                        <TemplateColumn Title="Image">
+                        <PropertyColumn Property="x => x.Name" Title="@Localizer["Name"]" Sortable="true" />
+                        <TemplateColumn Title="@Localizer["Image"]">
                             <CellTemplate Context="item">
                                 @if (!string.IsNullOrWhiteSpace(item.Item.ImagePath))
                                 {
@@ -25,7 +27,7 @@
 
             @if (!ProduceTypesList.Any() && !IsLoading)
             {
-                <MudAlert Severity="Severity.Info">No product types found.</MudAlert>
+                <MudAlert Severity="Severity.Info">@Localizer["NoProductTypesFound"]</MudAlert>
             }
 
         </MudItem>
@@ -40,9 +42,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackText = $"<- {Localizer["SystemSettings"]}";
         PageTitleService.BackUrl = "/system-settings";
-        PageTitleService.Title = "Product Types";
+        PageTitleService.Title = Localizer["ProductTypes"];
         ProduceTypesList = new List<ProductCategoryDTO>
         {
             new ProductCategoryDTO

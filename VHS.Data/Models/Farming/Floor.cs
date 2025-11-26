@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VHS.Data.Core.Models;
 
@@ -28,4 +29,13 @@ public class Floor
     {
         AddedDateTime = DateTime.UtcNow;
     }
+
+	[NotMapped]
+	public virtual ICollection<TrayState> TrayStates
+	{
+		get
+		{
+			return this.Racks.SelectMany(x => x.TrayStates).ToList();
+		}
+	}
 }

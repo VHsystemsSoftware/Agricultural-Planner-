@@ -1,0 +1,734 @@
+﻿@page "/rackoccupancy"
+@page "/rackoccupancy/{RackIdUrl:guid}"
+
+@inject IStringLocalizer<Shared> Localizer
+@inject NavigationManager NavigationManager
+@inject RackClientService RackClientService
+@inject FarmClientService FarmClientService
+@inject FloorClientService FloorClientService
+@inject PageTitleService PageTitleService
+@inject RecipeClientService RecipeClientService
+@inject HubConnection _hubConnection
+@inject UserPreferencesService UserPreferences
+@inject ISnackbar Snackbar
+@inject LocalStorage LocalStorage
+@implements IDisposable
+
+<MudPaper Class="p-4" Elevation="0">
+    <MudStack Spacing="4">
+        @if (_racks != null)
+        {
+            <MudExpansionPanels>
+                <MudExpansionPanel Text="@Localizer["Filters"]" Expanded="@_isFilterPanelExpanded">
+                    <MudGrid Spacing="2" Class="mb-4">
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudSelect T="RackDTO" Label="@Localizer["ChooseRack"]" Value="_selectedRack" ValueChanged="OnRackChanged" Variant="Variant.Outlined" Dense="true">
+                                @foreach (var r in _racks.Where(x => x.Enabled))
+                                {
+                                    <MudSelectItem T="RackDTO" Value="@r" Variant>
+                                        <RacKTypeName TypeId="@r.TypeId" /> @r.Floor.Name - @Localizer["Rack"] @r.Name (@r.TrayCountPerLayer @Localizer["layers"])
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudSelect T="Guid?"
+                                       Label="@Localizer["FilterByRecipe"]"
+                                       @bind-Value="_filterRecipeId"
+                                       Dense="true"
+                                       Clearable="true"
+                                       Variant="Variant.Outlined">
+                                @if (_recipes != null)
+                                {
+                                    @foreach (var recipe in _recipes)
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)recipe.Id)">@recipe.Name</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="2" sm="2" md="2">
+                                    <MudButton Variant="Variant.Outlined"
+                                               Size="Size.Large"
+                                               Color="Color.Secondary"
+                                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                                               OnClick="BackDay">
+                                    </MudButton>
+                                </MudItem>
+                                <MudItem xs="8" sm="8" md="8">
+                                    <MudDatePicker Date="_asOf"
+                                                   DateChanged="OnAsOfChanged"
+                                                   Label="As of Date"
+                                                   PickerVariant="PickerVariant.Inline"
+                                                   DateFormat="@_userDateTimeFormat"
+                                                   Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="2" sm="2" md="2">
+                                    <MudButton Variant="Variant.Outlined"
+                                               Size="Size.Large"
+                                               Color="Color.Secondary"
+                                               StartIcon="@Icons.Material.Filled.ArrowForward"
+                                               OnClick="ForwardDay">
+                                    </MudButton>
+                                </MudItem>
+                            </MudGrid>
+                        </MudItem>
+                        <MudItem xs="12" Class="d-flex justify-center align-center my-auto" Style="padding-top:0px;">
+                            <MudCheckBox @bind-Value="Filter_ShowTarget" Label="@Localizer["ShowTrayTargetLayer"]"></MudCheckBox>
+                            <MudCheckBox @bind-Value="Filter_ShowTrayId" Label="@Localizer["ShowTrayID"]"></MudCheckBox>
+                            <MudCheckBox @bind-Value="Filter_ShowRecipe" Label="@Localizer["ShowRecipe"]"></MudCheckBox>
+                            <MudCheckBox @bind-Value="Filter_EmptyLayers" Label="@Localizer["ShowEmptyLayers"]"></MudCheckBox>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <div class="d-flex justify-center mt-2" style="gap: 16px;">
+                                <MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Primary" StartIcon="@Icons.Material.Filled.FilterAlt" OnClick="ApplyFilter" Disabled="@isLoading">
+                                    @Localizer["Filter"]
+                                </MudButton>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Large" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Clear" OnClick="ClearFilter">
+                                    @Localizer["ClearFilters"]
+                                </MudButton>
+                                <MudSwitch Value="@_simulationEnabled" Color="Color.Primary" T="bool" ValueChanged="@(x => HandleSwitchStateChanged(x))">@Localizer["SimulationMode"]</MudSwitch>
+                            </div>
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+        @if (_data != null)
+        {
+            <MudLoading @bind-Loading="@isLoading">
+                <MudGrid Justify="Justify.Center" Class="mt-2" Spacing="2">
+                    <MudItem xs="12" sm="6" Class="d-flex justify-center">
+                        <div class="d-flex flex-row gap-4 mb-2">
+                            <div class="d-flex align-center">
+                                <div class="farm-rack-legend-box farm-rack-tray-empty"></div><span class="ml-2">@Localizer["Empty"]</span>
+                            </div>
+                            <div class="d-flex align-center">
+                                <div class="farm-rack-legend-box farm-rack-tray-age-1"></div><span class="ml-2">@Localizer["Days1to3"]</span>
+                            </div>
+                            <div class="d-flex align-center">
+                                <div class="farm-rack-legend-box farm-rack-tray-age-2"></div><span class="ml-2">@Localizer["Days4to7"]</span>
+                            </div>
+                            <div class="d-flex align-center">
+                                <div class="farm-rack-legend-box farm-rack-tray-age-3"></div><span class="ml-2">@Localizer["Days8to14"]</span>
+                            </div>
+                            <div class="d-flex align-center">
+                                <div class="farm-rack-legend-box farm-rack-tray-aged"></div><span class="ml-2">@Localizer["DaysOver14"]</span>
+                            </div>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+                @if (_simulationEnabled)
+                {
+                    <MudGrid Justify="Justify.Center" Spacing="2">
+                        <MudItem xs="12" sm="6" Class="d-flex justify-center">
+                            <div class="d-flex flex-row gap-4 mb-2">
+                                <div class="d-flex align-center">
+                                    <div class="farm-rack-legend-box farm-rack-tray-estimated"></div>
+                                    <span class="ml-2">@Localizer["Simulation"]</span>
+                                </div>
+
+                                @if (_data.Any())
+                                {
+                                    <div class="d-flex align-center">
+                                        <span class="ml-2">@Localizer["Jobs"]: @_data[0].SimulationStats.SimulatedJobs</span>
+                                    </div>
+                                    <div class="d-flex align-center">
+                                        <span class="ml-2">@Localizer["Trays"]: @_data[0].SimulationStats.TraysInJob</span>
+                                    </div>
+                                    <div class="d-flex align-center">
+                                        <span class="ml-2">@Localizer["Washed"]: @_data[0].SimulationStats.Washed</span>
+                                    </div>
+                                    <div class="d-flex align-center">
+                                        <span class="ml-2">@Localizer["Harvested"]: @_data[0].SimulationStats.Harvested</span>
+                                    </div>
+                                }
+                            </div>
+                        </MudItem>
+                    </MudGrid>
+                }
+                <MudPaper Class="pa-4">
+                    <MudGrid>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.h6" Class="d-flex align-center justify-left">
+                                <MudIcon Icon="@Icons.Material.Filled.ArrowLeft" Title="Favorite" />
+                                @Localizer["GrowLayers"]
+                            </MudText>
+
+                            <MudTable Items="@_data.Where(x => !x.IsTransportLayer).OrderBy(l => l.LayerNumber)" Dense="true" Bordered="true" Hover="true">
+                                <HeaderContent>
+                                    <MudTh Class="farm-rack-tray-columnnumber">&nbsp;</MudTh>
+                                    @foreach (var column in _columns)
+                                    {
+                                        <MudTh Class="farm-rack-tray-columnnumber">
+                                            <MudText Class="farm-rack-layer-label">@($"{column}")</MudText>
+                                        </MudTh>
+                                    }
+                                </HeaderContent>
+                                <RowTemplate>
+                                    @{
+                                        var filteredTrays = GetFilteredTrays(context.Trays);
+                                    }
+                                    @if (!filteredTrays.Any() && !Filter_EmptyLayers)
+                                    {
+                                        return;
+                                    }
+                                    <MudTd class="farm-rack-tray-layernumber">
+                                        <MudText Class="farm-rack-layer-label">@($"{context.LayerNumber}")</MudText>
+                                    </MudTd>
+                                    @{
+
+                                        foreach (var column in _columns.OrderBy(x => x))
+                                        {
+                                            var tray = filteredTrays.FirstOrDefault(x => x.PreGrowOrderOnLayer == column || x.GrowOrderOnLayer == column);
+
+                                            <MudTd Class="@($"farm-rack-tray-square-cell {GetTrayStatusClass(tray)}")">
+                                                @if (tray is not null)
+                                                {
+                                                    <MudTooltip Text="@tray.TrayTag">
+                                                        <div class="farm-rack-tray-cell-content" @onclick="() => OpenTrayDialog(tray)">
+                                                            <MudStack Spacing="1">
+
+                                                                @if (Filter_ShowTrayId)
+                                                                {
+                                                                    <MudPaper Class="pa-1">
+                                                                        @tray.TrayTag
+                                                                    </MudPaper>
+                                                                }
+                                                                @if (Filter_ShowTarget)
+                                                                {
+                                                                    @if (_selectedRack.TypeId == GlobalConstants.RACKTYPE_GERMINATION)
+                                                                    {
+                                                                        <MudPaper Class="pa-1">
+                                                                            @if (@tray.GrowLayerId.HasValue)
+                                                                            {
+                                                                                @tray.GrowLayerName
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <MudIcon Icon="@Icons.Material.Outlined.WaterDrop" Size="Size.Small" Title="Favorite" />
+                                                                            }
+                                                                        </MudPaper>
+                                                                    }
+                                                                    else if (_selectedRack.TypeId == GlobalConstants.RACKTYPE_PROPAGATION)
+                                                                    {
+                                                                        <MudPaper Class="pa-1">
+                                                                            @if (tray.RecipeId.HasValue)
+                                                                            {
+                                                                                <MudText Class="farm-rack-layer-label">Transplant</MudText>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <MudIcon Icon="@Icons.Material.Outlined.WaterDrop" Size="Size.Small" Title="Favorite" />
+                                                                            }
+                                                                        </MudPaper>
+                                                                    }
+                                                                    else if (_selectedRack.TypeId == GlobalConstants.RACKTYPE_GROWING)
+                                                                    {
+                                                                        <MudPaper Class="pa-1">
+                                                                            @if (tray.RecipeId.HasValue)
+                                                                            {
+                                                                                <MudIcon Icon="@Icons.Material.Outlined.MacroOff" Size="Size.Small" Title="Favorite" />
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <MudIcon Icon="@Icons.Material.Outlined.WaterDrop" Size="Size.Small" Title="Favorite" />
+                                                                            }
+                                                                        </MudPaper>
+                                                                    }
+                                                                }
+
+
+                                                                @if (Filter_ShowRecipe && tray.RecipeId.HasValue)
+                                                                {
+                                                                    <MudPaper Class="pa-1">
+                                                                        @tray.Recipe?.Name
+                                                                    </MudPaper>
+                                                                }
+                                                            </MudStack>
+                                                        </div>
+                                                    </MudTooltip>
+                                                }
+                                            </MudTd>
+                                        }
+
+                                    }
+                                </RowTemplate>
+                            </MudTable>
+
+                            <MudText Typo="Typo.h6" Class="d-flex align-center justify-left mt-4">
+                                @Localizer["TransportLayer"] <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Title="Favorite" />
+                            </MudText>
+
+
+                            <MudTable Items="@_data.Where(x => x.IsTransportLayer).OrderBy(l => l.LayerNumber)" Dense="true" Bordered="true" Hover="true">
+                                <HeaderContent>
+                                    <MudTh Class="farm-rack-tray-columnnumber">&nbsp;</MudTh>
+                                    @foreach (var column in _columns.OrderByDescending(x => x))
+                                    {
+                                        <MudTh Class="farm-rack-tray-columnnumber">
+                                            <MudText Class="farm-rack-layer-label">@($"{column}")</MudText>
+                                        </MudTh>
+                                    }
+                                </HeaderContent>
+                                <RowTemplate>
+                                    @{
+                                        var filteredTrays = GetFilteredTrays(context.Trays);
+                                    }
+                                    <MudTd class="farm-rack-tray-layernumber">
+                                        <MudText Class="farm-rack-layer-label">@($"{context.LayerNumber}")</MudText>
+                                    </MudTd>
+                                    @{
+                                        foreach (var column in _columns.OrderByDescending(x => x))
+                                        {
+                                            var tray = filteredTrays.FirstOrDefault(x => x.PreGrowOrderOnLayer == column || x.GrowOrderOnLayer == column);
+
+                                            <MudTd Class="@($"farm-rack-tray-square-cell {GetTrayStatusClass(tray)}")">
+
+                                                @if (tray is not null)
+                                                {
+                                                    <MudTooltip Text="@tray.TrayTag">
+                                                        <div class="farm-rack-tray-cell-content" @onclick="() => OpenTrayDialog(tray)">
+                                                            <MudStack Spacing="1">
+                                                                @if (Filter_ShowTrayId)
+                                                                {
+                                                                    <MudPaper Class="pa-1">
+                                                                        @tray.TrayTag
+                                                                    </MudPaper>
+                                                                }
+                                                                @if (Filter_ShowTarget)
+                                                                {
+                                                                    <MudPaper Class="pa-1">
+                                                                        @if (_selectedRack.TypeId == GlobalConstants.RACKTYPE_GROWING)
+                                                                        {
+                                                                            if (tray.GrowLayerId.HasValue)
+                                                                            {
+                                                                                @tray.GrowLayerNumber
+                                                                            }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            if (tray.PreGrowLayerId.HasValue)
+                                                                            {
+                                                                                @tray.PreGrowLayerNumber
+                                                                            }
+                                                                        }
+                                                                    </MudPaper>
+                                                                }
+
+                                                                @if (Filter_ShowTarget)
+                                                                {
+                                                                    <MudPaper Class="pa-1">
+                                                                        @if (tray.RecipeId.HasValue)
+                                                                        {
+                                                                            <MudIcon Icon="@Icons.Material.Outlined.MacroOff" Size="Size.Small" Title="Harvest" />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <MudIcon Icon="@Icons.Material.Outlined.WaterDrop" Size="Size.Small" Title="Wash" />
+                                                                        }
+                                                                    </MudPaper>
+                                                                }
+
+                                                                @if (Filter_ShowRecipe && tray.RecipeId.HasValue)
+                                                                {
+                                                                    <MudPaper Class="pa-1">
+                                                                        @tray.Recipe?.Name
+                                                                    </MudPaper>
+                                                                }
+                                                            </MudStack>
+                                                        </div>
+                                                    </MudTooltip>
+                                                }
+                                            </MudTd>
+                                        }
+
+                                    }
+                                </RowTemplate>
+                            </MudTable>
+
+                            @if (_data.Any(x => x.IsTransportLayer))
+                            {
+                                <div class="d-flex justify-end mt-4">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenChangeAllDestinationDialog" Disabled="@(!_data.First(x => x.IsTransportLayer).Trays.Any() || _data.First(x => x.IsTransportLayer).Trays.Any(x => x.IsEstimated))">
+                                        @Localizer["ChangeDestinationLayer"]
+                                    </MudButton>
+                                </div>
+                                <MudDialog @bind-Visible="_changeDestDialogVisible" Options="_dialogOptions" Style="height: 250px;">
+                                    <TitleContent><MudText Typo="Typo.h6">@Localizer["DestinationForAllTrays"]</MudText></TitleContent>
+                                    <DialogContent>
+                                        <MudSelect T="Guid?" Label="@Localizer["ChooseNewDestinationLayer"]" @bind-Value="_selectedDestinationLayerId" Variant="Variant.Outlined">
+                                            @foreach (var layer in _data.Where(l => !l.IsTransportLayer).OrderBy(l => l.LayerNumber))
+                                            {
+                                                <MudSelectItem T="Guid?" Value="@layer.LayerId">@($"{layer.RackName}-{layer.LayerNumber}")</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </DialogContent>
+                                    <DialogActions>
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => _changeDestDialogVisible = false)">@Localizer["Cancel"]</MudButton>
+                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeAllDestinationsAsync" Disabled="@(!_selectedDestinationLayerId.HasValue)">@Localizer["Save"]</MudButton>
+                                    </DialogActions>
+                                </MudDialog>
+                            }
+
+                            <MudDialog @bind-Visible="_visible" Options="_dialogOptions">
+                                <DialogContent>
+                                    <MudText>
+                                        <p><b>@Localizer["TrayTag"]:</b> @_selectedTrayState?.TrayTag</p>
+                                        <p><b>@Localizer["Batch"]:</b> @_selectedTrayState?.BatchName</p>
+                                        <p><b>@Localizer["GrowOrder"]:</b> @_selectedTrayState?.GrowOrderOnLayer</p>
+                                        <p><b>@Localizer["PreGrowOrder"]:</b> @_selectedTrayState?.PreGrowOrderOnLayer</p>
+                                        <p><b>@Localizer["SeedDate"]:</b> @_selectedTrayState?.SeedDate?.ToString("d")</p>
+                                        <p><b>@Localizer["FinishedGrowing"]:</b> @_selectedTrayState?.GrowFinishedDate?.ToString("d")</p>
+                                        @if (_selectedTrayState?.Recipe is not null)
+                                        {
+                                            <p><b>@Localizer["Product"]:</b> @_selectedTrayState.Recipe.Name</p>
+                                        }
+                                        @if (_selectedTrayState?.BatchId is not null)
+                                        {
+                                            <p><b>@Localizer["BatchID"]:</b> @_selectedTrayState.BatchId</p>
+                                        }
+                                        @if (_selectedTrayState?.SeedDate is not null)
+                                        {
+                                            var asOfDate = _asOf ?? DateTime.Today;
+                                            var days = DateOnly.FromDateTime(asOfDate).DayNumber - _selectedTrayState.SeedDate.Value.DayNumber;
+                                            <p><b>@Localizer["GrowDay"]:</b> @days</p>
+                                        }
+                                    </MudText>
+                                    @if (_selectedTrayState != null && _data.Any(l => l.IsTransportLayer && l.Trays.Any(t => t.Id == _selectedTrayState.Id)))
+                                    {
+                                        <MudDivider Class="my-4" />
+                                        <MudText Typo="Typo.h6" Class="mb-2">@Localizer["ChangeDestination"]</MudText>
+                                        <MudSelect T="Guid?" Label="@Localizer["ChooseNewDestinationLayer"]" @bind-Value="_selectedTrayNewDestinationLayerId" Variant="Variant.Outlined">
+                                            @foreach (var layer in _data.Where(l => !l.IsTransportLayer).OrderBy(l => l.LayerNumber))
+                                            {
+                                                <MudSelectItem T="Guid?" Value="@layer.LayerId">@($"{layer.RackName}-{layer.LayerNumber}")</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    }
+                                </DialogContent>
+                                <DialogActions>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="CloseTrayDialog">@Localizer["Close"]</MudButton>
+                                    @if (_selectedTrayState != null && _data.Any(l => l.IsTransportLayer && l.Trays.Any(t => t.Id == _selectedTrayState.Id)))
+                                    {
+                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeSingleDestinationAsync" Disabled="@(!_selectedTrayNewDestinationLayerId.HasValue)">@Localizer["SaveDestination"]</MudButton>
+                                    }
+                                </DialogActions>
+                            </MudDialog>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudLoading>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public Guid? RackIdUrl { get; set; }
+
+    private bool isLoading = false;
+    MudAnimate? _animate = new();
+    public bool Filter_ShowTarget { get; set; } = false;
+    public bool Filter_ShowTrayId { get; set; } = true;
+    public bool Filter_ShowRecipe { get; set; } = false;
+    public bool Filter_EmptyLayers { get; set; } = false;
+    private bool _isFilterPanelExpanded = true;
+
+    private bool _visible;
+    private bool _changeDestDialogVisible;
+    private readonly DialogOptions _dialogOptions = new() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, Position = DialogPosition.TopCenter };
+
+    public IEnumerable<RackDTO>? _racks;
+    private List<RecipeDTO> _recipes = new();
+    private Guid? _filterRecipeId;
+    private DateTime? _asOf = DateTime.Today;
+
+    private FarmDTO? _selectedFarm;
+    private RackDTO? _selectedRack;
+
+    private List<LayerOccupancyDTO> _data = new();
+    private List<int> _columns = new();
+    private TrayStateDTO? _selectedTrayState;
+    private LayerOccupancyDTO? _transportLayer;
+    private Guid? _selectedDestinationLayerId;
+    private Guid? _selectedTrayNewDestinationLayerId;
+    private bool _simulationEnabled = false;
+
+    private string _userDateTimeFormat = "dd MMM yyyy";
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "";
+        PageTitleService.BackUrl = "";
+
+        _selectedFarm = await FarmClientService.GetFirstFarmsSimpleAsync();
+        _racks = (await RackClientService.GetAllRacksAsync(_selectedFarm.Id)).OrderBy(x => x.Floor.Number).ThenBy(x => x.Number).ToList();
+        await LoadRecipes();
+
+        // get saved filter state from local storage
+        var savedRackIdStr = await LocalStorage.GetStateAsync("VHS_FILTER_RACKOCC_RACKID");
+        Guid.TryParse(savedRackIdStr, out var savedRackId);
+
+        _filterRecipeId = Guid.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKS_RECIPEID"), out var recipeId) ? recipeId : (Guid?)null;
+        _asOf = DateTime.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKS_ASOF"), out var asOfDate) ? asOfDate : DateTime.Today;
+        _simulationEnabled = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKS_SIM"), out var sim) && sim;
+        Filter_ShowTarget = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKOCC_SHOWTARGET"), out var showTarget) && showTarget;
+        Filter_ShowTrayId = !bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKOCC_SHOWTRAYID"), out var showTrayId) || showTrayId;
+        Filter_ShowRecipe = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKOCC_SHOWRECIPE"), out var showRecipe) && showRecipe;
+        Filter_EmptyLayers = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKOCC_SHOWEMPTY"), out var showEmpty) && showEmpty;
+
+        _userDateTimeFormat = await UserPreferences.GetDateTimeFormatAsync(dateOnly: true);
+
+        if (_racks.Any())
+        {
+            RackDTO rackToLoad = null;
+
+            if (RackIdUrl.HasValue)
+            {
+                rackToLoad = _racks.FirstOrDefault(x => x.Id == RackIdUrl.Value);
+            }
+            else if (savedRackId != Guid.Empty)
+            {
+                rackToLoad = _racks.FirstOrDefault(x => x.Id == savedRackId);
+            }
+
+            rackToLoad ??= _racks.First();
+            await OnRackChanged(rackToLoad);
+        }
+
+        if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Connected)
+        {
+            _hubConnection.On<Guid>("UpdateTrayState", async (trayId) =>
+            {
+                await RefreshDataAsync();
+            });
+
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_hubConnection != null)
+        {
+            _hubConnection.Remove("UpdateTrayState");
+        }
+    }
+
+    private async Task HandleSwitchStateChanged(bool newValue)
+    {
+        _simulationEnabled = newValue;
+        await ApplyFilter();
+    }
+
+    private async Task LoadRecipes()
+    {
+        _recipes = (await RecipeClientService.GetAllRecipesAsync())?.OrderBy(r => r.Name).ToList() ?? new();
+    }
+
+    private async Task OnAsOfChanged(DateTime? newDate)
+    {
+        _asOf = newDate ?? DateTime.Today;
+        await ApplyFilter();
+    }
+
+    private async Task BackDay()
+    {
+        _asOf = _asOf.Value.AddDays(-1);
+    }
+    private async Task ForwardDay()
+    {
+        _asOf = _asOf.Value.AddDays(1);
+    }
+
+    private async Task OnRackChanged(RackDTO selectedRack)
+    {
+        _selectedRack = selectedRack;
+        _columns = _selectedRack.TrayCountPerLayer > 0
+        ? Enumerable.Range(1, _selectedRack.TrayCountPerLayer).ToList()
+        : new List<int>();
+
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKOCC_RACKID", _selectedRack.Id.ToString());
+        await Load(_selectedRack);
+
+        if (RackIdUrl != _selectedRack.Id)
+        {
+            NavigationManager.NavigateTo($"/rackoccupancy/{_selectedRack.Id}", forceLoad: false);
+        }
+    }
+
+    private async Task Load(RackDTO selectedRack)
+    {
+        if (selectedRack == null) return;
+
+        if (!isLoading)
+        {
+            isLoading = true;
+            await InvokeAsync(StateHasChanged);
+            _data = (await FarmClientService.GetRackOccupancyAsync(_selectedFarm.Id, selectedRack.Id, _asOf, _simulationEnabled)).ToList();
+            _transportLayer = _data.FirstOrDefault(x => x.IsTransportLayer);
+
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RefreshDataAsync()
+    {
+        if (_selectedRack == null) return;
+
+        _data = (await FarmClientService.GetRackOccupancyAsync(_selectedFarm.Id, _selectedRack.Id, _asOf, _simulationEnabled)).ToList();
+        _transportLayer = _data.FirstOrDefault(x => x.IsTransportLayer);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private IEnumerable<TrayStateDTO> GetFilteredTrays(List<TrayStateDTO> trays)
+    {
+        if (!_filterRecipeId.HasValue)
+        {
+            return trays;
+        }
+        return trays.Where(t => t.RecipeId == _filterRecipeId.Value);
+    }
+
+    private async Task ApplyFilter()
+    {
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKOCC_RACKID", _selectedRack.Id.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKS_RECIPEID", _filterRecipeId?.ToString() ?? "");
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKS_ASOF", _asOf?.ToString("yyyy-MM-dd") ?? "");
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKS_SIM", _simulationEnabled.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKOCC_SHOWTARGET", Filter_ShowTarget.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKOCC_SHOWTRAYID", Filter_ShowTrayId.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKOCC_SHOWRECIPE", Filter_ShowRecipe.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_RACKOCC_SHOWEMPTY", Filter_EmptyLayers.ToString());
+
+        await Load(_selectedRack);
+    }
+
+    private async Task ClearFilter()
+    {
+        _filterRecipeId = null;
+        _asOf = DateTime.Today;
+        _simulationEnabled = false;
+        Filter_ShowTarget = false;
+        Filter_ShowTrayId = true;
+        Filter_ShowRecipe = false;
+        Filter_EmptyLayers = false;
+
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKS_RECIPEID");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKS_ASOF");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKS_SIM");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKOCC_SHOWTARGET");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKOCC_SHOWTRAYID");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKOCC_SHOWRECIPE");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKOCC_SHOWEMPTY");
+
+        await Load(_selectedRack);
+    }
+
+    private void OpenTrayDialog(TrayStateDTO trayState)
+    {
+        _selectedTrayState = trayState;
+        var currentLayer = _data.FirstOrDefault(l => l.Trays.Any(t => t.Id == trayState.Id));
+        if (currentLayer != null && currentLayer.IsTransportLayer)
+        {
+            if (_selectedRack.TypeId == GlobalConstants.RACKTYPE_GERMINATION || _selectedRack.TypeId == GlobalConstants.RACKTYPE_PROPAGATION)
+            {
+                _selectedTrayNewDestinationLayerId = trayState.PreGrowLayerId;
+            }
+            else
+            {
+                _selectedTrayNewDestinationLayerId = trayState.GrowLayerId;
+            }
+        }
+        _visible = true;
+    }
+
+    private void CloseTrayDialog() => _visible = false;
+
+    private void OpenChangeAllDestinationDialog()
+    {
+        if (_transportLayer != null && _transportLayer.Trays.Any())
+        {
+            _selectedDestinationLayerId = null;
+            _changeDestDialogVisible = true;
+        }
+        else
+        {
+            Snackbar.Add("Transport layer is empty or does not exist.", Severity.Info);
+        }
+    }
+
+    private async Task ChangeAllDestinationsAsync()
+    {
+        if (!_selectedDestinationLayerId.HasValue || _transportLayer == null) return;
+        _changeDestDialogVisible = false;
+
+        var request = new TrayDestinationDTO
+        {
+            TrayStateIds = _transportLayer.Trays.Select(t => t.Id).ToList(),
+            DestinationLayerId = _selectedDestinationLayerId.Value,
+            RackTypeId = _selectedRack.TypeId
+        };
+
+        await FarmClientService.UpdateTrayDestinationsAsync(request);
+        await Load(_selectedRack);
+
+        
+        Snackbar.Add("All tray destinations updated.", Severity.Success);
+    }
+
+    private async Task ChangeSingleDestinationAsync()
+    {
+        _visible = false;
+
+        if (!_selectedTrayNewDestinationLayerId.HasValue || _selectedTrayState == null) return;
+
+        var request = new TrayDestinationDTO
+        {
+            TrayStateIds = new List<Guid> { _selectedTrayState.Id },
+            DestinationLayerId = _selectedTrayNewDestinationLayerId.Value,
+            RackTypeId = _selectedRack.TypeId
+        };
+
+        await FarmClientService.UpdateTrayDestinationsAsync(request);
+        
+        await Load(_selectedRack);
+        Snackbar.Add("Tray destination updated.", Severity.Success);
+    }
+
+    private string GetTrayStatusClass(TrayStateDTO tray)
+    {
+        if (tray == null)
+        {
+            return "farm-rack-notray";
+        }
+        else if (tray.IsEstimated)
+        {
+            return "farm-rack-tray-estimated";
+        }
+        else if (tray.SeedDate == null)
+        {
+            return "farm-rack-tray-empty";
+        }
+
+        else
+        {
+            var asOfDate = _asOf ?? DateTime.Today;
+            var today = DateOnly.FromDateTime(asOfDate);
+            var days = today.DayNumber - tray.SeedDate.Value.DayNumber;
+
+            if (days <= 3)
+                return "farm-rack-tray-age-1";
+            else if (days <= 7)
+                return "farm-rack-tray-age-2";
+            else if (days <= 14)
+                return "farm-rack-tray-age-3";
+            else
+                return "farm-rack-tray-aged";
+        }
+    }
+}

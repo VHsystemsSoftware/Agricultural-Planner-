@@ -9,7 +9,6 @@ namespace VHS.WebAPI.Controllers.Batches
 {
     [ApiController]
     [Route("api/[controller]")]
-    [AllowAnonymous] // Temporary allowed
     public class JobController : ControllerBase
     {
         private readonly IJobService _jobService;
@@ -29,6 +28,7 @@ namespace VHS.WebAPI.Controllers.Batches
         }
 
         [HttpGet]
+        [Authorize(Policy = "CanAccessPlanningOperations")]
         public async Task<IActionResult> GetAllJobs(
         [FromQuery] string? name = null,
         [FromQuery] string? batchName = null,
@@ -41,25 +41,29 @@ namespace VHS.WebAPI.Controllers.Batches
                 name,
                 batchName,
                 jobLocationTypeId,
-                scheduledDateFrom,
-                scheduledDateTo,
+                scheduledDateFrom.HasValue ? DateOnly.FromDateTime(scheduledDateFrom.Value) : null,
+                scheduledDateTo.HasValue ? DateOnly.FromDateTime(scheduledDateTo.Value) : null,
                 statusIds);
             return Ok(jobs);
         }
 
 		[HttpGet("seeding")]
+        //[Authorize(Policy = "CanViewDashboards")]
+        [AllowAnonymous]
 		public async Task<IActionResult> GetAllSeedingJobs()
 		{
 			var jobs = await _jobService.GetAllSeedingJobsAsync();
 			return Ok(jobs);
 		}
 		[HttpGet("transplant")]
+		//[Authorize(Policy = "CanViewDashboards")]
 		public async Task<IActionResult> GetAllTransplantJobs()
 		{
 			var jobs = await _jobService.GetAllTransplantJobsAsync();
 			return Ok(jobs);
 		}
 		[HttpGet("harvesting")]
+		//[Authorize(Policy = "CanViewDashboards")]
 		public async Task<IActionResult> GetAllHarvestingJobs()
 		{
 			var jobs = await _jobService.GetAllHarvestingJobsAsync();
@@ -67,6 +71,7 @@ namespace VHS.WebAPI.Controllers.Batches
 		}
 
 		[HttpGet("{id}")]
+		[Authorize(Policy = "CanAccessPlanningOperations")]
         public async Task<IActionResult> GetJobById(Guid id)
         {
             var job = await _jobService.GetJobByIdAsync(id);
@@ -76,6 +81,7 @@ namespace VHS.WebAPI.Controllers.Batches
         }
 
         [HttpPost]
+        [Authorize(Policy = "CanAccessPlanningOperations")]
         public async Task<IActionResult> CreateJob([FromBody] JobDTO jobDto)
         {
             var createdJob = await _jobService.CreateJobAsync(jobDto, GetCurrentUserId());
@@ -83,6 +89,7 @@ namespace VHS.WebAPI.Controllers.Batches
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = "CanAccessPlanningOperations")]
         public async Task<IActionResult> UpdateJob(Guid id, [FromBody] JobDTO jobDto)
         {
             if (id != jobDto.Id)
@@ -92,6 +99,7 @@ namespace VHS.WebAPI.Controllers.Batches
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = "CanAccessPlanningOperations")]
         public async Task<IActionResult> DeleteJob(Guid id)
         {
             await _jobService.DeleteJobAsync(id, GetCurrentUserId());
@@ -109,6 +117,7 @@ namespace VHS.WebAPI.Controllers.Batches
         //}
 
 		[HttpGet("trays/{jobId}")]
+		[Authorize(Policy = "CanAccessOverviewOperations")]
 		public async Task<IActionResult> GetJobTraysByJobId(Guid jobId)
 		{
 			var job = await _jobTrayService.GetAllByJobTrayIdAsync(jobId);
@@ -118,13 +127,17 @@ namespace VHS.WebAPI.Controllers.Batches
 		}
 
 		[HttpPut("Pause/{id}")]
+        //[Authorize(Policy = "CanAccessPlanningOperations")]
+        [AllowAnonymous]
 		public async Task<IActionResult> SetPause(Guid id)
 		{			
 			await _jobService.ChangePaused(id,true, GetCurrentUserId());
 			return NoContent();
 		}
 		[HttpPut("UnPause/{id}")]
-		public async Task<IActionResult> SetUnPause(Guid id)
+		//[Authorize(Policy = "CanAccessPlanningOperations")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SetUnPause(Guid id)
 		{
 			await _jobService.ChangePaused(id, false, GetCurrentUserId());
 			return NoContent();

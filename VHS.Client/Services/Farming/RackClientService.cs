@@ -12,9 +12,9 @@ namespace VHS.Client.Services.Farming
             _httpClient = httpClient;
         }
 
-        public async Task<IEnumerable<RackDTO>?> GetAllRacksAsync()
+        public async Task<IEnumerable<RackDTO>?> GetAllRacksAsync(Guid farmId)
         {
-            return await _httpClient.GetFromJsonAsync<IEnumerable<RackDTO>>("api/rack");
+            return await _httpClient.GetFromJsonAsync<IEnumerable<RackDTO>>($"api/rack/list/{farmId}");
         }
 
         public async Task<IEnumerable<RackDTO>?> GetAllRacksByTypeAsync(string typeName)

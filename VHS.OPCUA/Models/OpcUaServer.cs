@@ -284,7 +284,7 @@ public class OpcUaServer
                     var status = writeResult.Results[y];
                     if (!StatusCode.IsGood(status))
                     {
-                        throw new Exception($"OPC server: {this.DiscoveryUrl}, WriteNodeData item {listOfNodes[0].NodeId} {y}: {status}");
+                        throw new Exception($"OPC server: {this.DiscoveryUrl}, WriteNodeData item {listOfNodes[y].NodeId} {y}: {status}");
                     }
                 }
             }

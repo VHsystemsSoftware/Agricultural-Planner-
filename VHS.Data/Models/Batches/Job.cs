@@ -17,7 +17,7 @@ public class Job
 
 	public int TrayCount { get; set; }
 
-	public DateTime ScheduledDate { get; set; }
+	public DateOnly ScheduledDate { get; set; }
 
 	public Guid JobLocationTypeId { get; set; } //where does the job start? what location, seeding/harvesting/replanting/transport		
 

@@ -1,6 +1,7 @@
 ﻿@page "/dashboard-seeding"
 @inject HubConnection _hubConnection
 @inject PageTitleService PageTitleService
+@implements IDisposable
 
 <DashboardComponent JobLocationId="@GlobalConstants.JOBLOCATION_SEEDER" @ref="dc" />
 
@@ -10,17 +11,9 @@
     protected override async Task OnInitializedAsync()
     {
         PageTitleService.Title = "";
+        PageTitleService.BackUrl = "";
 
-        await ConnectNotification();
-    }
-
-    private async Task ConnectNotification()
-    {
-        _hubConnection.On<Guid, Guid>("NewTrayAtSeeder", (jobId, trayId) =>
-        {
-            dc.LoadJobs();
-        });
-
+        await ConnectNotificationRefresh();
     }
 
     private async Task ConnectNotificationRefresh()
@@ -30,6 +23,14 @@
             dc.LoadJobs();
         });
 
+    }
+
+    public void Dispose()
+    {
+        if (_hubConnection != null)
+        {
+            _hubConnection.Remove("RefreshDashboardSeeder");
+        }
     }
 
 }

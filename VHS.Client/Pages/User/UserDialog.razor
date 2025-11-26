@@ -1,5 +1,10 @@
-﻿@using VHS.Services.Auth.DTO
+@using VHS.Services.Auth.DTO
+@using VHS.Client.Services
+@using VHS.Client.Services.Auth
+@using VHS.Client.Helpers
 @inject ISnackbar Snackbar
+@inject IStringLocalizer<Shared> Localizer
+@inject PermissionService PermissionService
 
 <Dialog Title="@DialogTitle" ShowDefaultActions="false">
     <ChildContent>
@@ -7,54 +12,64 @@
         {
             <MudForm @ref="_form" Model="@User" ValidationDelay="0">
                 <MudTextField @bind-Value="User.FirstName"
-                              Label="First Name"
+                              Label="@Localizer["FirstName"]"
                               For="@(() => User.FirstName)"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="First name is required." />
+                              RequiredError="@Localizer["FirstNameRequired"]" />
 
                 <MudTextField @bind-Value="User.LastName"
-                              Label="Last Name"
+                              Label="@Localizer["LastName"]"
                               For="@(() => User.LastName)"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="Last name is required."
+                              RequiredError="@Localizer["LastNameRequired"]"
                               Class="mt-3" />
 
                 <MudTextField @bind-Value="User.Email"
-                              Label="Email"
+                              Label="@Localizer["Email"]"
                               For="@(() => User.Email)"
                               Variant="Variant.Outlined"
                               Required="true"
                               InputType="InputType.Email"
-                              RequiredError="A valid email is required."
+                              RequiredError="@Localizer["EmailRequired"]"
+                              ReadOnly="@(!PermissionService.IsGlobalAdmin)"
+                              Disabled="@(!PermissionService.IsGlobalAdmin)"
+                              HelperText="@(!PermissionService.IsGlobalAdmin ? Localizer["EmailCanOnlyBeChangedByGlobalAdmin"] : "")"
                               Class="mt-3" />
-                <MudSelect T="string" @bind-Value="User.Role" Label="Role" For="@(() => User.Role)"
-                           Variant="Variant.Outlined" Required="true" RequiredError="Role is required."
-                           Class="mt-3">
-                    @foreach (var role in Roles)
+                <MudSelect T="string" @bind-Value="User.Role" Label="@Localizer["Role"]" For="@(() => User.Role)"
+                              Variant="Variant.Outlined" Required="true" RequiredError="@Localizer["RoleRequired"]"
+                              Class="mt-3"
+                              Disabled="@(!PermissionService.CanChangeUserRole)"
+                              ReadOnly="@(!PermissionService.CanChangeUserRole)"
+                              HelperText="@(!PermissionService.CanChangeUserRole ? Localizer["RoleCanOnlyBeChangedByAuthorizedUsers"] : "")">
+                    @foreach (var role in SortedRoles)
                     {
-                        <MudSelectItem Value="@role">@role</MudSelectItem>
+                        <MudSelectItem Value="@role">@GetRoleDisplayName(role)</MudSelectItem>
                     }
                 </MudSelect>
 
                 @if (User.Id == Guid.Empty)
                 {
                     <MudTextField @bind-Value="User.Password"
+                                  @bind-Value:after="OnPasswordChanged"
                                   For="@(() => User.Password)"
-                                  Label="Password"
+                                  Label="@Localizer["Password"]"
                                   InputType="InputType.Password"
                                   Variant="Variant.Outlined"
                                   Required="true"
-                                  RequiredError="Password is required for new users."
+                                  RequiredError="@Localizer["PasswordRequiredForNewUser"]"
+                                  Error="@(!string.IsNullOrEmpty(_passwordError))"
+                                  ErrorText="@_passwordError"
+                                  HelperText="@GetPasswordRequirementsText()"
                                   Class="mt-3" />
                 }
             </MudForm>
         }
     </ChildContent>
     <ActionsContent>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
-        <MudButton OnClick="Save" Disabled="@(_form == null || !_form.IsValid)" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Default">@Localizer["Cancel"]</MudButton>
+        <MudButton OnClick="Save" Disabled="@(IsLoading)" Variant="Variant.Filled" Color="Color.Primary">@Localizer["Save"]</MudButton>
     </ActionsContent>
 </Dialog>
 
@@ -69,16 +84,46 @@
 
     private MudForm _form;
     private bool IsLoading { get; set; } = true;
-    private string DialogTitle => User.Id == Guid.Empty ? "Create New User" : "Edit User";
+    private string _passwordError = string.Empty;
+    private string DialogTitle => User.Id == Guid.Empty ? Localizer["CreateNewUser"] : Localizer["EditUser"];
 
-    protected override void OnInitialized()
+    private readonly Dictionary<string, string> _roleDisplayNames = new()
     {
+        { "global_admin", "Global Administrator" },
+        { "admin", "Administrator" },
+        { "farm_manager", "Farm Manager" },
+        { "operator", "Operator" }
+    };
+
+    private readonly Dictionary<string, int> _roleSortOrder = new()
+    {
+        { "global_admin", 1 },
+        { "admin", 2 },
+        { "farm_manager", 3 },
+        { "operator", 4 }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermissionService.CheckPermissions();
         IsLoading = false;
     }
 
     private async Task Save()
     {
         if (_form == null) return;
+        
+        if (User.Id == Guid.Empty && !string.IsNullOrWhiteSpace(User.Password))
+        {
+            var (isValid, errorMessage) = PasswordValidator.ValidatePassword(User.Password);
+            if (!isValid)
+            {
+                _passwordError = errorMessage;
+                Snackbar.Add(errorMessage, Severity.Error);
+                return;
+            }
+        }
+        
         await _form.Validate();
         if (_form.IsValid)
         {
@@ -87,4 +132,34 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private string GetRoleDisplayName(string roleKey)
+    {
+        return _roleDisplayNames.TryGetValue(roleKey, out var displayName) ? displayName : roleKey;
+    }
+
+    private int GetRoleSortOrder(string roleKey)
+    {
+        return _roleSortOrder.TryGetValue(roleKey, out var order) ? order : 999;
+    }
+
+    private IEnumerable<string> SortedRoles => Roles.OrderBy(r => GetRoleSortOrder(r));
+    
+    private void OnPasswordChanged()
+    {
+        if (!string.IsNullOrWhiteSpace(User.Password))
+        {
+            var (isValid, errorMessage) = PasswordValidator.ValidatePassword(User.Password);
+            _passwordError = isValid ? string.Empty : errorMessage;
+        }
+        else
+        {
+            _passwordError = string.Empty;
+        }
+    }
+    
+    private string GetPasswordRequirementsText()
+    {
+        return $"{Localizer["PasswordRequirements"]}: {Localizer["PasswordRequirementsDetails"]}";
+    }
 }

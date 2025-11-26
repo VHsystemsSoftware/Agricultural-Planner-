@@ -5,14 +5,23 @@ namespace VHS.Services;
 
 public interface IBatchService
 {
-    Task<IEnumerable<BatchDTO>> GetAllBatchesAsync(Guid? farmId = null);
+    Task<IEnumerable<BatchDTO>> GetAllBatchesAsync(
+        Guid? farmId = null,
+        string? batchName = null,
+        string? planName = null,
+        DateTime? seedDateFrom = null,
+        DateTime? seedDateTo = null,
+        DateTime? harvestDateFrom = null,
+        DateTime? harvestDateTo = null);
     Task<BatchDTO?> GetBatchByIdAsync(Guid id);
     Task<BatchDTO> CreateBatchAsync(BatchDTO batchDto);
     Task UpdateBatchAsync(BatchDTO batchDto);
     Task DeleteBatchAsync(Guid id);
-    Task<string> GenerateBatchIdAsync(DateTime seededDate);
+    Task<string> GenerateBatchIdAsync(DateOnly seededDate);
 
     Task UpdateLotReference(Guid batchId, Guid jobId, string lotReference);
+
+    Task<IEnumerable<BatchDTO>> GetActiveBatches(Guid farmId, DateOnly startDate);
 }
 
 public class BatchService : IBatchService
@@ -27,18 +36,27 @@ public class BatchService : IBatchService
     private static BatchDTO SelectBatchToDTO(Batch b) => new BatchDTO
     {
         Id = b.Id,
-        BatchName = b.BatchName,
+        Name = b.Name,
         FarmId = b.FarmId,
         SeedDate = b.SeedDate,
         HarvestDate = b.HarvestDate,
         StatusId = b.StatusId,
         TrayCount = b.TrayCount,
         LotReference = b.LotReference,
-        BatchPlan = b.BatchPlan != null ? new BatchPlanDTO
+        GrowPlan = b.GrowPlan != null ? new GrowPlanDTO
         {
-            Id = b.BatchPlan.Id,
-            Name = b.BatchPlan.Name,
-        } : new BatchPlanDTO(),
+            Id = b.GrowPlan.Id,
+            Name = b.GrowPlan.Name,
+            FarmId = b.GrowPlan.FarmId,
+            Recipe = b.GrowPlan.Recipe != null ? new Produce.DTO.RecipeDTO
+            {
+                Id = b.GrowPlan.Recipe.Id,
+                Name = b.GrowPlan.Recipe.Name,
+                GerminationDays = b.GrowPlan.Recipe.GerminationDays,
+                PropagationDays = b.GrowPlan.Recipe.PropagationDays,
+                GrowDays = b.GrowPlan.Recipe.GrowDays,
+            } : null,
+        } : new GrowPlanDTO(),
         BatchRows = b.BatchRows?.Select(row => new BatchRowDTO
         {
             Id = row.Id,
@@ -46,22 +64,76 @@ public class BatchService : IBatchService
             FloorId = row.FloorId,
             RackId = row.RackId,
             LayerId = row.LayerId,
-            LayerRackTypeId = row.Rack?.TypeId ?? Guid.Empty
+            LayerRackTypeId = row.Rack?.TypeId ?? Guid.Empty,
+            EmptyCount = row.EmptyCount,
+            TrayCount = row.Rack.TrayCountPerLayer,
         }).ToList() ?? new List<BatchRowDTO>()
     };
 
-    public async Task<IEnumerable<BatchDTO>> GetAllBatchesAsync(Guid? farmId = null)
+    public async Task<IEnumerable<BatchDTO>> GetActiveBatches(Guid farmId, DateOnly startDate)
     {
-        var includes = new string[] { "BatchPlan", "BatchRows.Rack" };
-        var batches = farmId.HasValue && farmId.Value != Guid.Empty
-            ? await _unitOfWork.Batch.GetAllAsync(x => x.FarmId == farmId, includeProperties: includes)
-            : await _unitOfWork.Batch.GetAllAsync(includeProperties: includes);
+        var includes = new string[] { "GrowPlan.Recipe.Product", "BatchRows.Rack" };
+        IQueryable<Batch> query = _unitOfWork.Batch.Query(includeProperties: includes);
+        query = query.Where(x => x.FarmId == farmId);
+        query = query.Where(x => x.SeedDate >= startDate);
+        var batches = await query.ToListAsync();
+        return batches.Select(SelectBatchToDTO);
+    }
+
+    public async Task<IEnumerable<BatchDTO>> GetAllBatchesAsync(
+        Guid? farmId = null,
+        string? batchName = null,
+        string? planName = null,
+        DateTime? seedDateFrom = null,
+        DateTime? seedDateTo = null,
+        DateTime? harvestDateFrom = null,
+        DateTime? harvestDateTo = null)
+    {
+        var includes = new string[] { "GrowPlan.Recipe", "BatchRows.Rack" };
+        IQueryable<Batch> query = _unitOfWork.Batch.Query(includeProperties: includes);
+
+        if (farmId.HasValue && farmId.Value != Guid.Empty)
+        {
+            query = query.Where(x => x.FarmId == farmId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(batchName))
+        {
+            query = query.Where(x => x.Name.Contains(batchName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(planName))
+        {
+            query = query.Where(x => x.GrowPlan != null && x.GrowPlan.Name.Contains(planName));
+        }
+
+        if (seedDateFrom.HasValue)
+        {
+            query = query.Where(x => x.SeedDate >= DateOnly.FromDateTime(seedDateFrom.Value.Date));
+        }
+
+        if (seedDateTo.HasValue)
+        {
+            query = query.Where(x => x.SeedDate <= DateOnly.FromDateTime(seedDateTo.Value.Date.AddDays(1)));
+        }
+
+        if (harvestDateFrom.HasValue)
+        {
+            query = query.Where(x => x.HarvestDate >= DateOnly.FromDateTime(harvestDateFrom.Value.Date));
+        }
+
+        if (harvestDateTo.HasValue)
+        {
+            query = query.Where(x => x.HarvestDate <= DateOnly.FromDateTime(harvestDateTo.Value.Date.AddDays(1)));
+        }
+
+        var batches = await query.ToListAsync();
         return batches.Select(SelectBatchToDTO);
     }
 
     public async Task<BatchDTO?> GetBatchByIdAsync(Guid id)
     {
-        var includes = new string[] { "BatchPlan", "BatchRows.Rack" };
+        var includes = new string[] { "GrowPlan.Recipe.Product", "BatchRows.Rack" };
         var batch = await _unitOfWork.Batch.GetByIdWithIncludesAsync(id, includes);
         if (batch == null) return null;
 
@@ -70,15 +142,15 @@ public class BatchService : IBatchService
 
     public async Task<BatchDTO> CreateBatchAsync(BatchDTO batchDto)
     {
-        DateTime seededDate = batchDto.SeedDate ?? DateTime.UtcNow;
+        DateOnly seededDate = batchDto.SeedDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         string generatedBatchId = await GenerateBatchIdAsync(seededDate);
 
         var batch = new Batch
         {
             Id = batchDto.Id == Guid.Empty ? Guid.NewGuid() : batchDto.Id,
-            BatchName = batchDto.BatchName ?? generatedBatchId,
+            Name = batchDto.Name ?? generatedBatchId,
             FarmId = batchDto.FarmId,
-            BatchPlanId = batchDto.BatchPlan.Id,
+            GrowPlanId = batchDto.GrowPlan.Id,
             SeedDate = batchDto.SeedDate,
             HarvestDate = batchDto.HarvestDate,
             StatusId = batchDto.StatusId,
@@ -102,13 +174,26 @@ public class BatchService : IBatchService
     public async Task UpdateBatchAsync(BatchDTO batchDto)
     {
         var batch = await _unitOfWork.Batch
-            .Query(b => b.Id == batchDto.Id, includeProperties: new[] { "BatchRows" })
+            .Query(b => b.Id == batchDto.Id, includeProperties: new[] { "BatchRows", "Jobs" })
             .SingleOrDefaultAsync();
 
         if (batch == null)
             throw new Exception("Batch not found");
 
-        batch.BatchName = batchDto.BatchName;
+        batch.Name = batchDto.Name;
+        if (batchDto.StatusId == GlobalConstants.BATCHSTATUS_CANCELLED)
+        {
+            var runningJobs = batch.Jobs?.Where(j => j.DeletedDateTime == null && 
+                j.StatusId == GlobalConstants.JOBSTATUS_INPROGRESS)
+                .ToList();
+            
+            if (runningJobs?.Any() == true)
+            {
+                throw new InvalidOperationException("Cannot cancel batch with running jobs. Please complete or pause the running jobs first.");
+            }
+        }
+
+        batch.Name = batchDto.Name;
         batch.SeedDate = batchDto.SeedDate;
         batch.HarvestDate = batchDto.HarvestDate;
         batch.StatusId = batchDto.StatusId;
@@ -149,7 +234,7 @@ public class BatchService : IBatchService
                     FloorId = rowDto.FloorId,
                     RackId = rowDto.RackId,
                     LayerId = rowDto.LayerId,
-                    EmptyCount=rowDto.EmptyCount
+                    EmptyCount = rowDto.EmptyCount
                 };
                 await _unitOfWork.BatchRow.AddAsync(newRow);
             }
@@ -175,7 +260,7 @@ public class BatchService : IBatchService
     /// Generates a human-readable BatchId in the format "BATCH-YYYYMMDD-XXXXXX"
     /// by checking existing batches for the given seeded date and incrementing the sequence.
     /// </summary>
-    public async Task<string> GenerateBatchIdAsync(DateTime seededDate)
+    public async Task<string> GenerateBatchIdAsync(DateOnly seededDate)
     {
         string prefix = "BATCH";
         string datePart = seededDate.ToString("yyyyMMdd");
@@ -183,7 +268,7 @@ public class BatchService : IBatchService
 
         // Get batches that were seeded on the same date
         var batchesForDate = await _unitOfWork.Batch.Query()
-            .Where(b => b.SeedDate.HasValue && b.SeedDate.Value.Date == seededDate.Date)
+            .Where(b => b.SeedDate.HasValue && b.SeedDate.Value == seededDate)
             .ToListAsync();
 
         if (batchesForDate.Any())
@@ -191,9 +276,9 @@ public class BatchService : IBatchService
             var sequenceNumbers = batchesForDate.Select(b =>
             {
                 // Ensure that BatchId is not null and follows the expected format "BATCH-YYYYMMDD-XXXXXX"
-                if (!string.IsNullOrWhiteSpace(b.BatchName))
+                if (!string.IsNullOrWhiteSpace(b.Name))
                 {
-                    string[] parts = b.BatchName.Split('-');
+                    string[] parts = b.Name.Split('-');
                     if (parts.Length == 3 && int.TryParse(parts[2], out int seq))
                         return seq;
                 }
@@ -210,10 +295,10 @@ public class BatchService : IBatchService
 
     public async Task UpdateLotReference(Guid batchId, Guid jobId, string lotReference)
     {
-		var batch = await _unitOfWork.Batch.Query(b => b.Id == batchId).SingleOrDefaultAsync();
+        var batch = await _unitOfWork.Batch.Query(b => b.Id == batchId).SingleOrDefaultAsync();
 
-		if (batch == null)
-			throw new Exception("Batch not found");
+        if (batch == null)
+            throw new Exception("Batch not found");
 
         batch.LotReference = lotReference;
 
@@ -222,6 +307,6 @@ public class BatchService : IBatchService
             throw new Exception("Job not found");
         job.Paused = false;
 
-		await _unitOfWork.SaveChangesAsync();
-	}
+        await _unitOfWork.SaveChangesAsync();
+    }
 }

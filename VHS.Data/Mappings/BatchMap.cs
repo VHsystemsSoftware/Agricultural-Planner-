@@ -16,9 +16,9 @@ public class BatchMap : IEntityTypeConfiguration<Batch>
                .HasForeignKey(b => b.FarmId)
                .OnDelete(DeleteBehavior.NoAction);
 
-        builder.HasOne(b => b.BatchPlan)
+        builder.HasOne(b => b.GrowPlan)
                .WithMany(bc => bc.Batches)
-               .HasForeignKey(b => b.BatchPlanId)
+               .HasForeignKey(b => b.GrowPlanId)
                .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasMany(br => br.BatchRows)

@@ -23,7 +23,7 @@ public class Recipe
 
     public virtual ICollection<RecipeLightSchedule> RecipeLightSchedules { get; set; } = new List<RecipeLightSchedule>();
     public virtual ICollection<RecipeWaterSchedule> RecipeWaterSchedules { get; set; } = new List<RecipeWaterSchedule>();
-    public virtual ICollection<BatchPlan> BatchPlans { get; set; } = new List<BatchPlan>();
+    public virtual ICollection<GrowPlan> BatchPlans { get; set; } = new List<GrowPlan>();
 
     public DateTime AddedDateTime { get; set; }
     public DateTime ModifiedDateTime { get; set; }

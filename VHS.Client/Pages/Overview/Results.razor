@@ -1,0 +1,176 @@
+﻿@page "/results"
+
+@inject IStringLocalizer<Shared> Localizer
+@inject ResultClientService ResultClientService
+@inject RecipeClientService RecipeClientService
+@inject BatchClientService BatchClientService
+@inject BatchPlanClientService BatchPlanClientService
+@inject UserSettingClientService UserSettingClientService
+@inject UserPreferencesService UserPreferences
+@inject LocalStorage LocalStorage
+@inject PageTitleService PageTitleService
+@inject HubConnection _hubConnection
+@implements IDisposable
+
+<MudPaper Class="p-4" Elevation="0">
+    <MudStack Spacing="4">
+        <MudExpansionPanels>
+            <MudExpansionPanel Text="@Localizer["Filters"]" Expanded="@_isFilterPanelExpanded">
+                <MudGrid Spacing="2" Class="mt-2">
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="Filter.TrayTag" Label="@Localizer["TrayTag"]" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudDateRangePicker @bind-DateRange="PlannedHarvestRange" Label="@Localizer["PlannedHarvestDateRange"]" Variant="Variant.Outlined" DateFormat="@_userDateTimeFormat" Dense="true" Clearable="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudDateRangePicker @bind-DateRange="RealHarvestRange" Label="@Localizer["RealHarvestDateRange"]" Variant="Variant.Outlined" DateFormat="@_userDateTimeFormat" Dense="true" Clearable="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <div class="d-flex justify-center mt-2" style="gap: 16px;">
+                            <MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.FilterAlt" OnClick="HandleSearch">
+                                @Localizer["Filter"]
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Large" Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.Clear" OnClick="HandleClear">
+                                @Localizer["ClearFilters"]
+                            </MudButton>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+
+        <MudDataGrid T="ResultItemDTO" Items="FilteredResults.OrderByDescending(x => x.WeightDateTime)" Hover="true" Striped="true"
+                     Loading="@_isLoading" LoadingProgressColor="Color.Primary" Bordered="true" Elevation="2">
+            <Columns>
+                <PropertyColumn Property="x => x.TrayTag" Title="@Localizer["TrayTag"]" />
+                <PropertyColumn Property="x => x.ProductName" Title="@Localizer["Product"]" />
+                <PropertyColumn Property="x => x.WeightDateTime" Title="@Localizer["WhenWeighed"]" Format="@_userDateTimeFormat" />
+                <PropertyColumn Property="x => x.SeedDate" Title="@Localizer["SeedDate"]" Format="@_userDateFormat" />
+                <PropertyColumn Property="x => x.PlannedHarvestDate" Title="@Localizer["PlannedHarvestDate"]" Format="@_userDateFormat" />
+                <PropertyColumn Property="x => x.RealHarvestDate" Title="@Localizer["RealHarvestDate"]" Format="@_userDateFormat" />
+                <TemplateColumn Title="@Localizer["Weight"]" SortBy="x => x.WeightKg">
+                    <CellTemplate>
+                        @if (_usePounds)
+                        {
+                            <span>@context.Item.WeightPounds?.ToString("F2") lbs</span>
+                        }
+                        else
+                        {
+                            <span>@context.Item.WeightKg?.ToString("F2") kg</span>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.BatchName" Title="@Localizer["BatchName"]" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText>@Localizer["NoRecordsFound"]</MudText>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudText>@Localizer["LoadingData"]</MudText>
+            </LoadingContent>
+            <PagerContent>
+                <MudDataGridPager T="ResultItemDTO" RowsPerPageString="20" />
+            </PagerContent>
+        </MudDataGrid>
+    </MudStack>
+</MudPaper>
+
+@code {
+    private List<ResultItemDTO> FilteredResults = new();
+    private ResultFilterDTO Filter = new();
+
+    private DateRange SeedRange = new();
+    private DateRange PlannedHarvestRange = new();
+    private DateRange RealHarvestRange = new();
+
+    private bool _isLoading = true;
+    private bool _isFilterPanelExpanded = true;
+
+    private bool _usePounds = false;
+
+    private string _userDateFormat = "dd MMM yyyy";
+    private string _userDateTimeFormat = "dd MMM yyyy HH:mm";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userDateFormat = await UserPreferences.GetDateTimeFormatAsync(dateOnly: true);
+        _userDateTimeFormat = await UserPreferences.GetDateTimeFormatAsync(dateOnly: false);
+
+        await Task.WhenAll(
+            LoadUserPreferences()
+        );
+
+        await HandleSearch();
+
+        PageTitleService.Title = "";
+        PageTitleService.BackUrl = "";
+
+        _hubConnection.On<Guid>("UpdateTrayState", (trayId) =>
+        {
+            Task.Run(async () =>
+             {
+                 await HandleSearch();
+                 StateHasChanged();
+             });
+        });
+    }
+
+    private async Task LoadUserPreferences()
+    {
+        try
+        {
+            var userJson = await LocalStorage.GetStateAsync("VHS_USER");
+            if (!string.IsNullOrWhiteSpace(userJson))
+            {
+                var storedUser = JsonSerializer.Deserialize<UserDTO>(userJson);
+                if (storedUser != null)
+                {
+                    var settings = await UserSettingClientService.GetUserSettingsByUserIdAsync(storedUser.Id);
+                    if (settings != null)
+                    {
+                        _usePounds = settings.PreferredWeightUnit == ImperialUnits.WeightUnitEnum.Pound.ToString();
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not load user preferences: {ex.Message}");
+        }
+
+        _usePounds = false;
+    }
+
+    private async Task HandleSearch()
+    {
+        _isLoading = true;
+
+        Filter.SeedFrom = SeedRange.Start.HasValue ? DateOnly.FromDateTime(SeedRange.Start.Value) : null;
+        Filter.SeedTo = SeedRange.End.HasValue ? DateOnly.FromDateTime(SeedRange.End.Value) : null;
+        Filter.RealHarvestFrom = RealHarvestRange.Start.HasValue ? DateOnly.FromDateTime(RealHarvestRange.Start.Value) : null;
+        Filter.PlannedHarvestTo = PlannedHarvestRange.End.HasValue ? DateOnly.FromDateTime(PlannedHarvestRange.End.Value) : null;
+
+        FilteredResults = await ResultClientService.GetResultsAsync(Filter);
+        _isLoading = false;
+    }
+
+    private async Task HandleClear()
+    {
+        Filter = new ResultFilterDTO();
+        SeedRange = new DateRange();
+        PlannedHarvestRange = new DateRange();
+        RealHarvestRange = new DateRange();
+        await HandleSearch();
+    }
+    public void Dispose()
+    {
+        if (_hubConnection != null)
+        {
+            _hubConnection.Remove("UpdateTrayState");
+        }
+    }
+}

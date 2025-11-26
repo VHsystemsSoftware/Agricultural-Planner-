@@ -2,6 +2,8 @@
 @using VHS.Services.Produce.DTO
 @using VHS.Client.Services.Produce
 @using VHS.Client.Pages.Settings.Product
+
+@inject IStringLocalizer<Shared> Localizer
 @inject RecipeClientService RecipeClientService
 @inject ProductClientService ProductClientService
 @inject IDialogService Dialog
@@ -11,17 +13,17 @@
 <MudPaper Outlined="true" Square="true">
     <MudDataGrid T="RecipeDTO" Items="@FilteredRecipes" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" RowClick="@(async args => await EditRecipe(args.Item))" RowStyle="cursor: pointer;">
         <ToolBarContent>
-            <MudTooltip Text="Add New Recipe" Arrow="true" Placement="Placement.Top">
-                <MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Primary" OnClick="@AddRecipe" EndIcon="@Icons.Material.Filled.Add">New</MudButton>
+            <MudTooltip Text="@Localizer["AddNewRecipe"]" Arrow="true" Placement="Placement.Top">
+                <MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Primary" OnClick="@AddRecipe" EndIcon="@Icons.Material.Filled.Add">@Localizer["New"]</MudButton>
             </MudTooltip>
             <MudSelect T="Guid"
-                       Label="Filter by Produce Variant"
+                       Label="@Localizer["FilterByProductVariant"]"
                        Value="_selectedProductId"
                        ValueChanged="OnProductVariantChanged"
                        Dense
                        Variant="Variant.Outlined"
                        Class="ml-2">
-                <MudSelectItem Value="Guid.Empty">All</MudSelectItem>
+                <MudSelectItem Value="Guid.Empty">@Localizer["All"]</MudSelectItem>
                 @foreach (var product in Products.OrderBy(p => p.Name))
                 {
                     <MudSelectItem Value="@product.Id">
@@ -31,19 +33,19 @@
             </MudSelect>
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" InitialDirection="SortDirection.Ascending" />
-            <PropertyColumn Property="x => x.Description" Title="Description" Sortable="true" />
-            <PropertyColumn Property="x => x.Product.Name" Title="Product Variant" Sortable="true" />
-            <PropertyColumn Property="x => x.GrowDays" Title="Grow Days" Sortable="true" />
-            <PropertyColumn Property="x => x.PropagationDays" Title="Propagation Days" Sortable="true" />
-            <PropertyColumn Property="x => x.GerminationDays" Title="Germination Days" Sortable="true" />
-            <TemplateColumn Title="Actions">
+            <PropertyColumn Property="x => x.Name" Title="@Localizer["Name"]" Sortable="true" InitialDirection="SortDirection.Ascending" />
+            <PropertyColumn Property="x => x.Description" Title="@Localizer["Description"]" Sortable="true" />
+            <PropertyColumn Property="x => x.Product.Name" Title="@Localizer["ProductVariant"]" Sortable="true" />
+            <PropertyColumn Property="x => x.GrowDays" Title="@Localizer["GrowDays"]" Sortable="true" />
+            <PropertyColumn Property="x => x.PropagationDays" Title="@Localizer["PropagationDays"]" Sortable="true" />
+            <PropertyColumn Property="x => x.GerminationDays" Title="@Localizer["GerminationDays"]" Sortable="true" />
+            <TemplateColumn Title="@Localizer["Actions"]">
                 <CellTemplate Context="context">
                     <MudStack Row Spacing="1">
-                        <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
+                        <MudTooltip Text="@Localizer["Edit"]" Arrow="true" Placement="Placement.Top">
                             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditRecipe(context.Item))" />
                         </MudTooltip>
-                        <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
+                        <MudTooltip Text="@Localizer["Delete"]" Arrow="true" Placement="Placement.Top">
                             <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteRecipe(context.Item.Id))" />
                         </MudTooltip>
                     </MudStack>
@@ -56,7 +58,7 @@
     </MudDataGrid>
     @if (FilteredRecipes == null || !FilteredRecipes.Any())
     {
-        <MudAlert Severity="Severity.Info">No recipes found.</MudAlert>
+        <MudAlert Severity="Severity.Info">@Localizer["NoRecipesFound"]</MudAlert>
     }
 </MudPaper>
 
@@ -69,9 +71,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackText = $"<- {Localizer["SystemSettings"]}";
         PageTitleService.BackUrl = "/system-settings";
-        PageTitleService.Title = "Recipes for your product variants.";
+        PageTitleService.Title = Localizer["RecipesForProductVariants"];
         await LoadProducts();
         await LoadRecipes();
         ApplyFilter();

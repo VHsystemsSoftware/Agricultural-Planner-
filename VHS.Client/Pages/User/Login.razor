@@ -1,10 +1,12 @@
 ﻿@page "/login"
+@layout AuthLayout
 @using System.ComponentModel.DataAnnotations
 @using System.Text.Json
 @using VHS.Services.Auth.DTO
 @using VHS.Client.Common
 @using VHS.Client.Services.Auth
 @inject PageTitleService PageTitleService
+@inject IStringLocalizer<Shared> Localizer
 @inject AuthClientService AuthService
 @inject AuthClientStateService AuthStateService
 @inject LocalStorage LocalStorageService
@@ -15,8 +17,8 @@
     <MudCard>
         <MudCardHeader>
             <CardHeaderContent>
-                <MudText Typo="Typo.h5" Align="Align.Center">Welcome Back</MudText>
-                <MudText Typo="Typo.body2" Align="Align.Center">Sign in to continue</MudText>
+                <MudText Typo="Typo.h5" Align="Align.Center">@Localizer["WelcomeBack"]</MudText>
+                <MudText Typo="Typo.body2" Align="Align.Center">@Localizer["SignInToContinue"]</MudText>
             </CardHeaderContent>
         </MudCardHeader>
         <MudCardContent>
@@ -25,26 +27,26 @@
 
                 <MudTextField @bind-Value="loginModel.Email"
                               For="@(() => loginModel.Email)"
-                              Label="Email Address"
+                              Label="@Localizer["EmailAddress"]"
                               Variant="Variant.Outlined"
                               InputType="InputType.Email"
                               Required="true"
-                              RequiredError="Email is required."
+                              RequiredError="@Localizer["EmailIsRequired"]"
                               Class="mb-4" />
 
                 <MudTextField @bind-Value="loginModel.Password"
                               For="@(() => loginModel.Password)"
-                              Label="Password"
+                              Label="@Localizer["Password"]"
                               Variant="Variant.Outlined"
                               InputType="@(isPasswordVisible ? InputType.Text : InputType.Password)"
                               Required="true"
-                              RequiredError="Password is required."
+                              RequiredError="@Localizer["PasswordIsRequired"]"
                               Adornment="Adornment.End"
                               AdornmentIcon="@(isPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                               OnAdornmentClick="@(() => isPasswordVisible = !isPasswordVisible)" />
 
                 <div class="d-flex justify-end my-2">
-                    <MudLink Href="/reset-password">Forgot Password?</MudLink>
+                    <MudLink Href="/reset-password">@Localizer["ForgotPassword"]</MudLink>
                 </div>
 
                 <MudCardActions Class="d-flex justify-center pa-4">
@@ -58,11 +60,11 @@
                         @if (isProcessing)
                         {
                             <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                            <MudText Class="ms-2">Signing In...</MudText>
+                            <MudText Class="ms-2">@Localizer["SigningIn"]</MudText>
                         }
                         else
                         {
-                            <MudText>Sign In</MudText>
+                            <MudText>@Localizer["SignIn"]</MudText>
                         }
                     </MudButton>
                 </MudCardActions>
@@ -78,7 +80,8 @@
 
     protected override void OnInitialized()
     {
-        PageTitleService.Title = "Login";
+        PageTitleService.Title = Localizer["Login"];
+        PageTitleService.BackUrl = "";
     }
 
     private async Task HandleLogin()
@@ -97,12 +100,12 @@
             }
             else
             {
-                Snackbar.Add("Login failed. Please check your credentials.", Severity.Error);
+                Snackbar.Add(Localizer["LoginFailedCredentials"], Severity.Error);
             }
         }
         catch (Exception)
         {
-            Snackbar.Add("Login failed. An error occurred.", Severity.Error);
+            Snackbar.Add(Localizer["LoginFailedError"], Severity.Error);
         }
         finally
         {

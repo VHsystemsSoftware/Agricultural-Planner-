@@ -12,7 +12,7 @@ namespace VHS.Client.Services.Batches
             _httpClient = httpClient;
         }
 
-        public async Task<IEnumerable<BatchPlanDTO>?> GetAllBatchPlansAsync(
+        public async Task<IEnumerable<GrowPlanDTO>?> GetAllBatchPlansAsync(
             Guid? productId = null,
             string? name = null,
             Guid? recipeId = null,
@@ -22,7 +22,7 @@ namespace VHS.Client.Services.Batches
         {
             var uriBuilder = new UriBuilder(_httpClient.BaseAddress!)
             {
-                Path = "api/batchplan"
+                Path = "api/growplan"
             };
             var query = System.Web.HttpUtility.ParseQueryString(string.Empty);
 
@@ -56,48 +56,68 @@ namespace VHS.Client.Services.Batches
             }
 
             uriBuilder.Query = query.ToString();
-            return await _httpClient.GetFromJsonAsync<IEnumerable<BatchPlanDTO>>(uriBuilder.Uri.ToString());
+            return await _httpClient.GetFromJsonAsync<IEnumerable<GrowPlanDTO>>(uriBuilder.Uri.ToString());
         }
 
-        public async Task<BatchPlanDTO?> GetBatchPlanByIdAsync(Guid id)
+        public async Task<GrowPlanDTO?> GetBatchPlanByIdAsync(Guid id)
         {
-            return await _httpClient.GetFromJsonAsync<BatchPlanDTO>($"api/batchplan/{id}");
+            return await _httpClient.GetFromJsonAsync<GrowPlanDTO>($"api/growplan/{id}");
         }
 
-        public async Task<BatchPlanDTO?> CreateBatchPlanAsync(BatchPlanDTO configDto)
+        public async Task<GrowPlanDTO?> CreateBatchPlanAsync(GrowPlanDTO configDto)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/batchplan", configDto);
+            var response = await _httpClient.PostAsJsonAsync("api/growplan", configDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<BatchPlanDTO>();
+            return await response.Content.ReadFromJsonAsync<GrowPlanDTO>();
         }
 
-        public async Task UpdateBatchPlanAsync(BatchPlanDTO configDto)
+
+        public async Task UpdateBatchPlanAsync(GrowPlanDTO configDto)
         {
-            await _httpClient.PutAsJsonAsync($"api/batchplan/{configDto.Id}", configDto);
+            await _httpClient.PutAsJsonAsync($"api/growplan/{configDto.Id}", configDto);
         }
 
         public async Task DeleteBatchPlanAsync(Guid id)
         {
-            await _httpClient.DeleteAsync($"api/batchplan/{id}");
+            await _httpClient.DeleteAsync($"api/growplan/{id}");
         }
 
         public async Task<List<BatchRowDTO>> CalculateAssignmentsAsync(Guid rackTypeId, int traysPerDay, int days, bool includeTransportLayer = true)
         {
-            var url = $"api/batchplan/calculate-assignments?rackTypeId={rackTypeId}&traysPerDay={traysPerDay}&days={days}&includeTransportLayer={includeTransportLayer.ToString().ToLower()}";
+            var url = $"api/growplan/calculate-assignments?rackTypeId={rackTypeId}&traysPerDay={traysPerDay}&days={days}&includeTransportLayer={includeTransportLayer.ToString().ToLower()}";
             var response = await _httpClient.GetFromJsonAsync<List<BatchRowDTO>>(url);
             return response ?? new List<BatchRowDTO>();
         }
 
-        public async Task StartBatchPlanAsync(BatchPlanDTO batchPlan)
+        public async Task StartBatchPlanAsync(GrowPlanDTO batchPlan)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/batchplan/startplan", batchPlan);
+            var response = await _httpClient.PostAsJsonAsync("api/growplan/startplan", batchPlan);
             response.EnsureSuccessStatusCode();
         }
 
 		public async Task StartBatchPlanAsync(Guid batchPlanId)
 		{
-			var response = await _httpClient.PostAsync($"api/batchplan/startplan/{batchPlanId}", null);
+			var response = await _httpClient.PostAsync($"api/growplan/startplan/{batchPlanId}", null);
 			response.EnsureSuccessStatusCode();
 		}
-	}
+
+        public async Task<GrowPlanDTO?> DuplicateBatchPlanAsync(Guid id)
+        {
+            var response = await _httpClient.PostAsync($"api/growplan/{id}/duplicate", null);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<GrowPlanDTO>();
+        }
+
+        public async Task StopBatchPlanAsync(Guid id, DateTime endDate)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"api/batchplan/{id}/stop", endDate);
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task CancelBatchPlanAsync(Guid id)
+        {
+            var response = await _httpClient.PostAsync($"api/batchplan/{id}/cancel", null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
 }

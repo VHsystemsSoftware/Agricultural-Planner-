@@ -9,11 +9,17 @@ namespace VHS.Client.Services.Auth
     {
         private readonly ILocalStorageService _localStorage;
         private readonly AuthenticationState _anonymous;
+        private IAuthorizationClientService? _authorizationClientService;
 
         public AuthClientStateService(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
             _anonymous = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+        }
+        
+        public void SetAuthorizationService(IAuthorizationClientService authorizationClientService)
+        {
+            _authorizationClientService = authorizationClientService;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -60,6 +66,11 @@ namespace VHS.Client.Services.Auth
         {
             await _localStorage.RemoveItemAsync("VHS_AUTH_TOKEN");
             await _localStorage.RemoveItemAsync("VHS_USER");
+
+            if (_authorizationClientService != null)
+            {
+                await _authorizationClientService.ClearCacheAsync();
+            }
 
             NotifyAuthenticationStateChanged(Task.FromResult(_anonymous));
         }

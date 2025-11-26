@@ -6,7 +6,6 @@ namespace VHS.WebAPI.Controllers.Farming;
 
 [ApiController]
 [Route("api/floor")]
-[AllowAnonymous] // Temp allow
 public class FloorController : ControllerBase
 {
     private readonly IFloorService _floorService;
@@ -17,7 +16,7 @@ public class FloorController : ControllerBase
     }
 
     [HttpGet]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllFloors(Guid? farmId = null, bool enabledOnly = false)
     {
         var floors = await _floorService.GetAllFloorsAsync(farmId, enabledOnly);
@@ -25,7 +24,7 @@ public class FloorController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    // [Authorize(Roles = "CompanyAdmin, Grower")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetFloorById(Guid id)
     {
         var floor = await _floorService.GetFloorByIdAsync(id);
@@ -35,7 +34,7 @@ public class FloorController : ControllerBase
     }
 
     [HttpPost]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> CreateFloor([FromBody] FloorDTO floorDto)
     {
         var createdFloor = await _floorService.CreateFloorAsync(floorDto);
@@ -43,7 +42,7 @@ public class FloorController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> UpdateFloor(Guid id, [FromBody] FloorDTO floorDto)
     {
         if (id != floorDto.Id)
@@ -53,7 +52,7 @@ public class FloorController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    // [Authorize(Roles = "CompanyAdmin")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> DeleteFloor(Guid id)
     {
         await _floorService.DeleteFloorAsync(id);
@@ -61,6 +60,7 @@ public class FloorController : ControllerBase
     }
 
     [HttpPut("enable/{id}")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> EnableRack(Guid id, [FromBody] EnabledDTO enabledDto)
     {
         if (id != enabledDto.Id)

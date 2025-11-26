@@ -1,0 +1,104 @@
+﻿@using Radzen
+@using Radzen.Blazor
+@using VHS.Services.Batches.DTO
+@inject MudBlazor.IDialogService DialogService
+
+<div class="calendar-view">
+	<RadzenScheduler @ref=@scheduler
+					 TItem="SchedulerDisplayItem"
+					 Data="@appointments"
+					 StartProperty="Start"
+					 EndProperty="End"
+					 ShowHeader="true"
+					 TextProperty="Title"
+					 SelectedIndex="2"
+					 AppointmentRender=@OnAppointmentRender
+					 SlotRender=@OnSlotRender
+					 SlotSelect=@OnSlotSelect
+					 AppointmentSelect=@OnAppointmentSelect>
+
+		<RadzenDayView />
+		<RadzenWeekView />
+		<RadzenMonthView />
+	</RadzenScheduler>
+</div>
+
+@code {
+	[Parameter] public IEnumerable<GrowPlanDTO>? BatchPlans { get; set; }
+	[Parameter] public IEnumerable<JobDTO>? Jobs { get; set; }
+
+	private RadzenScheduler<SchedulerDisplayItem> scheduler = null!;
+	private List<SchedulerDisplayItem> appointments = new();
+
+	protected override void OnParametersSet()
+	{
+		appointments.Clear();
+
+		if (BatchPlans != null)
+		{
+			foreach (var plan in BatchPlans.Where(p => p.StartDate.HasValue))
+			{
+				appointments.Add(new SchedulerDisplayItem
+				{
+					DataItem = plan,
+					Title = $"{plan.Name} ({plan.Recipe?.Name ?? "N/A"})",
+					Start = plan.StartDate!.Value,
+					End = plan.StartDate!.Value.AddDays(plan.DaysForPlan),
+				});
+			}
+		}
+
+		if (Jobs != null)
+		{
+			foreach (var job in Jobs)
+			{
+				appointments.Add(new SchedulerDisplayItem
+				{
+					DataItem = job,
+					Title = $"{job.Name} ({job.BatchName})",
+					Start = job.ScheduledDate,
+					End = job.ScheduledDate,
+				});
+			}
+		}
+	}
+
+	void OnAppointmentRender(SchedulerAppointmentRenderEventArgs<SchedulerDisplayItem> args)
+	{
+		args.Attributes["style"] = args.Data.Style;
+	}
+
+	async Task OnAppointmentSelect(SchedulerAppointmentSelectEventArgs<SchedulerDisplayItem> args)
+	{
+		var parameters = new DialogParameters
+		{
+			{ "Item", args.Data.DataItem }
+		};
+
+		var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+		await DialogService.ShowAsync<CalendarDetails>("View Details", parameters, options);
+	}
+
+	void OnSlotRender(SchedulerSlotRenderEventArgs args)
+	{
+		if (args.View.Text == "Month" && args.Start.Date == DateTime.Today)
+		{
+			args.Attributes["style"] = "background: var(--rz-scheduler-highlight-background-color, rgba(255,220,40,.2));";
+		}
+	}
+
+	async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
+	{
+		await Task.CompletedTask;
+	}
+
+	public class SchedulerDisplayItem
+	{
+		public object DataItem { get; set; } = new();
+		public DateOnly Start { get; set; }
+		public DateOnly End { get; set; }
+		public string Title { get; set; } = string.Empty;
+		public string Style { get; set; } = string.Empty;
+	}
+}

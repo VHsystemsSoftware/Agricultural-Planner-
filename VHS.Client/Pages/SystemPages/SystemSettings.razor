@@ -1,0 +1,80 @@
+﻿@page "/system-settings"
+
+@inject IStringLocalizer<Shared> Localizer
+@inject PageTitleService PageTitleService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <MudGrid Spacing="10">
+        @foreach (var group in SettingGroups)
+        {
+            <MudItem xs="12" md="6">
+                <MudCard Class="system-settings-card">
+                    <MudCardContent>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="4" md="3" Class="system-settings-head">
+                                <MudImage Src="@group.Icon" Class="system-settings-icon" />
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Class="mt-3">@group.Title</MudText>
+                            </MudItem>
+                            <MudItem xs="8" md="9">
+                                <MudList T="string">
+                                    @foreach (var setting in group.Settings)
+                                    {
+                                        <MudListItem T="string">
+                                            <MudLink Href="@setting.Url" Color="Color.Default">
+                                                <MudText>@setting.Title</MudText>
+                                            </MudLink>
+                                        </MudListItem>
+                                        @if (setting != group.Settings.Last())
+                                        {
+                                            <MudDivider />
+                                        }
+                                    }
+                                </MudList>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<SettingGroup> SettingGroups = new();
+
+    protected override void OnInitialized()
+    {
+        PageTitleService.BackText = "";
+        PageTitleService.BackUrl = "";
+        PageTitleService.Title = Localizer["SystemSettings"];
+
+        SettingGroups = new()
+        {
+            new SettingGroup(Localizer["Farm"], "/images/farm/settings/farm.svg", new List<Setting>
+            {
+                new(Localizer["FarmManagement"], "/system-settings/farm/management"),
+                new(Localizer["Floors"], "/system-settings/farm/floors"),
+                new(Localizer["Racks"], "/system-settings/farm/racks"),
+                new(Localizer["Layers"], "/system-settings/farm/layers"),
+            }),
+            new SettingGroup(Localizer["Growth"], "/images/farm/settings/growth.svg", new List<Setting>
+            {
+                new(Localizer["LightZones"], "/system-settings/growth/light-zones"),
+                new(Localizer["LightingSchedules"], "/system-settings/growth/lighting-plan"),
+                new(Localizer["WaterZones"], "/system-settings/growth/water-zones"),
+                new(Localizer["WateringSchedules"], "/system-settings/growth/watering-plan")
+            }),
+            new SettingGroup(Localizer["Product"], "/images/farm/settings/produce.svg", new List<Setting>
+            {
+                new(Localizer["ProductTypes"], "/system-settings/product/types"),
+                new(Localizer["ProductVariants"], "/system-settings/product/variants"),
+                new(Localizer["Recipes"], "/system-settings/product/recipes"),
+                new(Localizer["RecipeLightingSchedules"], "/system-settings/product/recipe-lighting-schedules"),
+                new(Localizer["RecipeWateringSchedules"], "/system-settings/product/recipe-watering-schedules")
+            })
+        };
+    }
+
+    private record SettingGroup(string Title, string Icon, List<Setting> Settings);
+    private record Setting(string Title, string Url);
+}

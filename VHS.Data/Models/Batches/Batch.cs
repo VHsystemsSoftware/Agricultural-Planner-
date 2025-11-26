@@ -6,15 +6,15 @@ public class Batch
 {
 	public Guid Id { get; set; }
 	[Required]
-	public string BatchName { get; set; } = string.Empty;
+	public string Name { get; set; } = string.Empty;
 
 	[Required]
 	public Guid FarmId { get; set; }
 	public virtual Farm Farm { get; set; }
 
 	[Required]
-	public Guid BatchPlanId { get; set; }
-	public virtual BatchPlan BatchPlan { get; set; }
+	public Guid GrowPlanId { get; set; }
+	public virtual GrowPlan GrowPlan { get; set; }
 
 	[Required]
 	public int TrayCount { get; set; } = 0;
@@ -23,8 +23,8 @@ public class Batch
 	public DateTime ScheduledDateTime { get; set; }
 
 	[Required]
-	public DateTime? SeedDate { get; set; }
-	public DateTime? HarvestDate { get; set; }
+	public DateOnly? SeedDate { get; set; }
+	public DateOnly? HarvestDate { get; set; }
 	public Guid StatusId { get; set; }
 
 	public string? LotReference { get; set; }

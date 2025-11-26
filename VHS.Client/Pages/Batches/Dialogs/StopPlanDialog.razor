@@ -1,0 +1,53 @@
+@inject IStringLocalizer<Shared> Localizer
+@inject UserPreferencesService UserPreferences
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer Style="max-width: 500px;">
+            <MudText Typo="Typo.body1" Class="mb-4">
+                @Localizer["StopPlanDescription"]
+            </MudText>
+            
+            <MudDatePicker 
+                @bind-Date="EndDate" 
+                Label="@Localizer["EndDate"]"
+                Variant="Variant.Outlined"
+                Required="true"
+                DateFormat="@_userDateTimeFormat"
+                MinDate="DateTime.Today"
+                Class="mb-3" />
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="Submit" Disabled="!EndDate.HasValue">
+            @Localizer["StopPlan"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public DateTime? EndDate { get; set; } = DateTime.Today.AddDays(1);
+
+    private string _userDateTimeFormat = "dd MMM yyyy";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userDateTimeFormat = await UserPreferences.GetDateTimeFormatAsync(dateOnly: true);
+    }
+
+    private void Submit()
+    {
+        if (EndDate.HasValue)
+        {
+            MudDialog.Close(DialogResult.Ok(EndDate.Value));
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

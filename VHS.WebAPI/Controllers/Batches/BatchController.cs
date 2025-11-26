@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VHS.Services.Batches.DTO;
+using VHS.WebAPI.Authorization;
 
 namespace VHS.WebAPI.Controllers.Batches;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporary allowed
+[Authorize]
 public class BatchController : ControllerBase
 {
 	private readonly IBatchService _batchService;
@@ -16,14 +17,31 @@ public class BatchController : ControllerBase
 		_batchService = batchService;
 	}
 
-	[HttpGet]
-	public async Task<IActionResult> GetAllBatches(Guid? farmId, CancellationToken cancellationToken)
-	{
-		var batches = await _batchService.GetAllBatchesAsync(farmId);
-		return Ok(batches);
-	}
+    [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.CanAccessPlanningOperations)]
+    public async Task<IActionResult> GetAllBatches(
+        [FromQuery] Guid? farmId,
+        [FromQuery] string? batchName,
+        [FromQuery] string? planName,
+        [FromQuery] DateTime? seedDateFrom,
+        [FromQuery] DateTime? seedDateTo,
+        [FromQuery] DateTime? harvestDateFrom,
+        [FromQuery] DateTime? harvestDateTo,
+        CancellationToken cancellationToken)
+    {
+        var batches = await _batchService.GetAllBatchesAsync(
+            farmId,
+            batchName,
+            planName,
+            seedDateFrom,
+            seedDateTo,
+            harvestDateFrom,
+            harvestDateTo);
+        return Ok(batches);
+    }
 
 	[HttpGet("{id}")]
+	[Authorize(Policy = AuthorizationPolicies.CanAccessPlanningOperations)]
 	public async Task<IActionResult> GetBatchById(Guid id, CancellationToken cancellationToken)
 	{
 		var batch = await _batchService.GetBatchByIdAsync(id);
@@ -33,6 +51,7 @@ public class BatchController : ControllerBase
 	}
 
 	[HttpPost]
+	[Authorize(Policy = AuthorizationPolicies.CanAccessPlanningOperations)]
 	public async Task<IActionResult> CreateBatch([FromBody] BatchDTO batchDto, CancellationToken cancellationToken)
 	{
 		var createdBatch = await _batchService.CreateBatchAsync(batchDto);
@@ -40,6 +59,7 @@ public class BatchController : ControllerBase
 	}
 
 	[HttpPut("{id}")]
+	[Authorize(Policy = AuthorizationPolicies.CanAccessPlanningOperations)]
 	public async Task<IActionResult> UpdateBatch(Guid id, [FromBody] BatchDTO batchDto, CancellationToken cancellationToken)
 	{
 		if (id != batchDto.Id)
@@ -49,6 +69,7 @@ public class BatchController : ControllerBase
 	}
 
 	[HttpDelete("{id}")]
+	[Authorize(Policy = AuthorizationPolicies.CanAccessPlanningOperations)]
 	public async Task<IActionResult> DeleteBatch(Guid id)
 	{
 		await _batchService.DeleteBatchAsync(id);
@@ -56,6 +77,7 @@ public class BatchController : ControllerBase
 	}
 
 	[HttpPut("lofreference/{id}/{jobId}")]
+	[Authorize(Policy = AuthorizationPolicies.CanAccessPlanningOperations)]
 	public async Task<IActionResult> UpdateBatchLotReference(Guid id, Guid jobId, [FromBody] string lotReference, CancellationToken cancellationToken)
 	{
 		await _batchService.UpdateLotReference(id,jobId, lotReference);

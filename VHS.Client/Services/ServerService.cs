@@ -1,5 +1,5 @@
 ﻿using System.Net.Http.Json;
-using VHS.Data.Models.Audit;
+using VHS.OPC.Models;
 
 namespace VHS.Client.Services
 {
@@ -16,7 +16,10 @@ namespace VHS.Client.Services
         {
             return await _httpClient.GetStringAsync($"api/system/version");
         }
+		public async Task<List<OPCAlarm>> GetAlarms()
+		{
+			return await _httpClient.GetFromJsonAsync<List<OPCAlarm>>("api/alarms");
+		}
 
-       
-    }
+	}
 }

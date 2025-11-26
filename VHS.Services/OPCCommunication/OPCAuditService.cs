@@ -7,7 +7,6 @@ namespace VHS.Services;
 public interface IOPCAuditService
 {
 	Task<OPCAudit> ReceiveOPCAuditAsync(Guid farmId, int eventId, string trayTag);
-	Task<OPCAudit> SendOPCAuditAsync(Guid id);
 	Task<OPCAudit> UpdateOPCAuditInputMessageAsync(Guid id, string messageOutput);
 	Task<OPCAudit> UpdateOPCAuditOutputMessageAsync(Guid id, string messageOutput);
 	Task DeleteOPCAudit(Guid id);
@@ -33,17 +32,6 @@ public class OPCAuditService: IOPCAuditService
 			EventId = eventId,
 			TrayTag= trayTag,
 		};
-
-		await _unitOfWork.OPCAudit.AddAsync(audit);
-		await _unitOfWork.SaveChangesAsync();
-
-		return audit;
-	}
-
-	public async Task<OPCAudit> SendOPCAuditAsync(Guid id)
-	{
-		var audit = await _unitOfWork.OPCAudit.GetByIdAsync(id);
-		audit.SendDateTime = DateTime.UtcNow;
 
 		await _unitOfWork.OPCAudit.AddAsync(audit);
 		await _unitOfWork.SaveChangesAsync();

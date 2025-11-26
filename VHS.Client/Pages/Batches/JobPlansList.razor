@@ -1,0 +1,454 @@
+﻿@page "/jobplans/list"
+@using VHS.Client.Pages.Batches.Dialogs
+@using VHS.Client.Pages.Batches.Calendars
+@using VHS.Services.Batches.DTO
+@using VHS.Services.Produce.DTO
+@using VHS.Client.Services.Batches
+@using VHS.Client.Services.Produce
+
+@inject IStringLocalizer<Shared> Localizer
+@inject BatchPlanClientService BatchPlanClientService
+@inject ProductClientService ProductClientService
+@inject RecipeClientService RecipeClientService
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+@inject UserPreferencesService UserPreferences
+@inject PageTitleService PageTitleService
+@inject LocalStorage LocalStorage
+
+<MudStack Row="true" Justify="Justify.FlexStart" Class="mb-4">
+    <MudTooltip Text="@Localizer["AddNewPlan"]" Arrow="true" Placement="Placement.Top">
+        <MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Primary" OnClick="@AddBatchPlan" EndIcon="@Icons.Material.Filled.Add">@Localizer["NewPlan"]</MudButton>
+    </MudTooltip>
+    <MudSwitch @bind-Value="@ShowCalendarView" Label="@Localizer["CalendarView"]" Color="Color.Primary" />
+</MudStack>
+
+@if (ShowCalendarView)
+{
+    <CalendarView BatchPlans="PlansList" />
+}
+else
+{
+    <MudExpansionPanels Class="mb-4">
+        <MudExpansionPanel Text="@Localizer["Filters"]" Expanded="@_isFilterPanelExpanded">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField @bind-Value="BatchPlanNameFilterText"
+                                  T="string"
+                                  Label="@Localizer["FilterByName"]"
+                                  Variant="Variant.Outlined"
+                                  Dense="true"
+                                  Clearable="true"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  AdornmentColor="Color.Dark"
+                                  Placeholder="@Localizer["EnterPlanName"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudAutocomplete @bind-Value="SelectedProduct"
+                                     T="ProductDTO"
+                                     Label="@Localizer["FilterByProduct"]"
+                                     Variant="Variant.Outlined"
+                                     Dense="true"
+                                     Clearable="true"
+                                     SearchFunc="@SearchProducts"
+                                     ToStringFunc="@(p => p == null ? null : p.Name)"
+                                     AdornmentIcon="@Icons.Material.Filled.ArrowDropDown"
+                                     AdornmentColor="Color.Dark"
+                                     Placeholder="@Localizer["SelectProduct"]">
+                        <ItemTemplate Context="product">
+                            <MudText>@product.Name</MudText>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudAutocomplete @bind-Value="SelectedRecipe"
+                                     T="RecipeDTO"
+                                     Label="@Localizer["FilterByRecipe"]"
+                                     Variant="Variant.Outlined"
+                                     Dense="true"
+                                     Clearable="true"
+                                     SearchFunc="@SearchRecipes"
+                                     ToStringFunc="@(r => r == null ? null : r.Name)"
+                                     AdornmentIcon="@Icons.Material.Filled.ArrowDropDown"
+                                     AdornmentColor="Color.Dark"
+                                     Placeholder="@Localizer["SelectRecipe"]">
+                        <ItemTemplate Context="recipe">
+                            <MudText>@recipe.Name</MudText>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDateRangePicker @ref="_dateRangePicker"
+                                        Label="@Localizer["StartDateRange"]"
+                                        @bind-DateRange="SelectedDateRange"
+                                        Variant="Variant.Outlined"
+                                        DateFormat="@_userDateTimeFormat"
+                                        Clearable="true"
+                                        AutoClose="false">
+                        <PickerActions>
+                            <MudButton OnClick="@(() => _dateRangePicker?.CloseAsync(false))">@Localizer["Cancel"]</MudButton>
+                            <MudButton Color="Color.Primary" OnClick="@(() => _dateRangePicker?.CloseAsync(true))">@Localizer["OK"]</MudButton>
+                        </PickerActions>
+                    </MudDateRangePicker>
+                </MudItem>
+                <MudItem xs="12" Class="d-flex justify-center align-center my-auto" Style="padding-top:0px;">
+                    <MudCheckBox @bind-Value="CB_New" Label="@Localizer["New"]"></MudCheckBox>
+                    <MudCheckBox @bind-Value="CB_Started" Label="@Localizer["Started"]"></MudCheckBox>
+                    <MudCheckBox @bind-Value="CB_Finished" Label="@Localizer["Finished"]"></MudCheckBox>
+                </MudItem>
+                <MudItem xs="12">
+                    <div class="d-flex justify-center mt-2" style="gap: 16px;">
+                        <MudButton Variant="Variant.Filled"
+                                   Size="Size.Large"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.FilterAlt"
+                                   OnClick="ApplyFilter"
+                                   Disabled="@IsLoading">
+                            @Localizer["Filter"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Size="Size.Large"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   OnClick="ClearFilter">
+                            @Localizer["ClearFilters"]
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <MudDataGrid Dense="true" T="GrowPlanDTO" Items="@PlansList" Hover="true" Loading="@IsLoading" LoadingProgressColor="Color.Info" RowClick="@(async args => await EditBatchPlan(args.Item))" RowStyle="cursor: pointer;">
+        <Columns>
+            <PropertyColumn Property="x => x.Name" Title="@Localizer["Name"]" Sortable="true" />
+            <PropertyColumn Property="x => x.Recipe.Name" Title="@Localizer["Recipe"]" Sortable="true" />
+            <PropertyColumn Property="x => x.StartDate" Title="@Localizer["Start"]" Format="@_userDateTimeFormat" Sortable="true" />
+            <TemplateColumn Title="@Localizer["TotalTrays"]" Sortable="true">
+                <CellTemplate Context="context">
+                    @context.Item.TotalTrays
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="@Localizer["Status"]" Sortable="true" SortBy="x => x.StatusId">
+                <CellTemplate Context="context">
+                    <VHS.Client.Components.Status.BatchPlanStatus StatusId="@context.Item.StatusId" />
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn>
+                <CellTemplate Context="context">
+                    @if (context.Item.StatusId == GlobalConstants.BATCHPLANSTATUS_NEW)
+                    {
+                        <MudTooltip Text="@Localizer["StartPlan"]" Arrow="true" Placement="Placement.Top">
+                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" OnClick="@(() => StartPlan(context.Item.Id))" OnClickStopPropagation="true" />
+                        </MudTooltip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="@Localizer["Actions"]">
+                <CellTemplate Context="context">
+                    <MudStack Row Spacing="1">
+                        <MudTooltip Text="@Localizer["Edit"]" Arrow="true" Placement="Placement.Top">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditBatchPlan(context.Item))" OnClickStopPropagation="true" Disabled="@(context.Item.StatusId == GlobalConstants.BATCHPLANSTATUS_FINISHED)" />
+                        </MudTooltip>
+                        <MudTooltip Text="@Localizer["Duplicate"]" Arrow="true" Placement="Placement.Top">
+                            <MudIconButton Icon="@Icons.Material.Outlined.ContentCopy" Color="Color.Default" OnClick="@(() => DuplicateBatchPlan(context.Item))" OnClickStopPropagation="true" />
+                        </MudTooltip>
+                        <MudTooltip Text="@Localizer["Delete"]" Arrow="true" Placement="Placement.Top">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteBatchPlan(context.Item.Id))" OnClickStopPropagation="true" Disabled="@(context.Item.StatusId == GlobalConstants.BATCHPLANSTATUS_FINISHED)" />
+                        </MudTooltip>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="GrowPlanDTO" />
+        </PagerContent>
+    </MudDataGrid>
+}
+
+@if (!IsLoading && (PlansList == null || !PlansList.Any()))
+{
+    <MudAlert Severity="Severity.Info">@Localizer["NoPlansFound"]</MudAlert>
+}
+
+@code {
+    private bool ShowCalendarView = false;
+    private MudDateRangePicker? _dateRangePicker;
+    private bool _isFilterPanelExpanded = true;
+
+    private IEnumerable<GrowPlanDTO>? PlansList;
+    private bool IsLoading = true;
+
+    private bool CB_Finished = false;
+    private bool CB_New = true;
+    private bool CB_Started = true;
+    private string? BatchPlanNameFilterText;
+    private ProductDTO? SelectedProduct;
+    private RecipeDTO? SelectedRecipe;
+    private DateRange SelectedDateRange = new DateRange(null, null);
+
+    private IEnumerable<ProductDTO>? ProductsList;
+    private IEnumerable<RecipeDTO>? RecipesList;
+
+    private string _userDateTimeFormat = "dd MMM yyyy";
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.Title = "";
+        PageTitleService.BackUrl = "";
+
+        ProductsList = await ProductClientService.GetAllProductsAsync();
+        RecipesList = await RecipeClientService.GetAllRecipesAsync();
+
+        _userDateTimeFormat = await UserPreferences.GetDateTimeFormatAsync(dateOnly: true);
+
+        await LoadFiltersFromStorage();
+        await LoadBatchPlans();
+    }
+
+    private async Task LoadFiltersFromStorage()
+    {
+        BatchPlanNameFilterText = await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_NAME");
+
+        CB_New = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_CB_NEW"), out var n) ? n : true;
+        CB_Started = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_CB_STARTED"), out var s) ? s : true;
+        CB_Finished = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_CB_FINISHED"), out var f) ? f : false;
+
+        var startDateStr = await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_DATE_START");
+        var endDateStr = await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_DATE_END");
+        DateTime? startDate = DateTime.TryParse(startDateStr, out var sd) ? sd : null;
+        DateTime? endDate = DateTime.TryParse(endDateStr, out var ed) ? ed : null;
+        SelectedDateRange = new DateRange(startDate, endDate);
+
+        var productIdStr = await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_PRODUCT_ID");
+        if (Guid.TryParse(productIdStr, out var productId) && productId != Guid.Empty)
+        {
+            SelectedProduct = ProductsList?.FirstOrDefault(p => p.Id == productId);
+        }
+
+        var recipeIdStr = await LocalStorage.GetStateAsync("VHS_FILTER_PLAN_RECIPE_ID");
+        if (Guid.TryParse(recipeIdStr, out var recipeId) && recipeId != Guid.Empty)
+        {
+            SelectedRecipe = RecipesList?.FirstOrDefault(r => r.Id == recipeId);
+        }
+    }
+
+    private async Task ApplyFilter()
+    {
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_NAME", BatchPlanNameFilterText ?? "");
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_PRODUCT_ID", SelectedProduct?.Id.ToString() ?? "");
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_RECIPE_ID", SelectedRecipe?.Id.ToString() ?? "");
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_CB_NEW", CB_New.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_CB_STARTED", CB_Started.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_CB_FINISHED", CB_Finished.ToString());
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_DATE_START", SelectedDateRange.Start?.ToString("o") ?? "");
+        await LocalStorage.SaveStateAsync("VHS_FILTER_PLAN_DATE_END", SelectedDateRange.End?.ToString("o") ?? "");
+
+        await LoadBatchPlans();
+    }
+
+    private async Task ClearFilter()
+    {
+        BatchPlanNameFilterText = null;
+        SelectedProduct = null;
+        SelectedRecipe = null;
+        SelectedDateRange = new DateRange(null, null);
+        CB_New = true;
+        CB_Started = true;
+        CB_Finished = false;
+
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_NAME");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_PRODUCT_ID");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_RECIPE_ID");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_CB_NEW");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_CB_STARTED");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_CB_FINISHED");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_DATE_START");
+        await LocalStorage.RemoveStateAsync("VHS_FILTER_PLAN_DATE_END");
+
+        await LoadBatchPlans();
+    }
+
+    private async Task LoadBatchPlans()
+    {
+        IsLoading = true;
+        StateHasChanged();
+
+        var selectedStatusIds = new List<Guid>();
+        if (CB_New) selectedStatusIds.Add(GlobalConstants.BATCHPLANSTATUS_NEW);
+        if (CB_Started) selectedStatusIds.Add(GlobalConstants.BATCHPLANSTATUS_PLANNED);
+        if (CB_Finished) selectedStatusIds.Add(GlobalConstants.BATCHPLANSTATUS_FINISHED);
+
+        //only show batches for 1 day
+        PlansList = (await BatchPlanClientService.GetAllBatchPlansAsync(
+                             productId: SelectedProduct?.Id,
+                             recipeId: SelectedRecipe?.Id,
+                             name: BatchPlanNameFilterText,
+                             startDateFrom: SelectedDateRange.Start,
+                             startDateTo: SelectedDateRange.End,
+                             statusIds: selectedStatusIds.Any() ? selectedStatusIds : null))
+                          .Where(x=>x.Batches.Count==1)
+                         .OrderBy(x => x.StartDate)
+                         .ThenBy(x => x.AddedDateTime)
+                         .ToList();
+
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private Task<IEnumerable<ProductDTO>> SearchProducts(string value, CancellationToken token)
+    {
+        var filteredProducts = ProductsList?.Where(p => string.IsNullOrEmpty(value) || p.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+                                           .OrderBy(p => p.Name)
+                                           .ToList();
+        return Task.FromResult(filteredProducts ?? Enumerable.Empty<ProductDTO>());
+    }
+
+    private Task<IEnumerable<RecipeDTO>> SearchRecipes(string value, CancellationToken token)
+    {
+        var filteredRecipes = RecipesList?.Where(r => string.IsNullOrEmpty(value) || r.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+                                         .OrderBy(r => r.Name)
+                                         .ToList();
+        return Task.FromResult(filteredRecipes ?? Enumerable.Empty<RecipeDTO>());
+    }
+
+    private async Task AddBatchPlan()
+    {
+        var parameters = new DialogParameters
+        {
+            { "BatchPlan", new GrowPlanDTO() }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true, Position = DialogPosition.TopCenter, BackdropClick = false };
+        var dialog = await Dialog.ShowAsync<JobPlanDialog>(Localizer["NewPlan"], parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var newPlan = (GrowPlanDTO)result.Data;
+            var createdConfig = await BatchPlanClientService.CreateBatchPlanAsync(newPlan);
+            await LoadBatchPlans();
+            Snackbar.Add(Localizer["PlanAddedSuccess"], Severity.Success);
+        }
+    }
+
+    private async Task EditBatchPlan(GrowPlanDTO config)
+    {
+        var savedPlan = await BatchPlanClientService.GetBatchPlanByIdAsync(config.Id);
+        if (savedPlan == null)
+        {
+            Snackbar.Add(Localizer["FailedToLoadPlan"], Severity.Error);
+            return;
+        }
+        var parameters = new DialogParameters
+        {
+            { "BatchPlan", savedPlan }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true, Position = DialogPosition.TopCenter, BackdropClick = false };
+        var dialog = await Dialog.ShowAsync<JobPlanDialog>(Localizer["EditPlan"], parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var returnedPlan = (GrowPlanDTO)result.Data;
+
+            if (returnedPlan.StatusId == GlobalConstants.BATCHPLANSTATUS_PLANNED)
+            {
+                Snackbar.Add(Localizer["PlanStartedSuccess"], Severity.Success);
+            }
+            else
+            {
+                await BatchPlanClientService.UpdateBatchPlanAsync(returnedPlan);
+                Snackbar.Add(Localizer["PlanUpdatedSuccess"], Severity.Success);
+            }
+
+            await LoadBatchPlans();
+        }
+    }
+
+    private async Task DeleteBatchPlan(Guid id)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ConfirmTitle", Localizer["ConfirmDelete"].ToString() },
+            { "ConfirmMessage", Localizer["ConfirmDeletePlanMessage"].ToString() }
+        };
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<Confirm>(Localizer["ConfirmDelete"].ToString(), parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await BatchPlanClientService.DeleteBatchPlanAsync(id);
+            await LoadBatchPlans();
+            Snackbar.Add(Localizer["PlanDeletedSuccess"], Severity.Success);
+        }
+    }
+
+    private async Task StartPlan(Guid id)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ConfirmTitle", Localizer["ConfirmStart"].ToString() },
+            { "ConfirmMessage", Localizer["ConfirmStartPlanMessage"].ToString() }
+        };
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            MaxWidth = MaxWidth.Small,
+            Position = DialogPosition.TopCenter
+        };
+
+        var dialog = await Dialog.ShowAsync<Confirm>(Localizer["StartPlan"].ToString(), parameters, options);
+        var result = await dialog.Result;
+
+        if (result.Canceled)
+            return;
+
+        try
+        {
+            IsLoading = true;
+            await BatchPlanClientService.StartBatchPlanAsync(id);
+
+            await LoadBatchPlans();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["FailedToStartPlan"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task DuplicateBatchPlan(GrowPlanDTO planToDuplicate)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ConfirmTitle", Localizer["ConfirmDuplicate"].ToString() },
+            { "ConfirmMessage", Localizer["ConfirmDuplicatePlanMessage"].ToString() }
+        };
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, Position = DialogPosition.TopCenter };
+        var dialog = await Dialog.ShowAsync<Confirm>(Localizer["ConfirmDuplicate"].ToString(), parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var newPlan = await BatchPlanClientService.DuplicateBatchPlanAsync(planToDuplicate.Id);
+                if (newPlan == null)
+                {
+                    Snackbar.Add(Localizer["FailedToDuplicatePlan"], Severity.Error);
+                    return;
+                }
+
+                Snackbar.Add(Localizer["PlanDuplicatedSuccess"], Severity.Success);
+                await LoadBatchPlans();
+                await EditBatchPlan(newPlan);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(Localizer["AnErrorOccurredWhileDuplicatingPlan", ex.Message], Severity.Error);
+            }
+        }
+    }
+}

@@ -3,11 +3,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace VHS.Data.Core.Mappings;
 
-public class BatchPlanMap : IEntityTypeConfiguration<BatchPlan>
+public class BatchPlanMap : IEntityTypeConfiguration<GrowPlan>
 {
-    public void Configure(EntityTypeBuilder<BatchPlan> builder)
+    public void Configure(EntityTypeBuilder<GrowPlan> builder)
     {
-        builder.ToTable("BatchPlans");
+        builder.ToTable("GrowPlans");
         builder.HasKey(bc => bc.Id);
         builder.Property(bc => bc.Id).ValueGeneratedOnAdd();
 
@@ -35,8 +35,8 @@ public class BatchPlanMap : IEntityTypeConfiguration<BatchPlan>
                .IsRequired(false);
 
         builder.HasMany(bc => bc.Batches)
-               .WithOne(b => b.BatchPlan)
-               .HasForeignKey(b => b.BatchPlanId)
+               .WithOne(b => b.GrowPlan)
+               .HasForeignKey(b => b.GrowPlanId)
                .OnDelete(DeleteBehavior.NoAction);
 
         builder.Property(bp => bp.StatusId)

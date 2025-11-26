@@ -1,0 +1,459 @@
+﻿@page "/racks"
+
+@inject IStringLocalizer<Shared> Localizer
+@inject FarmClientService FarmClientService
+@inject FloorClientService FloorClientService
+@inject RecipeClientService RecipeClientService
+@inject PageTitleService PageTitleService
+@inject HubConnection _hubConnection
+@inject UserPreferencesService UserPreferences
+@inject LocalStorage LocalStorage
+@implements IDisposable
+
+<MudPaper Class="p-4" Elevation="0">
+	<MudStack Spacing="4">
+		<MudExpansionPanels>
+			<MudExpansionPanel Text="@Localizer["Filters"]" Expanded="@_isFilterPanelExpanded">
+				<MudGrid Spacing="2" Class="mb-4">
+					<MudItem xs="12" sm="6" md="4">
+						<MudSelect T="Guid"
+								   Label="@Localizer["FilterByFloor"]"
+								   Value="_selectedFloorId"
+								   ValueChanged="OnFloorChanged"
+								   Dense="true"
+								   Clearable="true"
+								   Variant="Variant.Outlined">
+							<MudSelectItem Value="Guid.Empty">@Localizer["AllFloors"]</MudSelectItem>
+							@foreach (var floor in _floors.Where(r => r.FarmId == _selectedFarm.Id && r.Enabled).OrderBy(r => r.Number))
+							{
+								<MudSelectItem Value="@floor.Id">
+									@floor.Number – @floor.Name
+								</MudSelectItem>
+							}
+						</MudSelect>
+					</MudItem>
+					<MudItem xs="12" sm="6" md="4">
+						<MudSelect T="Guid ?"
+								   Label="@Localizer["FilterByRecipe"]"
+								   @bind-Value="_filterRecipeId"
+								   Dense="true"
+								   Clearable="true"
+								   Variant="Variant.Outlined">
+							@foreach (var recipe in _recipes)
+							{
+								<MudSelectItem T="Guid ?" Value="@((Guid?)recipe.Id)">@recipe.Name (@recipe.Product.Name)</MudSelectItem>
+							}
+						</MudSelect>
+					</MudItem>
+					<MudItem xs="12" sm="6" md="4">
+						<MudGrid Spacing="2">
+							<MudItem xs="2" sm="2" md="2">
+								<MudButton Variant="Variant.Outlined"
+										   Size="Size.Large"
+										   Color="Color.Secondary"
+										   StartIcon="@Icons.Material.Filled.ArrowBack"
+										   OnClick="BackDay">
+								</MudButton>
+							</MudItem>
+							<MudItem xs="8" sm="8" md="8">
+								<MudDatePicker Date="_asOf"
+											   DateChanged="OnAsOfChanged"
+											   Label="As of Date"
+											   PickerVariant="PickerVariant.Inline"
+											   DateFormat="@_userDateTimeFormat"
+											   Variant="Variant.Outlined" />
+							</MudItem>
+							<MudItem xs="2" sm="2" md="2">
+								<MudButton Variant="Variant.Outlined"
+										   Size="Size.Large"
+										   Color="Color.Secondary"
+										   StartIcon="@Icons.Material.Filled.ArrowForward"
+										   OnClick="ForwardDay">
+								</MudButton>
+							</MudItem>
+						</MudGrid>
+					</MudItem>
+					<MudItem xs="12">
+						<div class="d-flex justify-center mt-2" style="gap: 16px;">
+							<MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Primary" StartIcon="@Icons.Material.Filled.FilterAlt" OnClick="ApplyFilter" Disabled="@IsLoading">
+								@Localizer["Filter"]
+							</MudButton>
+							<MudButton Variant="Variant.Outlined" Size="Size.Large" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Clear" OnClick="ClearFilter">
+								@Localizer["ClearFilters"]
+							</MudButton>
+							<MudSwitch Value="@_simulationEnabled" Color="Color.Primary" T="bool" ValueChanged="@(x => HandleSwitchStateChanged(x))">@Localizer["SimulationMode"]</MudSwitch>
+						</div>
+					</MudItem>
+				</MudGrid>
+			</MudExpansionPanel>
+		</MudExpansionPanels>
+		<MudLoading @bind-Loading="@IsLoading">
+			<MudGrid Justify="Justify.Center" Class="mt-2" Spacing="2">
+				<MudItem xs="12" sm="6" Class="d-flex justify-center">
+					<div class="d-flex flex-row gap-4 mb-2">
+						<label><b>@Localizer["Filled"]:</b></label>
+						<div class="d-flex align-center">
+							<div class="farm-rack-legend-box bg-empty"></div>
+							<span class="ml-2">@Localizer["Empty"]</span>
+						</div>
+						<div class="d-flex align-center">
+							<div class="farm-rack-legend-box bg-full"></div>
+							<span class="ml-2">@Localizer["Filled"]</span>
+						</div>
+						<label><b>@Localizer["RackType"]:</b></label>
+						<div class="d-flex align-center">
+							<div class="farm-rack-legend-box" style="background-color:lavender"></div>
+							<span class="ml-2">@Localizer["Germination"]</span>
+						</div>
+						<div class="d-flex align-center">
+							<div class="farm-rack-legend-box" style="background-color:khaki"></div>
+							<span class="ml-2">@Localizer["Propagation"]</span>
+						</div>
+						<div class="d-flex align-center">
+							<div class="farm-rack-legend-box" style="background-color:lightblue"></div>
+							<span class="ml-2">@Localizer["Growing"]</span>
+						</div>
+					</div>
+				</MudItem>
+			</MudGrid>
+			@if (_simulationEnabled)
+			{
+				<MudGrid Justify="Justify.Center" Class="mt-2" Spacing="2">
+					<MudItem xs="12" sm="6" Class="d-flex justify-center">
+						<div class="d-flex flex-row gap-4 mb-2">
+							<div class="d-flex align-center">
+								<div class="farm-rack-legend-box farm-rack-tray-estimated"></div>
+								<span class="ml-2"><b>@Localizer["Simulation"]</b></span>
+							</div>
+							@if (_data.Any())
+							{
+								<div class="d-flex align-center"><span class="ml-2">@Localizer["Jobs"]: @_data[0].SimulationStats.SimulatedJobs</span></div>
+								<div class="d-flex align-center"><span class="ml-2">@Localizer["Trays"]: @_data[0].SimulationStats.TraysInJob</span></div>
+								<div class="d-flex align-center"><span class="ml-2">@Localizer["Washed"]: @_data[0].SimulationStats.Washed</span></div>
+								<div class="d-flex align-center"><span class="ml-2">@Localizer["Harvested"]: @_data[0].SimulationStats.Harvested</span></div>
+							}
+						</div>
+					</MudItem>
+				</MudGrid>
+			}
+
+			<MudPaper Class="pa-4">
+				<MudTabs Rounded="true" Class="mt-2" Outlined="true">
+					<MudTabPanel Text="@Localizer["RackTowers"]">
+						<MudPaper Class="pa-4">
+							@{
+								var floorsToShow = _selectedFloorId == Guid.Empty
+								? _floors.Where(r => r.FarmId == _selectedFarm.Id && r.Enabled)
+								: _floors.Where(r => r.Id == _selectedFloorId);
+							}
+
+							@foreach (var floor in floorsToShow)
+							{
+								<div class="d-flex flex-row gap-4 flex-wrap justify-content-center">
+									@foreach (var rack in floor.Racks.Where(r => r.Enabled).OrderBy(r => r.Number))
+									{
+										<MudPaper Style="@GetRackTypeBackgroundColor(rack.TypeId)">
+											<MudLink Href="@($"/rackoccupancy/{rack.Id}")" Underline="Underline.Always">
+												<MudText Typo="Typo.subtitle2" Class="mb-2">
+													@($"{floor.Name}-{rack.Name} ({rack.TrayCountPerLayer})")
+												</MudText>
+											</MudLink>
+											<div class="d-flex flex-row gap-1 flex-wrap justify-content-center">
+												@{
+													<div class="rack-set-container">
+														<div class="rack-head"></div>
+														@foreach (var layer in rack.Layers.OrderBy(l => l.Number))
+														{
+															var colorClass = GetOccupancyColor(layer);
+															var occData = _data.FirstOrDefault(x => x.LayerId == layer.Id);
+
+															<div class="rack-tray @colorClass">
+																<MudTooltip>
+																	<ChildContent>
+																		<div class="rack-tray-overlay">
+																			<div class="rack-tray-overlay-text overlay-dot">
+																				<i class="pe-1 bi-circle-fill"></i>
+																				@($"{layer.Number.ToString("D2")}")
+																			</div>
+																		</div>
+																	</ChildContent>
+																	<TooltipContent>
+																		<MudText Typo="Typo.subtitle1">Layer: @layer.Number</MudText>
+																		@if (@occData.Batch != null)
+																		{
+																			<MudText Typo="Typo.body2">Growplan: @occData.Batch.GrowPlan?.Name</MudText>
+																			<MudText Typo="Typo.body2">Batch: @occData.Batch.Name</MudText>
+																			@if (occData.Batch.GrowPlan?.Recipe != null)
+																			{
+																				<MudText Typo="Typo.body2">Recipe: @occData.Batch.GrowPlan?.Recipe?.Name</MudText>
+																				<MudText Typo="Typo.body2">Seeded: @occData.Batch.SeedDate</MudText>
+																				<MudText Typo="Typo.body2">Harvest: @occData.Batch.HarvestDate</MudText>
+																				<MudText Typo="Typo.body2">Total trays: @occData.Batch.GrowPlan.TotalTrays</MudText>
+																			}
+																			else
+																			{
+																				<MudText Typo="Typo.body2">Empty trays</MudText>
+																				<MudText Typo="Typo.body2">Arrived: @occData.Batch.SeedDate</MudText>
+
+																			}
+																		}
+																	</TooltipContent>
+																</MudTooltip>
+
+															</div>
+														}
+														<div class="rack-footer"></div>
+													</div>
+												}
+											</div>
+										</MudPaper>
+
+									}
+								</div>
+							}
+						</MudPaper>
+					</MudTabPanel>
+					<MudTabPanel Text="@Localizer["OccupancyTable"]">
+						<MudTable Items="_dataFiltered" Hover="true" Elevation="1" Class="mt-4">
+							<HeaderContent>
+								<MudTh>@Localizer["Floor"]</MudTh>
+								<MudTh>@Localizer["Rack"]</MudTh>
+								<MudTh>@Localizer["RackType"]</MudTh>
+								<MudTh>@Localizer["Layer"]</MudTh>
+								<MudTh>@Localizer["Capacity"]</MudTh>
+								<MudTh>@Localizer["Current"]</MudTh>
+							</HeaderContent>
+							<RowTemplate>
+								<MudTd>@context.FloorName</MudTd>
+								<MudTd>@context.RackName</MudTd>
+								<MudTd><RacKTypeName TypeId="@context.RackTypeId" /></MudTd>
+								<MudTd>@context.LayerName</MudTd>
+								<MudTd>@context.Capacity</MudTd>
+								<MudTd>@context.Trays.Count()</MudTd>
+							</RowTemplate>
+						</MudTable>
+					</MudTabPanel>
+				</MudTabs>
+			</MudPaper>
+		</MudLoading>
+	</MudStack>
+</MudPaper>
+
+@code {
+	private List<FloorDTO> _floors = new();
+	private List<RecipeDTO> _recipes = new();
+	private FarmDTO _selectedFarm;
+	private Guid _selectedFloorId;
+	private Guid? _filterRecipeId;
+	private DateTime? _asOf = DateTime.Today;
+	private bool IsLoading { get; set; } = true;
+	private bool _isFilterPanelExpanded = true;
+	private List<LayerOccupancyDTO> _data = new();
+	private bool _simulationEnabled = false;
+
+	private IEnumerable<LayerOccupancyDTO> _dataFiltered
+	{
+		get
+		{
+			var data = _data.AsEnumerable();
+
+			if (_selectedFloorId != Guid.Empty)
+			{
+				var selected = _floors.FirstOrDefault(r => r.Id == _selectedFloorId);
+				if (selected != null)
+					data = data.Where(x => x.FloorNumber == selected.Number);
+			}
+
+			if (_filterRecipeId.HasValue)
+			{
+				data = data.Where(x => x.Trays.Any(t => t.RecipeId == _filterRecipeId.Value));
+			}
+
+			return data.OrderBy(x => x.FloorNumber).ThenBy(x => x.RackNumber).ThenBy(x => x.LayerNumber);
+		}
+	}
+
+	private string _userDateTimeFormat = "dd MMM yyyy";
+
+	protected override async Task OnInitializedAsync()
+	{
+		PageTitleService.Title = "";
+		PageTitleService.BackUrl = "";
+
+		_selectedFarm = await FarmClientService.GetFirstFarmsSimpleAsync();
+
+		// get saved filter state from local storage
+		_selectedFloorId = Guid.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKS_FLOORID"), out var floorId) ? floorId : Guid.Empty;
+		_filterRecipeId = Guid.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKS_RECIPEID"), out var recipeId) ? recipeId : (Guid?)null;
+		_asOf = DateTime.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKS_ASOF"), out var asOfDate) ? asOfDate : DateTime.Today;
+		_simulationEnabled = bool.TryParse(await LocalStorage.GetStateAsync("VHS_FILTER_RACKS_SIM"), out var sim) && sim;
+
+		_userDateTimeFormat = await UserPreferences.GetDateTimeFormatAsync(dateOnly: true);
+
+		await Task.WhenAll(
+			LoadFloors(),
+			LoadRecipes(),
+			Load(true)
+		);
+
+		if (_hubConnection != null && _hubConnection.State == HubConnectionState.Disconnected)
+		{
+			await _hubConnection.StartAsync();
+		}
+
+		if (_hubConnection != null)
+		{
+			_hubConnection.On<Guid>("UpdateTrayState", async (trayId) =>
+			{
+				await Load(false);
+			});
+		}
+	}
+
+	public void Dispose()
+	{
+		if (_hubConnection != null)
+		{
+			_hubConnection.Remove("UpdateTrayState");
+		}
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender && _hubConnection != null && _hubConnection.State == HubConnectionState.Disconnected)
+		{
+			await _hubConnection.StartAsync();
+		}
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_hubConnection != null)
+		{
+			await _hubConnection.DisposeAsync();
+		}
+	}
+
+	private async Task LoadFloors()
+	{
+		_floors = (await FloorClientService.GetAllFloorsAsync())
+			?.OrderBy(r => r.Number)
+			.ToList() ?? new();
+	}
+
+	private async Task LoadRecipes()
+	{
+		_recipes = (await RecipeClientService.GetAllRecipesAsync())?.ToList() ?? new();
+	}
+
+	private async Task OnAsOfChanged(DateTime? newDate)
+	{
+		_asOf = newDate ?? DateTime.Today;
+		await ApplyFilter();
+	}
+	private async Task BackDay()
+	{
+		_asOf = _asOf.Value.AddDays(-1);
+	}
+	private async Task ForwardDay()
+	{
+		_asOf = _asOf.Value.AddDays(1);
+	}
+
+	private async Task HandleSwitchStateChanged(bool newValue)
+	{
+		_simulationEnabled = newValue;
+		await ApplyFilter();
+	}
+
+	private async Task ApplyFilter()
+	{
+		// save filter state to local storage
+		await LocalStorage.SaveStateAsync("VHS_FILTER_RACKS_FLOORID", _selectedFloorId.ToString());
+		await LocalStorage.SaveStateAsync("VHS_FILTER_RACKS_RECIPEID", _filterRecipeId?.ToString() ?? "");
+		await LocalStorage.SaveStateAsync("VHS_FILTER_RACKS_ASOF", _asOf?.ToString("yyyy-MM-dd") ?? "");
+		await LocalStorage.SaveStateAsync("VHS_FILTER_RACKS_SIM", _simulationEnabled.ToString());
+
+		await Load();
+	}
+
+	private async Task ClearFilter()
+	{
+		_filterRecipeId = null;
+		_selectedFloorId = Guid.Empty;
+		_asOf = DateTime.Today;
+		_simulationEnabled = false;
+
+		// remove filter state from local storage
+		await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKS_FLOORID");
+		await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKS_RECIPEID");
+		await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKS_ASOF");
+		await LocalStorage.RemoveStateAsync("VHS_FILTER_RACKS_SIM");
+
+		await Load();
+	}
+
+	private async Task Load(bool showLoading = true)
+	{
+		if (showLoading)
+		{
+			IsLoading = true;
+			StateHasChanged();
+		}
+
+		var newData = await FarmClientService.GetLayerOccupancyAsync(_selectedFarm.Id, DateOnly.FromDateTime(_asOf.Value), _simulationEnabled);
+		_data = newData.ToList();
+
+		if (showLoading)
+		{
+			IsLoading = false;
+			StateHasChanged();
+		}
+		else
+		{
+			InvokeAsync(StateHasChanged);
+		}
+	}
+
+	private void OnFloorChanged(Guid floorId)
+	{
+		_selectedFloorId = floorId;
+		StateHasChanged();
+	}
+
+	private string GetRackTypeBackgroundColor(Guid typeId)
+	{
+		if (typeId == GlobalConstants.RACKTYPE_GROWING) return "background-color:lightblue";
+		if (typeId == GlobalConstants.RACKTYPE_GERMINATION) return "background-color:lavender";
+		if (typeId == GlobalConstants.RACKTYPE_PROPAGATION) return "background-color:khaki";
+
+		return string.Empty;
+	}
+
+	private string GetOccupancyColor(LayerDTO layer)
+	{
+		if (!layer.Enabled)
+		{
+			return string.Empty;
+		}
+
+		var occ = _data.FirstOrDefault(x => x.LayerId == layer.Id);
+		if (occ == null || !occ.Trays.Any())
+		{
+			return "bg-empty";
+		}
+
+		if (_simulationEnabled && occ.Trays.Any(x => x.IsEstimated == true))
+		{
+			return "farm-rack-tray-estimated";
+		}
+		else if (occ.Trays.Any(x => x.RecipeId.HasValue))
+		{
+			return "bg-full";
+		}
+		else
+		{
+			return "bg-empty";
+		}
+	}
+}

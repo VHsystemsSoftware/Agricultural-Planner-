@@ -1,4 +1,6 @@
-﻿namespace VHS.Services.Farming.DTO;
+﻿using VHS.Services.Batches.DTO;
+
+namespace VHS.Services.Farming.DTO;
 
 public class LayerOccupancyDTO
 {
@@ -9,6 +11,8 @@ public class LayerOccupancyDTO
 	public string LayerName { get; set; } = string.Empty;
 	public string RackName { get; set; } = string.Empty;
 	public string FloorName { get; set; } = string.Empty;
+
+	public BatchDTO? Batch { get; set; }
 
 	public Guid RackTypeId { get; set; }
 
@@ -22,5 +26,15 @@ public class LayerOccupancyDTO
 
 	public int Capacity { get; set; }
 
+	public bool Enabled { get; set; }
 
+	public SimulationStats SimulationStats { get; set; }
+}
+
+public class SimulationStats
+{
+	public int Harvested { get; set; }
+	public int SimulatedJobs { get; set; }
+	public int TraysInJob { get; set; }
+	public int Washed { get; set; }
 }

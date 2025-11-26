@@ -9,7 +9,11 @@ using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using System.Globalization;
+using System.Text.Json;
 using VHS.Client.Services.Auth;
+using VHS.Client.Services;
+using Radzen;
+using VHS.Services.Auth.DTO;
 
 namespace VHS.Client;
 
@@ -26,6 +30,7 @@ public class Program
         builder.Services.AddBlazoredLocalStorage();
         builder.Services.AddMudServices();
         builder.Services.AddMudExtensions();
+        builder.Services.AddRadzenComponents();
 
 		builder.Logging.SetMinimumLevel(LogLevel.Error);
 		//builder.Logging.AddFilter((category, level) =>
@@ -44,7 +49,7 @@ public class Program
         builder.Services.AddHttpClient<AuthClientService>(client =>
         {
             client.BaseAddress = apiBaseAddress;
-            client.Timeout = TimeSpan.FromMinutes(30);
+            client.Timeout = TimeSpan.FromMinutes(5);
         })
         .AddHttpMessageHandler<AuthClientMessageService>();
 
@@ -53,17 +58,63 @@ public class Program
 			var navigationManager = sp.GetRequiredService<NavigationManager>();
 			return new HubConnectionBuilder()
 				.WithUrl(navigationManager.ToAbsoluteUri($"{apiBaseAddress}hubs/notifications"))
-				.WithAutomaticReconnect()
+                 //.ConfigureLogging(logging =>
+                 //{
+                 //    logging.AddDebug();
+                 //    logging.SetMinimumLevel(LogLevel.Trace);
+                 //})
+                .WithAutomaticReconnect()
 				.Build();
 		});
 
 
 		ClientServiceInitialization.Initialize(builder.Services, apiBaseAddress);
 
-		CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-US");
-		CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en-US");
 
+		
+		
 		var host = builder.Build();
+        await SetCultureAsync(host.Services);
         await host.RunAsync();
+    }
+
+    private static async Task SetCultureAsync(IServiceProvider services)
+    {
+        var localStorage = services.GetRequiredService<ILocalStorageService>();
+        string language = "en-US";
+
+        try
+        {
+            var settingsJson = await localStorage.GetItemAsStringAsync("VHS_USER_SETTINGS");
+            if (!string.IsNullOrWhiteSpace(settingsJson))
+            {
+                UserSettingDTO settings = null;
+                try
+                {
+                    settings = JsonSerializer.Deserialize<UserSettingDTO>(settingsJson);
+                }
+                catch (JsonException)
+                {
+                    var cleanJson = JsonSerializer.Deserialize<string>(settingsJson);
+                    if (cleanJson != null)
+                    {
+                        settings = JsonSerializer.Deserialize<UserSettingDTO>(cleanJson);
+                    }
+                }
+
+                if (settings != null && !string.IsNullOrWhiteSpace(settings.PreferredLanguage))
+                {
+                    language = settings.PreferredLanguage;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading culture from storage: {ex.Message}. Defaulting to en-US.");
+        }
+
+        var culture = new CultureInfo(language);
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
     }
 }

@@ -6,7 +6,6 @@ namespace VHS.WebAPI.Controllers.Growth;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporarily allowed
 public class LightZoneScheduleController : ControllerBase
 {
     private readonly ILightZoneScheduleService _scheduleService;
@@ -17,6 +16,7 @@ public class LightZoneScheduleController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetAllLightZoneSchedules(Guid? farmId = null)
     {
         var schedules = await _scheduleService.GetAllLightZoneSchedulesAsync(farmId);
@@ -24,6 +24,7 @@ public class LightZoneScheduleController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetLightZoneScheduleById(Guid id)
     {
         var schedule = await _scheduleService.GetLightZoneScheduleByIdAsync(id);
@@ -33,6 +34,7 @@ public class LightZoneScheduleController : ControllerBase
     }
 
     [HttpGet("zone/{zoneId}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> GetByZone(Guid zoneId)
     {
         var list = await _scheduleService.GetLightZoneSchedulesByZoneAsync(zoneId);
@@ -40,6 +42,7 @@ public class LightZoneScheduleController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> CreateLightZoneSchedule([FromBody] LightZoneScheduleDTO scheduleDto)
     {
         var createdSchedule = await _scheduleService.CreateLightZoneScheduleAsync(scheduleDto);
@@ -47,6 +50,7 @@ public class LightZoneScheduleController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> UpdateLightZoneSchedule(Guid id, [FromBody] LightZoneScheduleDTO scheduleDto)
     {
         if (id != scheduleDto.Id)
@@ -57,6 +61,7 @@ public class LightZoneScheduleController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanDefineRacksAndLayers")]
     public async Task<IActionResult> DeleteLightZoneSchedule(Guid id)
     {
         await _scheduleService.DeleteLightZoneScheduleAsync(id);
@@ -64,6 +69,7 @@ public class LightZoneScheduleController : ControllerBase
     }
 
     [HttpPost("calculatedli/{id}")]
+    [Authorize(Policy = "FarmManagerAndAbove")]
     public async Task<IActionResult> CalculateDLI(Guid id)
     {
         double newDLI = await _scheduleService.CalculateDLIAsync(id);

@@ -33,7 +33,6 @@ public class JobTrayMap : IEntityTypeConfiguration<JobTray>
 			.OnDelete(DeleteBehavior.NoAction);
 
 		builder.Property(x => x.OrderInJob);
-		builder.Property(x => x.OrderOnLayer);
 
 		builder.Property(x => x.RecipeId)
 			   .IsRequired(false);

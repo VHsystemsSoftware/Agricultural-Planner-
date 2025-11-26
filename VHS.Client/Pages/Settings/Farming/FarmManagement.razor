@@ -3,6 +3,8 @@
 @using VHS.Services.Farming.DTO
 @using VHS.Client.Services.Farming
 @using VHS.Client.Pages.Settings.Farming
+
+@inject IStringLocalizer<Shared> Localizer
 @inject FarmClientService FarmClientService
 @inject IDialogService Dialog
 @inject ISnackbar Snackbar
@@ -14,20 +16,20 @@
             @if (Farms.Count == 0)
             {
 
-                <MudTooltip Text="Add New Farm" Arrow="true" Placement="Placement.Top">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@AddFarm">Add New</MudButton>
+                <MudTooltip Text="@Localizer["AddNewFarm"]" Arrow="true" Placement="Placement.Top">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@AddFarm">@Localizer["AddNew"]</MudButton>
                 </MudTooltip>
 
             }
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" />
-            <PropertyColumn Property="x => x.Description" Title="Description" Sortable="true" />
-            <PropertyColumn Property="x => x.FarmTypeName" Title="Farm Type" Sortable="true" />
-            <TemplateColumn Title="Actions">
+            <PropertyColumn Property="x => x.Name" Title="@Localizer["Name"]" Sortable="true" />
+            <PropertyColumn Property="x => x.Description" Title="@Localizer["Description"]" Sortable="true" />
+            <PropertyColumn Property="x => x.FarmTypeName" Title="@Localizer["FarmType"]" Sortable="true" />
+            <TemplateColumn Title="@Localizer["Actions"]">
                 <CellTemplate Context="context">
                     <MudStack Row Spacing="1">
-                        <MudTooltip Text="Edit" Arrow="true" Placement="Placement.Top">
+                        <MudTooltip Text="@Localizer["Edit"]" Arrow="true" Placement="Placement.Top">
                             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Default" OnClick="@(() => EditFarm(context.Item))" />
                         </MudTooltip>
                         @*                         <MudTooltip Text="Delete" Arrow="true" Placement="Placement.Top">
@@ -40,7 +42,7 @@
     </MudDataGrid>
     @if (Farms == null || !Farms.Any())
     {
-        <MudAlert Severity="Severity.Info">No farms found.</MudAlert>
+        <MudAlert Severity="Severity.Info">@Localizer["NoFarmsFound"]</MudAlert>
     }
 </MudPaper>
 
@@ -52,9 +54,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PageTitleService.BackText = "<- System Settings";
+        PageTitleService.BackText = $"<- {Localizer["SystemSettings"]}";
         PageTitleService.BackUrl = "/system-settings";
-        PageTitleService.Title = "Farm Management";
+        PageTitleService.Title = Localizer["FarmManagement"];
 
         await LoadFarmTypes();
         await LoadFarms();
@@ -80,7 +82,7 @@
             { "FarmTypes", FarmTypes }
         };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
-        var dialog = await Dialog.ShowAsync<FarmDialog>("Add New Farm", parameters, options);
+        var dialog = await Dialog.ShowAsync<FarmDialog>(Localizer["AddNewFarm"], parameters, options);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
@@ -93,7 +95,7 @@
 
             IsLoading = false;
             StateHasChanged();
-            Snackbar.Add("Farm added successfully", Severity.Success);
+            Snackbar.Add(Localizer["FarmAddedSuccess"], Severity.Success);
         }
     }
 
@@ -105,7 +107,7 @@
             { "FarmTypes", FarmTypes }
         };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, Position = DialogPosition.TopCenter };
-        var dialog = await Dialog.ShowAsync<FarmDialog>("Edit Farm", parameters, options);
+        var dialog = await Dialog.ShowAsync<FarmDialog>(Localizer["EditFarm"], parameters, options);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
@@ -117,7 +119,7 @@
                 Farms[index] = updatedFarm;
             }
 
-            Snackbar.Add("Farm updated successfully", Severity.Success);
+            Snackbar.Add(Localizer["FarmUpdatedSuccess"], Severity.Success);
         }
     }
 
